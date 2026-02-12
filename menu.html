@@ -1,0 +1,56 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="<?= global.url ?>">
+      <div class="logo-container">
+        <img src="https://boochlin.com/wp-content/uploads/2024/08/橫版.png" alt="Logo" class="navbar-logo">
+      </div>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarContent">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link <?= global.op === '' ? 'active' : '' ?>" href="<?= global.url ?>">玩獸會員登入</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <?= global.op === 'stocklist' ? 'active' : '' ?>" href="<?= global.url ?>?op=stocklist">點數兌換清單</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <?= global.op === 'about' ? 'active' : '' ?>" href="<?= global.url ?>?op=about">相關連結</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<style>
+.navbar-brand {
+  max-width: 170px; /* Adjust this value as needed */
+  width: 100%;
+}
+
+.logo-container {
+  width: 100%;
+  padding-top: 21%;
+  padding-bottom: 25%;
+  position: relative;
+  overflow: hidden;
+}
+
+.navbar-logo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 105%;
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (max-width: 768px) {
+  .navbar-brand {
+    max-width: 150px; /* Adjust for smaller screens */
+  }
+}
+</style>

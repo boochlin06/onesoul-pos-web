@@ -1,0 +1,97 @@
+<link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.css">
+<script src="https://unpkg.com/bootstrap-table@1.22.1/dist/bootstrap-table.min.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.22.1/dist/locale/bootstrap-table-zh-TW.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+
+<div class="container py-4">
+    <!-- Previous form and result area code here -->
+
+
+    <div id="gkListContainer" class="d-none">
+      <div class="card mt-4">
+          <div class="card-header bg-primary text-white">
+              <h5 class="card-title mb-0">GK 清單</h5>
+          </div>
+          <div class="card-body">
+              <table 
+                  id="gkTable"
+                  data-toggle="table"
+                  data-pagination="true"
+                  data-page-size="30"
+                  data-page-list="[10, 25, 30, 50, 100, all]"
+                  data-search="true"
+                  data-show-columns="true"
+                  data-show-toggle="true"
+                  data-show-refresh="true"
+                  data-show-fullscreen="true"
+                  data-locale="zh-TW"
+                  class="table table-striped">
+                  <thead>
+                      <tr>
+                          <th data-sortable="true">編號</th>
+                          <th data-sortable="true">名稱</th>
+                          <th data-sortable="true">點數</th>
+                          <th data-sortable="true">地點</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      <? for(let i in rows){ ?>
+                          <tr>
+                              <? for(let j in rows[i]){?>
+                                  <td><?= rows[i][j] ?></td>
+                              <? } ?>
+                          </tr>
+                      <? } ?>
+                  </tbody>
+              </table>
+          </div>
+      </div>
+    </div>
+    <div id="tips" class="mt-4">
+        <div class="alert alert-info" role="alert">
+            <h4 class="alert-heading">GK 兌換說明</h4>
+            <p class="mb-0">如玩家有興趣點數兌換以下 GK，請私訊 <a href="https://www.instagram.com/onesoul.zb" class="alert-link" target="_blank">IG: onesoul.zb</a> 
+            提供電話，姓名，以及想換得GK。小編會盡快確認庫存是否能兌換。如果有不在清單上的，也歡迎IG詢問兌換所需點數。</p>
+            <p class="mb-0">1. GK數量並不隨時同步數量，因此需透過IG詢問確認</p>
+            <p class="mb-0">2. GK點數並不是永遠不變的，會隨者調貨成本改變</p>
+            <p class="mb-0">3. 高價或是熱門GK(300點以上)，庫存和點數浮動較大，因此建議都透過IG詢問確認</p>
+            <p class="mb-0">4. 點數訂貨後，不得取消</p>
+            <p class="mb-0">5. GK開箱請全程錄影，否則不符合售後的受理條件</p>
+            <p class="mb-0">6. 本店保有變更商品及終止活動之權利，並保留最終解釋權</p>
+        </div>
+    </div>
+</div>
+
+<script>
+  
+$(function() {
+    $('#gkTable').bootstrapTable();
+
+function isSessionExpired() {
+  const loginTime = localStorage.getItem('loginTime');
+  if (!loginTime) return true;
+  
+  const now = new Date().getTime();
+  const threeDaysInMillis = 3 * 24 * 60 * 60 * 1000;
+  return (now - parseInt(loginTime)) > threeDaysInMillis;
+}
+// 检查会话是否过期
+  if (!isSessionExpired()) {
+      // 显示清单
+      $('#gkListContainer').removeClass('d-none');
+      $('#gkTable').bootstrapTable();
+      // Swal.fire({
+      //   title: "已登入成功",
+      //   text: "如玩家有興趣點數兌換以下 GK，請私訊 IG: onesoul.zb 提供電話，姓名，以及想換得GK。小編會盡快確認庫存是否能兌換。如果有不在清單上的，也歡迎IG詢問兌換所需點數。",
+      //   icon: "success"
+      // });
+  } else {
+      // 显示会话过期警告
+      Swal.fire({
+        title: "尚未登入",
+        text: "請先到登入頁面後，登入帳號後，方可取得GK清單",
+        icon: "error"
+      });
+  }
+});
+</script>
