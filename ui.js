@@ -1,9 +1,8 @@
-
 /*========================================
   渲染網頁
 =========================================*/
 function render(file, argsObject, title='') {
-  let tmp = HtmlService.createTemplateFromFile(file);
+  let tmp = HtmlService.createTemplateFromFile('views/' + file);
   for(let i in argsObject){
     tmp[i] = argsObject[i];
   }

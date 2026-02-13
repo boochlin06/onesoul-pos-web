@@ -1,23 +1,23 @@
-function index(e) {
+function index(e, menu) {
   let title = '會員登入'
   // let content = `<h2 class='mt-3'>${title}</h2>`;
-  let content = render('member_detail',{});
-  return render('tmp',{content: content }, title);
+  let content = render('member_detail.html',{});
+  return render('tmp.html',{content: content, menu: menu }, title);
 }
 
-function stocklist(e){
+function stocklist(e, menu){
   let title = '點數兌換清單';
   let content = `<h2 class='mt-3'>${title}</h2>`;
-  content += render('stock_list',{rows:getSellList()});
-  return render('tmp', {content: content}, title); 
+  content += render('stock_list.html',{rows:getSellList()});
+  return render('tmp.html', {content: content, menu: menu}, title); 
 }
 
-function about(e){
+function about(e, menu){
   let title = '相關連結';
   console.log(title);
-  let content = render('about',{data:title});
+  let content = render('about.html',{data:title});
   console.log('about');
-  return render('tmp', {content: content}, title); 
+  return render('tmp.html', {content: content, menu: menu}, title); 
 }
 
 
