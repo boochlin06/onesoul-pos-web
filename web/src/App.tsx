@@ -248,7 +248,7 @@ function SalesView({ branch, records, isLoading }: { branch: Branch; records: Sa
           <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
             <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-emerald-500" />
             資料讀取中...
-          </td>
+          </div>
         ) : grouped.length === 0 && (
           <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
             <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-20" />
