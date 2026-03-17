@@ -1,73 +1,65 @@
-# React + TypeScript + Vite
+# OneSoul POS Web System (網頁版 POS 系統)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一套專為零售設計的現代化、反應靈敏的 POS 系統前端，完整整合 Google Sheets 做為資料庫，並透過 Google Apps Script (GAS) 進行 API 溝通。
 
-Currently, two official plugins are available:
+## 🌟 核心功能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **結帳與計算 (Checkout)**：
+  - 支援同時處理「福袋」與「一般商品」。
+  - 自動計算點數（例如：滿 88888 點加 1 點規則）。
+  - 多種支付方式紀錄：現金、匯款、信用卡、點數折抵。
+- **當日銷售管理 (Daily Sales)**：
+  - **群組顯示**：根據交易 ID 自動群組當日明細。
+  - **作廢機制**：支援一鍵作廢打錯的訂單，並自動退回會員點數。
+- **會員資料庫 (Members)**：
+  - 快速搜尋 1500+ 位會員資料。
+  - 實時同步會員餘額與點數。
+- **福袋獎項庫 (Prize Library)**：
+  - 高亮顯示單價以便確認。
+  - 支援「竹北」與「金山」雙分店邏輯與數據過濾。
+- **銷售紀錄 (Sales History)**：
+  - 自動撈取最近兩個月的成交紀錄。
 
-## React Compiler
+## 🛠️ 技術架構
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **前端**：React 19 + TypeScript + Vite
+- **外觀風格**：Tailwind CSS (自定義 Slate/Emerald 配色)
+- **圖標**：Lucide React
+- **資料庫/後端**：Google Sheets + Google Apps Script
 
-## Expanding the ESLint configuration
+## 🚀 快速開始
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. 安裝與執行 (Terminal 指令)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# 進入網頁目錄
+cd web
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# 安裝相依套件
+npm install
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 啟動開發者模式
+npm run dev
+
+# 建立生產環境版本
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. 後端設定 (GAS)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+請確保您的 Google Apps Script 已經部署為「網頁應用程式」，且存取權限設定為「所有人 (Anyone)」。
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+API 地址定義在 `web/src/App.tsx` 中的 `GAS_URL`：
+```typescript
+const GAS_URL = 'https://script.google.com/macros/s/你的-URL/exec';
 ```
+
+## 📁 專案佈局
+
+- `src/App.tsx`: 系統核心邏輯與主要 UI 組件。
+- `src/App.css`: 自定義動畫與微調樣式。
+- `gas_backend_changes.md`: 提供給 GAS 使用的 API 程式碼。
+
+## 📝 授權
+
+本專案為私有財產，僅供專屬 POS 操作使用。
