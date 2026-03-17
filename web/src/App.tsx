@@ -31,6 +31,7 @@ interface MemberEntry {
 }
 
 interface SalesRecordEntry {
+  checkoutUID: string;
   date: string;
   phone: string;
   name: string;
@@ -204,22 +205,31 @@ function MembersView({ members, isLoading }: { members: MemberEntry[], isLoading
 function SalesView({ branch, records, isLoading }: { branch: Branch; records: SalesRecordEntry[], isLoading: boolean }) {
   const [search, setSearch] = useState('');
   
-  const filtered = useMemo(() => {
+  // Group by checkoutUID to show whole transactions together
+  const grouped = useMemo(() => {
+    const map = new Map<string, SalesRecordEntry[]>();
+    records.forEach(r => {
+      if (!map.has(r.checkoutUID)) map.set(r.checkoutUID, []);
+      map.get(r.checkoutUID)!.push(r);
+    });
+    
+    // Filter by search term matching any item in the transaction
     const q = search.toLowerCase();
-    return records.filter(r => 
-      !q || 
-      r.phone.includes(q) || 
-      r.name.toLowerCase().includes(q) ||
-      r.type.toLowerCase().includes(q)
-    );
+    const result: { uid: string, items: SalesRecordEntry[] }[] = [];
+    for (const [uid, items] of map.entries()) {
+      if (!q || items.some(r => r.phone.includes(q) || r.name.toLowerCase().includes(q) || r.type.toLowerCase().includes(q))) {
+        result.push({ uid, items });
+      }
+    }
+    return result;
   }, [search, records]);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 mb-24">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-800">歷史銷售紀錄 ({branch})</h2>
-          <p className="text-sm text-slate-500 mt-1">顯示最近兩個月的資料，共 {filtered.length} 筆</p>
+          <p className="text-sm text-slate-500 mt-1">顯示最近兩個月的資料，以交易單據為單位群組顯示。</p>
         </div>
         <div className="relative w-72">
           <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -233,56 +243,69 @@ function SalesView({ branch, records, isLoading }: { branch: Branch; records: Sa
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto max-h-[70vh] relative">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
-              <tr>
-                {['結帳時間', '客戶電話', '購買內容', '交易類型', '異動點數', '總金額', '門市'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((r, i) => (
-                <tr key={i} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{r.date}</td>
-                  <td className="px-4 py-3 text-slate-600 font-mono whitespace-nowrap">{r.phone}</td>
-                  <td className="px-4 py-3 font-medium text-slate-700 whitespace-nowrap">{r.name}</td>
-                  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      r.type === '帶走' || r.type === '現金' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
-                    }`}>
-                      {r.type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-indigo-600 font-bold font-mono">
-                    {r.points !== 0 ? (r.points > 0 ? `+${r.points}` : r.points) : '-'}
-                  </td>
-                  <td className="px-4 py-3 text-rose-600 font-bold text-right font-mono">
-                    {r.amount !== 0 ? `$${r.amount.toLocaleString()}` : '-'}
-                  </td>
-                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${branchBadge[r.branch as Branch]}`}>{r.branch}</span></td>
-                </tr>
-              ))}
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center text-slate-400">
-                    <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-emerald-500" />
-                    資料讀取中...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center text-slate-400">
-                    <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                    無符合條件的銷售紀錄
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
+            <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-emerald-500" />
+            資料讀取中...
+          </td>
+        ) : grouped.length === 0 && (
+          <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
+            <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <p>目前無符合條件的銷售紀錄</p>
+          </div>
+        )}
+        
+        {grouped.map(({ uid, items }) => {
+          const first = items[0];
+          return (
+            <div key={uid} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden border-l-4 border-l-slate-300">
+              <div className="flex items-center justify-between px-5 py-3 bg-slate-50 border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                  <div className="bg-slate-200 text-slate-600 px-2 py-1 rounded text-[10px] font-bold font-mono uppercase tracking-tighter self-start mt-0.5">
+                    ID: {uid}
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-slate-700">{first.date}</span>
+                      <span className="font-mono text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 text-sm">{first.phone || '無電話'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${branchBadge[first.branch as Branch]}`}>{first.branch}</span>
+                </div>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="bg-white border-b border-slate-50">
+                  <tr>
+                    {['購買內容', '交易類型', '異動點數', '金額'].map(h => (
+                      <th key={h} className="px-5 py-2 text-left text-xs font-semibold text-slate-400 font-normal">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {items.map((r, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50">
+                      <td className="px-5 py-2.5 font-medium text-slate-700">{r.name}</td>
+                      <td className="px-5 py-2.5 text-slate-500 text-xs">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                          r.type === '帶走' || r.type === '現金' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
+                        }`}>{r.type}</span>
+                      </td>
+                      <td className="px-5 py-2.5 text-indigo-600 font-bold font-mono">
+                        {r.points !== 0 ? (r.points > 0 ? `+${r.points}` : r.points) : '-'}
+                      </td>
+                      <td className="px-5 py-2.5 text-slate-700 font-bold font-mono">
+                        {r.amount !== 0 ? `$${r.amount.toLocaleString()}` : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -340,13 +363,17 @@ function DailySalesView({ branch, records, isLoading, onDelete }: { branch: Bran
         {grouped.map(({ uid, items }) => {
           const first = items[0];
           return (
-            <div key={uid} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div key={uid} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden border-l-4 border-l-emerald-500">
               <div className="flex items-center justify-between px-5 py-3 bg-slate-50 border-b border-slate-100">
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-400 font-mono">ID: {uid}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-slate-700">{first.date}</span>
-                    <span className="font-mono text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 text-sm">{first.phone || '無電話'}</span>
+                <div className="flex items-center gap-4">
+                  <div className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold font-mono uppercase tracking-tighter self-start mt-0.5">
+                    ID: {uid}
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-slate-700">{first.date}</span>
+                      <span className="font-mono text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 text-sm">{first.phone || '無電話'}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">

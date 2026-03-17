@@ -196,7 +196,16 @@ function apiGetSalesRecords(branch) {
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       if (row[13] instanceof Date && row[13] >= twoMonthsAgo) {
-        results.push({ phone: row[0], name: row[5], type: row[4], amount: row[11]||0, points: row[10]||0, date: Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm'), branch: branch });
+        results.push({ 
+          checkoutUID: row[14] ? row[14].toString() : '',
+          phone: row[0], 
+          name: row[5], 
+          type: row[4], 
+          amount: row[11]||0, 
+          points: row[10]||0, 
+          date: Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm'), 
+          branch: branch 
+        });
       }
     }
     return { success: true, data: results.reverse() };
