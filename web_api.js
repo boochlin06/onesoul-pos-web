@@ -129,13 +129,24 @@ function apiCloseDay(payload) {
   var targetSheet = tempApp.getSheetByName(targetSheetName);
   var lastRowSource = sourceSheet.getLastRow();
   
-  if (lastRowSource <= 1) return { success: true, message: '無資料需要關帳' };
+  if (lastRowSource <= 5) return { success: true, message: '無資料需要關帳' };
   
   try {
-    var dataToMove = sourceSheet.getRange(2, 1, lastRowSource - 1, sourceSheet.getLastColumn()).getValues();
+    var numToMove = lastRowSource - 5;
+    var srcCols = sourceSheet.getLastColumn();
+    var dataToMove = sourceSheet.getRange(6, 1, numToMove, srcCols).getValues();
+    
+    // 在第 25 欄 (index 24, Column Y) 加蓋分店標籤，方便歷史→讀取正確分店
+    var dataWithBranch = dataToMove.map(function(row) {
+      while (row.length < 25) row.push('');
+      if (!row[24]) row[24] = branch; // 只在空白時寫入、避免覆蓋既有標記
+      return row;
+    });
+
     var lastRowTarget = targetSheet.getLastRow();
-    targetSheet.getRange(lastRowTarget + 1, 1, dataToMove.length, dataToMove[0].length).setValues(dataToMove);
-    sourceSheet.getRange(2, 1, lastRowSource - 1, sourceSheet.getLastColumn()).clearContent();
+    var targetCols = Math.max(srcCols, 25);
+    targetSheet.getRange(lastRowTarget + 1, 1, dataWithBranch.length, targetCols).setValues(dataWithBranch);
+    sourceSheet.getRange(6, 1, numToMove, srcCols).clearContent();
     return { success: true, message: branch + ' 關帳成功' };
   } catch(error) {
     return { success: false, message: '關帳異常: ' + error.toString() };
@@ -187,28 +198,64 @@ function apiGetAllMembers() {
 }
 
 // ── 6. 取得銷售紀錄 API ───────────────────────────────────
-function apiGetSalesRecords(branch) {
+function apiGetSalesRecords(payload) {
+  var limit = payload.limit || 300;
+  var offset = payload.offset || 0;
+  // 不再依賴請求的 branch，直接讀全部分店資料
+
   try {
     var tempApp = SpreadsheetApp.openById(appBackground);
-    var data = tempApp.getSheetByName(sheetSalesRecord).getDataRange().getValues();
-    var twoMonthsAgo = new Date(); twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    var sheet = tempApp.getSheetByName(sheetSalesRecord);
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, data: [], hasMore: false };
+
+    var totalRecords = lastRow - 1;
+    var numToFetch = Math.min(totalRecords - offset, limit);
+    if (numToFetch <= 0) return { success: true, data: [], hasMore: false };
+
+    var startRow = lastRow - offset - numToFetch + 1;
+    var lastCol = Math.max(sheet.getLastColumn(), 25); // 至少涵蓋到第25欄 (Column Y)
+    var data = sheet.getRange(startRow, 1, numToFetch, lastCol).getValues();
+    
     var results = [];
-    for (var i = 1; i < data.length; i++) {
+    for (var i = 0; i < data.length; i++) {
       var row = data[i];
-      if (row[13] instanceof Date && row[13] >= twoMonthsAgo) {
-        results.push({ 
-          checkoutUID: row[14] ? row[14].toString() : '',
-          phone: row[0], 
-          name: row[5], 
-          type: row[4], 
-          amount: row[11]||0, 
-          points: row[10]||0, 
-          date: Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm'), 
-          branch: branch 
-        });
-      }
+      var uid = row[14] ? row[14].toString().trim() : '';
+      var phone = row[0] ? row[0].toString().trim() : '';
+      if (!uid || uid.toLowerCase() === 'id' || uid.toLowerCase() === 'checkoutuid' || phone === '電話') continue;
+
+      // 分店從 col[24] (Column Y) 讀取
+      var rowBranch = row[24] ? row[24].toString().trim() : '';
+
+      results.push({
+        phone: phone,
+        lotteryId: row[1] ? row[1].toString() : '',
+        prize: row[2] ? row[2].toString() : '',
+        draws: Number(row[3]) || 0,
+        type: row[4] ? row[4].toString() : '',
+        setName: row[5] ? row[5].toString() : '',
+        unitPrice: Number(row[6]) || 0,
+        prizeId: row[7] ? row[7].toString() : '',
+        prizeName: row[8] ? row[8].toString() : '',
+        unitPoints: Number(row[9]) || 0,
+        points: Number(row[10]) || 0,
+        amount: Number(row[11]) || 0,
+        remark: row[12] ? row[12].toString() : '',
+        date: row[13] instanceof Date ? Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm') : (row[13] ? row[13].toString() : ''),
+        checkoutUID: uid,
+        receivedAmount: Number(row[15]) || 0,
+        remittance: Number(row[16]) || 0,
+        creditCard: Number(row[17]) || 0,
+        cash: Number(row[18]) || 0,
+        pointsUsed: Number(row[19]) || 0,
+        channel: row[20] ? row[20].toString() : '',
+        pointDelta: Number(row[21]) || 0,
+        branch: rowBranch
+      });
     }
-    return { success: true, data: results.reverse() };
+    
+    var hasMore = (offset + numToFetch) < totalRecords;
+    return { success: true, data: results.reverse(), hasMore: hasMore };
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 
@@ -217,12 +264,45 @@ function apiGetDailySales(branch) {
   try {
     var tempApp = SpreadsheetApp.openById(appBackground);
     var targetSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
-    var data = tempApp.getSheetByName(targetSheetName).getDataRange().getValues();
+    var sheet = tempApp.getSheetByName(targetSheetName);
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 5) return { success: true, data: [] };
+
+    // 資料從第 6 列開始 (第 1-5 列為標題與說明)
+    var lastCol = Math.max(sheet.getLastColumn(), 25);
+    var data = sheet.getRange(6, 1, lastRow - 5, lastCol).getValues();
     var results = [];
-    for (var i = 1; i < data.length; i++) {
+    for (var i = 0; i < data.length; i++) {
       var row = data[i];
-      if (!row[14]) continue;
-      results.push({ phone: row[0], name: row[5], type: row[4], amount: row[11]||0, points: row[10]||0, date: row[13] instanceof Date ? Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm') : row[13], checkoutUID: row[14], branch: branch });
+      var uid = row[14] ? row[14].toString().trim() : '';
+      var phone = row[0] ? row[0].toString().trim() : '';
+      if (!uid || uid.toLowerCase() === 'id' || uid.toLowerCase() === 'checkoutuid' || phone === '電話') continue;
+
+      results.push({
+        phone: phone,
+        lotteryId: row[1] ? row[1].toString() : '',
+        prize: row[2] ? row[2].toString() : '',
+        draws: Number(row[3]) || 0,
+        type: row[4] ? row[4].toString() : '',
+        setName: row[5] ? row[5].toString() : '',
+        unitPrice: Number(row[6]) || 0,
+        prizeId: row[7] ? row[7].toString() : '',
+        prizeName: row[8] ? row[8].toString() : '',
+        unitPoints: Number(row[9]) || 0,
+        points: Number(row[10]) || 0,
+        amount: Number(row[11]) || 0,
+        remark: row[12] ? row[12].toString() : '',
+        date: row[13] instanceof Date ? Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm') : (row[13] ? row[13].toString() : ''),
+        checkoutUID: uid,
+        receivedAmount: Number(row[15]) || 0,
+        remittance: Number(row[16]) || 0,
+        creditCard: Number(row[17]) || 0,
+        cash: Number(row[18]) || 0,
+        pointsUsed: Number(row[19]) || 0,
+        channel: row[20] ? row[20].toString() : '',
+        pointDelta: Number(row[21]) || 0,
+        branch: branch
+      });
     }
     return { success: true, data: results.reverse() };
   } catch(error) { return { success: false, message: error.toString() }; }
@@ -234,15 +314,22 @@ function apiDeleteDailySales(branch, checkoutUID) {
     var tempApp = SpreadsheetApp.openById(appBackground);
     var targetSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
     var sheet = tempApp.getSheetByName(targetSheetName);
-    var data = sheet.getDataRange().getValues();
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 5) return { success: false, message: '找不到訂單 (表單無資料)' };
+
+    var data = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues(); // 包含 1-5 標題供偵測
     var rowsToDelete = [];
     var phoneToUpdate = '';
     var totalPointsImpact = 0;
     
-    for (var i = data.length - 1; i >= 1; i--) {
+    // 從最後一行往上找，避開 1-5 列標題 (index 0-4)
+    for (var i = data.length - 1; i >= 5; i--) {
       if (data[i][14] && data[i][14].toString() === checkoutUID.toString()) {
         rowsToDelete.push(i + 1);
-        if (!phoneToUpdate) { phoneToUpdate = data[i][0]; totalPointsImpact = Number(data[i][21]); }
+        if (!phoneToUpdate) { 
+          phoneToUpdate = data[i][0] ? data[i][0].toString() : ''; 
+          totalPointsImpact = Number(data[i][21]); 
+        }
       }
     }
     if (rowsToDelete.length === 0) return { success: false, message: '找不到訂單' };

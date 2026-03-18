@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   ShoppingCart, Plus, Trash2, Store, Archive,
-  Users, BarChart3, ClipboardList, Receipt, Search, BookOpen, X, Loader2
+  Users, BarChart3, ClipboardList, Receipt, Search, BookOpen, X, Loader2, ChevronDown
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────
@@ -30,27 +30,36 @@ interface MemberEntry {
   duplicate: string;
 }
 
-interface SalesRecordEntry {
-  checkoutUID: string;
-  date: string;
+interface SalesEntry {
   phone: string;
-  name: string;
+  lotteryId: string;
+  prize: string;
+  draws: number;
   type: string;
-  amount: number;
+  setName: string;
+  name?: string; // 回向相容舊版後端
+  unitPrice: number;
+  prizeId: string;
+  prizeName: string;
+  unitPoints: number;
   points: number;
+  amount: number;
+  remark: string;
+  date: string;
+  checkoutUID: string;
+  // 支付資訊 (子列才有，其餘為 0)
+  receivedAmount: number;
+  remittance: number;
+  creditCard: number;
+  cash: number;
+  pointsUsed: number;
+  channel: string;
+  pointDelta: number;
   branch: string;
 }
 
-interface DailySalesEntry {
-  checkoutUID: string;
-  date: string;
-  phone: string;
-  name: string;
-  type: string;
-  amount: number;
-  points: number;
-  branch: string;
-}
+type SalesRecordEntry = SalesEntry;
+type DailySalesEntry = SalesEntry;
 
 interface LotteryItem {
   id: string;        // 福袋編號
@@ -202,7 +211,21 @@ function MembersView({ members, isLoading }: { members: MemberEntry[], isLoading
 }
 
 // ── Sales Records View ────────────────────────────────────
-function SalesView({ branch, records, isLoading }: { branch: Branch; records: SalesRecordEntry[], isLoading: boolean }) {
+function SalesView({ 
+  branch, 
+  records, 
+  isLoading, 
+  hasMore, 
+  isFetchingMore, 
+  onLoadMore 
+}: { 
+  branch: Branch; 
+  records: SalesRecordEntry[]; 
+  isLoading: boolean;
+  hasMore: boolean;
+  isFetchingMore: boolean;
+  onLoadMore: () => void;
+}) {
   const [search, setSearch] = useState('');
   
   // Group by checkoutUID to show whole transactions together
@@ -217,7 +240,13 @@ function SalesView({ branch, records, isLoading }: { branch: Branch; records: Sa
     const q = search.toLowerCase();
     const result: { uid: string, items: SalesRecordEntry[] }[] = [];
     for (const [uid, items] of map.entries()) {
-      if (!q || items.some(r => r.phone.includes(q) || r.name.toLowerCase().includes(q) || r.type.toLowerCase().includes(q))) {
+      if (!q || items.some(r => 
+        r.phone.includes(q) || 
+        r.setName.toLowerCase().includes(q) || 
+        (r.name && r.name.toLowerCase().includes(q)) ||
+        r.prizeName.toLowerCase().includes(q) ||
+        r.type.toLowerCase().includes(q)
+      )) {
         result.push({ uid, items });
       }
     }
@@ -229,7 +258,7 @@ function SalesView({ branch, records, isLoading }: { branch: Branch; records: Sa
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-800">歷史銷售紀錄 ({branch})</h2>
-          <p className="text-sm text-slate-500 mt-1">顯示最近兩個月的資料，以交易單據為單位群組顯示。</p>
+          <p className="text-sm text-slate-500 mt-1">每次載入 300 筆，以交易單據為單位群組顯示。</p>
         </div>
         <div className="relative w-72">
           <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -263,7 +292,7 @@ function SalesView({ branch, records, isLoading }: { branch: Branch; records: Sa
               <div className="flex items-center justify-between px-5 py-3 bg-slate-50 border-b border-slate-100">
                 <div className="flex items-center gap-4">
                   <div className="bg-slate-200 text-slate-600 px-2 py-1 rounded text-[10px] font-bold font-mono uppercase tracking-tighter self-start mt-0.5">
-                    ID: {uid}
+                    {uid}
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-3">
@@ -276,36 +305,84 @@ function SalesView({ branch, records, isLoading }: { branch: Branch; records: Sa
                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${branchBadge[first.branch as Branch]}`}>{first.branch}</span>
                 </div>
               </div>
-              <table className="w-full text-sm">
-                <thead className="bg-white border-b border-slate-50">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[1000px]">
+                <thead className="bg-white border-b border-slate-100">
                   <tr>
-                    {['購買內容', '交易類型', '異動點數', '金額'].map(h => (
-                      <th key={h} className="px-5 py-2 text-left text-xs font-semibold text-slate-400 font-normal">{h}</th>
+                    {['福袋編號', '獎項', '抽數', '帶走/點數', '套名', '單抽金額', '獎項編號', '獎項/商品名稱', '單點', '點數計', '金額', '備註'].map(h => (
+                      <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {items.map((r, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50">
-                      <td className="px-5 py-2.5 font-medium text-slate-700">{r.name}</td>
-                      <td className="px-5 py-2.5 text-slate-500 text-xs">
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                    <tr key={i} className="hover:bg-slate-50/50 text-xs">
+                      <td className="px-3 py-2 font-mono text-slate-500">{r.lotteryId || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600">{r.prize || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600 text-center">{r.draws || '-'}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
                           r.type === '帶走' || r.type === '現金' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
-                        }`}>{r.type}</span>
+                        }`}>{r.type || '-'}</span>
                       </td>
-                      <td className="px-5 py-2.5 text-indigo-600 font-bold font-mono">
+                      <td className="px-3 py-2 font-medium text-slate-700">{r.setName || r.name || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600 font-mono">{r.unitPrice ? `$${r.unitPrice}` : '-'}</td>
+                      <td className="px-3 py-2 font-mono text-slate-500">{r.prizeId || '-'}</td>
+                      <td className="px-3 py-2 text-slate-700 font-medium">{r.prizeName || '-'}</td>
+                      <td className="px-3 py-2 text-slate-500 font-mono text-center">{r.unitPoints || '-'}</td>
+                      <td className="px-3 py-2 text-indigo-600 font-bold font-mono">
                         {r.points !== 0 ? (r.points > 0 ? `+${r.points}` : r.points) : '-'}
                       </td>
-                      <td className="px-5 py-2.5 text-slate-700 font-bold font-mono">
+                      <td className="px-3 py-2 text-slate-700 font-bold font-mono">
                         {r.amount !== 0 ? `$${r.amount.toLocaleString()}` : '-'}
                       </td>
+                      <td className="px-3 py-2 text-slate-400">{r.remark || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
+              {(() => {
+                const p = items.find(r => r.receivedAmount || r.creditCard || r.cash || r.remittance);
+                if (!p) return null;
+                return (
+                  <div className="flex flex-wrap gap-3 px-4 py-2 bg-slate-50 border-t border-slate-100 text-xs text-slate-500">
+                    <span className="font-semibold text-slate-600">支付：</span>
+                    {p.receivedAmount ? <span>實收 <b className="text-slate-700">${p.receivedAmount.toLocaleString()}</b></span> : null}
+                    {p.cash ? <span>現金 <b className="text-slate-700">${p.cash.toLocaleString()}</b></span> : null}
+                    {p.creditCard ? <span>信用卡 <b className="text-slate-700">${p.creditCard.toLocaleString()}</b></span> : null}
+                    {p.remittance ? <span>匯款 <b className="text-slate-700">${p.remittance.toLocaleString()}</b></span> : null}
+                    {p.pointsUsed ? <span>點數扣 <b className="text-slate-700">{p.pointsUsed}</b></span> : null}
+                    {p.pointDelta ? <span className="ml-auto font-medium">點數變動 <b className="text-indigo-600">{p.pointDelta > 0 ? `+${p.pointDelta}` : p.pointDelta}</b></span> : null}
+                    {p.channel ? <span className="bg-slate-200 px-1.5 py-0.5 rounded">{p.channel}</span> : null}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
+
+        {hasMore && !isLoading && (
+          <div className="pt-4 pb-8 flex justify-center">
+            <button
+              onClick={onLoadMore}
+              disabled={isFetchingMore}
+              className="flex items-center gap-2 px-8 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm font-medium disabled:opacity-50"
+            >
+              {isFetchingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  讀取中...
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  載入更多紀錄
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -327,7 +404,13 @@ function DailySalesView({ branch, records, isLoading, onDelete }: { branch: Bran
     const q = search.toLowerCase();
     const result: { uid: string, items: DailySalesEntry[] }[] = [];
     for (const [uid, items] of map.entries()) {
-      if (!q || items.some(r => r.phone.includes(q) || r.name.toLowerCase().includes(q) || r.type.toLowerCase().includes(q))) {
+      if (!q || items.some(r => 
+        r.phone.includes(q) || 
+        r.setName.toLowerCase().includes(q) || 
+        (r.name && r.name.toLowerCase().includes(q)) ||
+        r.prizeName.toLowerCase().includes(q) ||
+        r.type.toLowerCase().includes(q)
+      )) {
         result.push({ uid, items });
       }
     }
@@ -385,33 +468,59 @@ function DailySalesView({ branch, records, isLoading, onDelete }: { branch: Bran
                   </button>
                 </div>
               </div>
-              <table className="w-full text-sm">
-                <thead className="bg-white border-b border-slate-50">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[900px]">
+                <thead className="bg-white border-b border-slate-100">
                   <tr>
-                    {['購買內容', '交易類型', '異動點數', '總金額'].map(h => (
-                      <th key={h} className="px-5 py-2 text-left text-xs font-semibold text-slate-400 font-normal">{h}</th>
+                    {['福袋編號', '獎項', '抽數', '帶走/點數', '套名', '單抽金額', '獎項編號', '獎項/商品名稱', '單點', '點數計', '金額', '備註'].map(h => (
+                      <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {items.map((r, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50">
-                      <td className="px-5 py-2.5 font-medium text-slate-700">{r.name}</td>
-                      <td className="px-5 py-2.5 text-slate-500">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    <tr key={i} className="hover:bg-slate-50/50 text-xs">
+                      <td className="px-3 py-2 font-mono text-slate-500">{r.lotteryId || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600">{r.prize || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600 text-center">{r.draws || '-'}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
                           r.type === '帶走' || r.type === '現金' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
-                        }`}>{r.type}</span>
+                        }`}>{r.type || '-'}</span>
                       </td>
-                      <td className="px-5 py-2.5 text-indigo-600 font-bold font-mono">
+                      <td className="px-3 py-2 font-medium text-slate-700">{r.setName || r.name || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600 font-mono">{r.unitPrice ? `$${r.unitPrice}` : '-'}</td>
+                      <td className="px-3 py-2 font-mono text-slate-500">{r.prizeId || '-'}</td>
+                      <td className="px-3 py-2 text-slate-700 font-medium">{r.prizeName || '-'}</td>
+                      <td className="px-3 py-2 text-slate-500 font-mono text-center">{r.unitPoints || '-'}</td>
+                      <td className="px-3 py-2 text-indigo-600 font-bold font-mono">
                         {r.points !== 0 ? (r.points > 0 ? `+${r.points}` : r.points) : '-'}
                       </td>
-                      <td className="px-5 py-2.5 text-slate-700 font-bold font-mono">
+                      <td className="px-3 py-2 text-slate-700 font-bold font-mono">
                         {r.amount !== 0 ? `$${r.amount.toLocaleString()}` : '-'}
                       </td>
+                      <td className="px-3 py-2 text-slate-400">{r.remark || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
+              {(() => {
+                const p = items.find(r => r.receivedAmount || r.creditCard || r.cash || r.remittance);
+                if (!p) return null;
+                return (
+                  <div className="flex flex-wrap gap-3 px-4 py-2 bg-slate-50 border-t border-slate-100 text-xs text-slate-500">
+                    <span className="font-semibold text-slate-600">支付：</span>
+                    {p.receivedAmount ? <span>實收 <b className="text-slate-700">${p.receivedAmount.toLocaleString()}</b></span> : null}
+                    {p.cash ? <span>現金 <b className="text-slate-700">${p.cash.toLocaleString()}</b></span> : null}
+                    {p.creditCard ? <span>信用卡 <b className="text-slate-700">${p.creditCard.toLocaleString()}</b></span> : null}
+                    {p.remittance ? <span>匯款 <b className="text-slate-700">${p.remittance.toLocaleString()}</b></span> : null}
+                    {p.pointsUsed ? <span>點數扣 <b className="text-slate-700">{p.pointsUsed}</b></span> : null}
+                    {p.pointDelta ? <span className="ml-auto font-medium">點數變動 <b className="text-indigo-600">{p.pointDelta > 0 ? `+${p.pointDelta}` : p.pointDelta}</b></span> : null}
+                    {p.channel ? <span className="bg-slate-200 px-1.5 py-0.5 rounded">{p.channel}</span> : null}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
@@ -536,6 +645,8 @@ export default function App() {
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
   const [loadingSales, setLoadingSales] = useState(false);
+  const [isFetchingMoreSales, setIsFetchingMoreSales] = useState(false);
+  const [hasMoreSales, setHasMoreSales] = useState(false);
   const [loadingDaily, setLoadingDaily] = useState(false);
 
   const showBanner = (msg: string, type: 'ok' | 'err' | 'loading', autoDismiss = true) => {
@@ -564,22 +675,63 @@ export default function App() {
   const fetchDailySales = () => {
     setLoadingDaily(true);
     gasPost('getDailySales', { branch })
-      .then(res => { if (res.success && res.data) setDailySales(res.data); })
+      .then(res => {
+        if (res.success && res.data) {
+          // 前端保護層：過濾掉標題列（處理不同版本後端）
+          const cleaned = (res.data as SalesEntry[]).filter(r => {
+            const uid = r.checkoutUID?.toString().trim().toLowerCase() || '';
+            const phone = r.phone?.toString().trim() || '';
+            return uid && uid !== 'id' && uid !== 'checkoutuid' && phone !== '電話';
+          });
+          setDailySales(cleaned);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoadingDaily(false));
   };
 
+  const fetchSalesRecords = async (isLoadMore = false) => {
+    if (isLoadMore) setIsFetchingMoreSales(true);
+    else setLoadingSales(true);
+
+    try {
+      const res = await gasPost('getSalesRecords', { 
+        branch, 
+        limit: 300, 
+        offset: isLoadMore ? salesRecords.length : 0 
+      });
+      if (res.success && res.data) {
+        if (isLoadMore) {
+          setSalesRecords(prev => [...prev, ...res.data]);
+        } else {
+          setSalesRecords(res.data);
+        }
+        setHasMoreSales(res.hasMore);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      if (isLoadMore) setIsFetchingMoreSales(false);
+      else setLoadingSales(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'sales') {
-      setLoadingSales(true);
-      gasPost('getSalesRecords', { branch })
-        .then(res => { if (res.success && res.data) setSalesRecords(res.data); })
-        .catch(() => {})
-        .finally(() => setLoadingSales(false));
+      // Only initial fetch if list is empty or branch changed
+      if (salesRecords.length === 0) {
+        fetchSalesRecords();
+      }
     } else if (activeTab === 'daily') {
       fetchDailySales();
     }
   }, [activeTab, branch]);
+
+  // Reset records when branch changes to force re-fetch
+  useEffect(() => {
+    setSalesRecords([]);
+    setHasMoreSales(false);
+  }, [branch]);
 
   const handleDeleteDaily = (checkoutUID: string) => {
     showBanner('正在作廢訂單...', 'loading', false);
@@ -921,7 +1073,16 @@ export default function App() {
 
         {activeTab === 'daily' && <DailySalesView branch={branch} records={dailySales} isLoading={loadingDaily} onDelete={handleDeleteDaily} />}
         {activeTab === 'members' && <MembersView members={members} isLoading={loadingMembers} />}
-        {activeTab === 'sales' && <SalesView branch={branch} records={salesRecords} isLoading={loadingSales} />}
+        {activeTab === 'sales' && (
+          <SalesView 
+            branch={branch} 
+            records={salesRecords} 
+            isLoading={loadingSales}
+            hasMore={hasMoreSales}
+            isFetchingMore={isFetchingMoreSales}
+            onLoadMore={() => fetchSalesRecords(true)}
+          />
+        )}
         {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes} isLoading={loadingLibrary} />}
       </main>
     </div>

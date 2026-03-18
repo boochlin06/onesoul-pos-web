@@ -1,0 +1,16 @@
+# 忽略所有檔案
+**/**
+
+# 排除後，再把你要的檔案「抓回來」
+!appsscript.json
+!*.gs
+!*.js
+!*.ts
+!*.html
+
+# 絕對不要上傳的資料夾
+node_modules/
+.git/
+.clasp.json
+package.json
+package-lock.json
