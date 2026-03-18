@@ -12,8 +12,9 @@ const sheetPointConfirm = "點數校正";
 const sheetTodaySalesRecord = "當日結帳紀錄";
 const sheetTodaySalesRecordChupei = "當日結帳紀錄";
 const sheetTodaySalesRecordJinsang = "當日結帳紀錄-金山";
+const sheetBlindBoxDB = "盲盒資料庫";
 
-const appBackground = "1qTYGU_sk7dmAGN7KCQnYT5n7XjVIwNcJk_AnEn3JJUQ";
+const appBackground = "1Dc_vjyCcl3_wjA1_IQssVEKTBA7sqJAjNgR3sSx-OSk";
 const appChupei = "1OYpsKmJoVDmjailFvDj242FwcgGKpiysUcPez8Fbzek";
 const appJinshan = "1Qt9eN2k6od1q01C-lH6KGQAzmmB3zJYsDCNguwjMXbM";
 

@@ -26,13 +26,19 @@ function doPost(e) {
         result = apiGetAllMembers();
         break;
       case "getSalesRecords":
-        result = apiGetSalesRecords(payload.branch);
+        result = apiGetSalesRecords(payload);
+        break;
+      case "getStockList":
+        result = apiGetStockList(payload.branch);
         break;
       case "getDailySales":
         result = apiGetDailySales(payload.branch);
         break;
       case "deleteDailySales":
         result = apiDeleteDailySales(payload.branch, payload.checkoutUID);
+        break;
+      case "getBlindBoxList":
+        result = apiGetBlindBoxList();
         break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
@@ -367,5 +373,73 @@ function apiDeleteDailySales(branch, checkoutUID) {
     }
     for (var r = 0; r < rowsToDelete.length; r++) sheet.deleteRow(rowsToDelete[r]);
     return { success: true, message: '已作廢且點數已退回' };
+  } catch(error) { return { success: false, message: error.toString() }; }
+}
+
+// ── 8. 取得商品資料庫 API ─────────────────────────────────
+function apiGetStockList(branch) {
+  try {
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var sheet = tempApp.getSheetByName(sheetItemDB);
+    if (!sheet) return { success: false, message: '找不到貨品資料庫分頁' };
+    var data = sheet.getDataRange().getValues();
+    var results = [];
+    
+    // 跳過標題列
+    for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        var id = row[0] ? row[0].toString().trim() : '';
+        if (!id) continue;
+        
+        var rowBranch = row[16] ? row[16].toString().trim() : ''; // q 行
+        // 依照前端選擇的店面過濾 (若有指定)
+        if (branch && branch !== '全部' && rowBranch && rowBranch !== branch) continue;
+        
+        results.push({
+            id: id,                                    // a 行
+            name: row[1] ? row[1].toString() : '',     // b 行
+            points: Number(row[4]) || 0,               // e 行
+            category: row[9] ? row[9].toString() : '', // j 行
+            quantity: Number(row[13]) || 0,            // n 行
+            remark: '',
+            branch: rowBranch
+        });
+    }
+    return { success: true, data: results };
+  } catch(error) { return { success: false, message: error.toString() }; }
+}
+
+// ── 9. 取得盲盒資料庫 API ─────────────────────────────────
+function apiGetBlindBoxList() {
+  try {
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var sheet = tempApp.getSheetByName(sheetBlindBoxDB);
+    if (!sheet) return { success: false, message: '找不到盲盒資料庫分頁' };
+    var data = sheet.getDataRange().getValues();
+    var results = [];
+    
+    // 跳過標題列
+    for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        var id = row[0] ? row[0].toString().trim() : '';
+        if (!id) continue;
+        
+        results.push({
+            id: id,
+            name: row[1] ? row[1].toString() : '',
+            points: Number(row[2]) || 0,
+            manualPrice: Number(row[3]) || 0,
+            autoSuggestPrice: Number(row[4]) || 0,
+            cost: Number(row[5]) || 0,
+            prizePoints: Number(row[6]) || 0,
+            inventory: Number(row[7]) || 0,
+            category: row[8] ? row[8].toString() : '',
+            configuring: Number(row[9]) || 0,
+            shipped: Number(row[10]) || 0,
+            remaining: Number(row[11]) || 0,
+            remark: row[12] ? row[12].toString() : ''
+        });
+    }
+    return { success: true, data: results };
   } catch(error) { return { success: false, message: error.toString() }; }
 }
