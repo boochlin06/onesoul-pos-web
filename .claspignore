@@ -1,16 +1,25 @@
-# 忽略所有檔案
-**/**
+# Ignore frontend project
+web/
+web/**
 
-# 排除後，再把你要的檔案「抓回來」
-!appsscript.json
-!*.gs
-!*.js
-!*.ts
-!*.html
-
-# 絕對不要上傳的資料夾
+# Ignore node modules
 node_modules/
-.git/
-.clasp.json
+node_modules/**
+
+# Ignore non-code files
+google_sheet_images/
+google_sheet_images/**
+*.md
 package.json
 package-lock.json
+LICENSE
+.claspignore
+.gitignore
+
+# Version control and IDE
+.git/
+.git/**
+.vscode/
+.vscode/**
+.gemini/
+.gemini/**

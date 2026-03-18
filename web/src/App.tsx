@@ -182,93 +182,63 @@ function MembersView({ members, isLoading }: { members: MemberEntry[], isLoading
                   <td className="px-4 py-3 text-slate-600 font-mono whitespace-nowrap">{m.phone}</td>
                   <td className="px-4 py-3 text-slate-600">{m.gender}</td>
                   <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{m.birthday}</td>
-                  <td className="px-4 py-3 text-slate-600">{m.store}</td>
-                  <td className="px-4 py-3 text-indigo-600 font-bold text-right">{m.points}</td>
-                  <td className="px-4 py-3 text-slate-400 text-xs">{m.note}</td>
-                </tr>
-              ))}
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-slate-400">
-                    <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-emerald-500" />
-                    資料讀取中...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-slate-400">
-                    <Users className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                    無符合條件的會員
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Sales Records View ────────────────────────────────────
+                  <td className="px-4 py-3 text-slate-600">{m.store// ── Sales Records View ────────────────────────────────────
 function SalesView({ 
-  branch, 
   records, 
   isLoading, 
-  hasMore, 
-  isFetchingMore, 
-  onLoadMore 
+  onRefresh,
+  onClearCache,
+  lastCacheTime,
 }: { 
-  branch: Branch; 
   records: SalesRecordEntry[]; 
   isLoading: boolean;
-  hasMore: boolean;
-  isFetchingMore: boolean;
-  onLoadMore: () => void;
+  onRefresh: () => void;
+  onClearCache: () => void;
+  lastCacheTime: string;
 }) {
   const [search, setSearch] = useState('');
   
-  // Group by checkoutUID to show whole transactions together
-  const grouped = useMemo(() => {
-    const map = new Map<string, SalesRecordEntry[]>();
-    records.forEach(r => {
-      if (!map.has(r.checkoutUID)) map.set(r.checkoutUID, []);
-      map.get(r.checkoutUID)!.push(r);
-    });
-    
-    // Filter by search term matching any item in the transaction
+  // Flatten and filter records
+  const filteredRecords = useMemo(() => {
     const q = search.toLowerCase();
-    const result: { uid: string, items: SalesRecordEntry[] }[] = [];
-    for (const [uid, items] of map.entries()) {
-      if (!q || items.some(r => 
-        r.phone.includes(q) || 
-        r.setName.toLowerCase().includes(q) || 
-        (r.name && r.name.toLowerCase().includes(q)) ||
-        r.prizeName.toLowerCase().includes(q) ||
-        r.type.toLowerCase().includes(q)
-      )) {
-        result.push({ uid, items });
-      }
-    }
-    return result;
+    if (!q) return records;
+    return records.filter(r => 
+      r.phone.includes(q) || 
+      r.setName.toLowerCase().includes(q) || 
+      (r.name && r.name.toLowerCase().includes(q)) ||
+      r.prizeName.toLowerCase().includes(q) ||
+      r.type.toLowerCase().includes(q) ||
+      r.checkoutUID.toLowerCase().includes(q)
+    );
   }, [search, records]);
 
   return (
     <div className="flex flex-col gap-6 mb-24">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">歷史銷售紀錄 ({branch})</h2>
-          <p className="text-sm text-slate-500 mt-1">每次載入 300 筆，以交易單據為單位群組顯示。</p>
+          <h2 className="text-xl font-bold text-slate-800">歷史銷售紀錄 (全部店面)</h2>
+          <p className="text-sm text-slate-500 mt-1 whitespace-pre-line">
+            每次載入最新 1000 筆，為加快速度預設使用快取。
+            {lastCacheTime && <span className="text-emerald-600 font-medium ml-2">上次更新時間：{lastCacheTime}</span>}
+          </p>
         </div>
-        <div className="relative w-72">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="搜尋電話、商品、類型..."
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative w-64">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="搜尋電話、商品、類型、單號..."
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <button onClick={onRefresh} disabled={isLoading} className="flex flex-col items-center justify-center px-4 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+            <span>強制更新</span><span className="text-[10px] opacity-70">(重抓前1000筆)</span>
+          </button>
+          <button onClick={onClearCache} className="flex flex-col items-center justify-center px-4 py-1.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors">
+            <span>清除快取</span><span className="text-[10px] opacity-70">(清空版面資料)</span>
+          </button>
         </div>
       </div>
 
@@ -278,81 +248,61 @@ function SalesView({
             <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-emerald-500" />
             資料讀取中...
           </div>
-        ) : grouped.length === 0 && (
+        ) : filteredRecords.length === 0 && (
           <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
             <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-20" />
             <p>目前無符合條件的銷售紀錄</p>
           </div>
         )}
         
-        {grouped.map(({ uid, items }) => {
-          const first = items[0];
-          return (
-            <div key={uid} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden border-l-4 border-l-slate-300">
-              <div className="flex items-center justify-between px-5 py-3 bg-slate-50 border-b border-slate-100">
-                <div className="flex items-center gap-4">
-                  <div className="bg-slate-200 text-slate-600 px-2 py-1 rounded text-[10px] font-bold font-mono uppercase tracking-tighter self-start mt-0.5">
-                    {uid}
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-slate-700">{first.date}</span>
-                      <span className="font-mono text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 text-sm">{first.phone || '無電話'}</span>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${branchBadge[first.branch as Branch]}`}>{first.branch}</span>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[1000px]">
-                <thead className="bg-white border-b border-slate-100">
-                  <tr>
-                    {['福袋編號', '獎項', '抽數', '帶走/點數', '套名', '單抽金額', '獎項編號', '獎項/商品名稱', '單點', '點數計', '金額', '備註'].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {items.map((r, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50 text-xs">
-                      <td className="px-3 py-2 font-mono text-slate-500">{r.lotteryId || '-'}</td>
-                      <td className="px-3 py-2 text-slate-600">{r.prize || '-'}</td>
-                      <td className="px-3 py-2 text-slate-600 text-center">{r.draws || '-'}</td>
-                      <td className="px-3 py-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                          r.type === '帶走' || r.type === '現金' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
-                        }`}>{r.type || '-'}</span>
-                      </td>
-                      <td className="px-3 py-2 font-medium text-slate-700">{r.setName || r.name || '-'}</td>
-                      <td className="px-3 py-2 text-slate-600 font-mono">{r.unitPrice ? `$${r.unitPrice}` : '-'}</td>
-                      <td className="px-3 py-2 font-mono text-slate-500">{r.prizeId || '-'}</td>
-                      <td className="px-3 py-2 text-slate-700 font-medium">{r.prizeName || '-'}</td>
-                      <td className="px-3 py-2 text-slate-500 font-mono text-center">{r.unitPoints || '-'}</td>
-                      <td className="px-3 py-2 text-indigo-600 font-bold font-mono">
-                        {r.points !== 0 ? (r.points > 0 ? `+${r.points}` : r.points) : '-'}
-                      </td>
-                      <td className="px-3 py-2 text-slate-700 font-bold font-mono">
-                        {r.amount !== 0 ? `$${r.amount.toLocaleString()}` : '-'}
-                      </td>
-                      <td className="px-3 py-2 text-slate-400">{r.remark || '-'}</td>
-                    </tr>
+        {filteredRecords.length > 0 && (
+          <div className="overflow-x-auto bg-white rounded-2xl border border-slate-100 shadow-sm max-h-[75vh]">
+            <table className="w-full text-sm min-w-[1800px] whitespace-nowrap">
+              <thead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10 shadow-sm">
+                <tr>
+                  {['店面', '電話', '福袋編號', '獎項', '抽數', '帶走/點數', '套名', '單抽價', '獎項編號', '獎項/商品名稱', '單抽點數', '點數總計', '金額', '備註', '日期', 'id', '實收金額', '匯款', '信用卡', '現金', '點數扣', '通路(備註)', '點數異動'].map(h => (
+                    <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500">{h}</th>
                   ))}
-                </tbody>
-              </table>
-              </div>
-              {(() => {
-                const p = items.find(r => r.receivedAmount || r.creditCard || r.cash || r.remittance);
-                if (!p) return null;
-                return (
-                  <div className="flex flex-wrap gap-3 px-4 py-2 bg-slate-50 border-t border-slate-100 text-xs text-slate-500">
-                    <span className="font-semibold text-slate-600">支付：</span>
-                    {p.receivedAmount ? <span>實收 <b className="text-slate-700">${p.receivedAmount.toLocaleString()}</b></span> : null}
-                    {p.cash ? <span>現金 <b className="text-slate-700">${p.cash.toLocaleString()}</b></span> : null}
-                    {p.creditCard ? <span>信用卡 <b className="text-slate-700">${p.creditCard.toLocaleString()}</b></span> : null}
-                    {p.remittance ? <span>匯款 <b className="text-slate-700">${p.remittance.toLocaleString()}</b></span> : null}
-                    {p.pointsUsed ? <span>點數扣 <b className="text-slate-700">{p.pointsUsed}</b></span> : null}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredRecords.map((r, i) => (
+                  <tr key={i} className="hover:bg-amber-50/50 transition-colors text-xs">
+                    <td className="px-3 py-2.5 font-bold text-slate-600">
+                       <span className={`px-1.5 py-0.5 rounded-full ${r.branch === '竹北' ? 'bg-indigo-100 text-indigo-700' : 'bg-rose-100 text-rose-700'}`}>{r.branch || '-'}</span>
+                    </td>
+                    <td className="px-3 py-2.5 font-mono font-medium text-slate-700">{r.phone || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.lotteryId || '-'}</td>
+                    <td className="px-3 py-2.5 font-semibold text-slate-700">{r.prize || '-'}</td>
+                    <td className="px-3 py-2.5 text-center text-slate-600">{r.draws || '-'}</td>
+                    <td className="px-3 py-2.5"><span className={`px-1.5 py-0.5 rounded font-medium text-[10px] ${r.type === '帶走' || r.type === '現金' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'}`}>{r.type || '-'}</span></td>
+                    <td className="px-3 py-2.5 font-medium text-slate-700">{r.setName || r.name || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-600">{r.unitPrice ? `$${r.unitPrice}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-400">{r.prizeId || '-'}</td>
+                    <td className="px-3 py-2.5 font-medium text-slate-700">{r.prizeName || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.unitPoints || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono font-semibold text-indigo-600">{r.points !== 0 ? r.points : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono font-bold text-amber-600">{r.amount !== 0 ? `$${r.amount.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 text-slate-400 truncate max-w-[150px]" title={r.remark}>{r.remark || '-'}</td>
+                    <td className="px-3 py-2.5 text-slate-500">{r.date || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-[10px] text-slate-400">{r.checkoutUID || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono font-semibold text-emerald-600">{r.receivedAmount ? `$${r.receivedAmount.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.remittance ? `$${r.remittance.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.creditCard ? `$${r.creditCard.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.cash ? `$${r.cash.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-rose-500">{r.pointsUsed ? `-${r.pointsUsed}` : '-'}</td>
+                    <td className="px-3 py-2.5 text-slate-500">{r.channel || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono font-bold text-indigo-600">{r.pointDelta ? (r.pointDelta > 0 ? `+${r.pointDelta}` : r.pointDelta) : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}00">{p.pointsUsed}</b></span> : null}
                     {p.pointDelta ? <span className="ml-auto font-medium">點數變動 <b className="text-indigo-600">{p.pointDelta > 0 ? `+${p.pointDelta}` : p.pointDelta}</b></span> : null}
                     {p.channel ? <span className="bg-slate-200 px-1.5 py-0.5 rounded">{p.channel}</span> : null}
                   </div>
@@ -392,29 +342,18 @@ function SalesView({
 function DailySalesView({ branch, records, isLoading, onDelete }: { branch: Branch; records: DailySalesEntry[], isLoading: boolean, onDelete: (uid: string) => void }) {
   const [search, setSearch] = useState('');
   
-  // Group by checkoutUID to show whole transactions together
-  const grouped = useMemo(() => {
-    const map = new Map<string, DailySalesEntry[]>();
-    records.forEach(r => {
-      if (!map.has(r.checkoutUID)) map.set(r.checkoutUID, []);
-      map.get(r.checkoutUID)!.push(r);
-    });
-    
-    // Filter by search term matching any item in the transaction
+  // Flatten and filter records
+  const filteredRecords = useMemo(() => {
     const q = search.toLowerCase();
-    const result: { uid: string, items: DailySalesEntry[] }[] = [];
-    for (const [uid, items] of map.entries()) {
-      if (!q || items.some(r => 
-        r.phone.includes(q) || 
-        r.setName.toLowerCase().includes(q) || 
-        (r.name && r.name.toLowerCase().includes(q)) ||
-        r.prizeName.toLowerCase().includes(q) ||
-        r.type.toLowerCase().includes(q)
-      )) {
-        result.push({ uid, items });
-      }
-    }
-    return result;
+    if (!q) return records;
+    return records.filter(r => 
+      r.phone.includes(q) || 
+      r.setName.toLowerCase().includes(q) || 
+      (r.name && r.name.toLowerCase().includes(q)) ||
+      r.prizeName.toLowerCase().includes(q) ||
+      r.type.toLowerCase().includes(q) ||
+      r.checkoutUID.toLowerCase().includes(q)
+    );
   }, [search, records]);
 
   return (
@@ -428,7 +367,7 @@ function DailySalesView({ branch, records, isLoading, onDelete }: { branch: Bran
           <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="搜尋電話、商品、類型..."
+            placeholder="搜尋電話、商品、類型、單號..."
             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -439,91 +378,55 @@ function DailySalesView({ branch, records, isLoading, onDelete }: { branch: Bran
       <div className="space-y-4">
         {isLoading ? (
           <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100"><Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-emerald-500" />資料讀取中...</div>
-        ) : grouped.length === 0 && (
+        ) : filteredRecords.length === 0 && (
           <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100"><ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-40" /><p>目前無當日銷售紀錄</p></div>
         )}
         
-        {grouped.map(({ uid, items }) => {
-          const first = items[0];
-          return (
-            <div key={uid} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden border-l-4 border-l-emerald-500">
-              <div className="flex items-center justify-between px-5 py-3 bg-slate-50 border-b border-slate-100">
-                <div className="flex items-center gap-4">
-                  <div className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold font-mono uppercase tracking-tighter self-start mt-0.5">
-                    ID: {uid}
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-slate-700">{first.date}</span>
-                      <span className="font-mono text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 text-sm">{first.phone || '無電話'}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => { if (window.confirm('確定要作廢這筆交易並退回點數嗎？')) onDelete(uid); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-sm font-medium transition-colors border border-rose-100"
-                  >
-                    <Trash2 className="w-4 h-4" /> 作廢此單
-                  </button>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[900px]">
-                <thead className="bg-white border-b border-slate-100">
-                  <tr>
-                    {['福袋編號', '獎項', '抽數', '帶走/點數', '套名', '單抽金額', '獎項編號', '獎項/商品名稱', '單點', '點數計', '金額', '備註'].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold text-slate-400 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {items.map((r, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50 text-xs">
-                      <td className="px-3 py-2 font-mono text-slate-500">{r.lotteryId || '-'}</td>
-                      <td className="px-3 py-2 text-slate-600">{r.prize || '-'}</td>
-                      <td className="px-3 py-2 text-slate-600 text-center">{r.draws || '-'}</td>
-                      <td className="px-3 py-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                          r.type === '帶走' || r.type === '現金' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
-                        }`}>{r.type || '-'}</span>
-                      </td>
-                      <td className="px-3 py-2 font-medium text-slate-700">{r.setName || r.name || '-'}</td>
-                      <td className="px-3 py-2 text-slate-600 font-mono">{r.unitPrice ? `$${r.unitPrice}` : '-'}</td>
-                      <td className="px-3 py-2 font-mono text-slate-500">{r.prizeId || '-'}</td>
-                      <td className="px-3 py-2 text-slate-700 font-medium">{r.prizeName || '-'}</td>
-                      <td className="px-3 py-2 text-slate-500 font-mono text-center">{r.unitPoints || '-'}</td>
-                      <td className="px-3 py-2 text-indigo-600 font-bold font-mono">
-                        {r.points !== 0 ? (r.points > 0 ? `+${r.points}` : r.points) : '-'}
-                      </td>
-                      <td className="px-3 py-2 text-slate-700 font-bold font-mono">
-                        {r.amount !== 0 ? `$${r.amount.toLocaleString()}` : '-'}
-                      </td>
-                      <td className="px-3 py-2 text-slate-400">{r.remark || '-'}</td>
-                    </tr>
+        {filteredRecords.length > 0 && (
+          <div className="overflow-x-auto bg-white rounded-2xl border border-slate-100 shadow-sm max-h-[75vh]">
+            <table className="w-full text-sm min-w-[1800px] whitespace-nowrap">
+              <thead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10 shadow-sm">
+                <tr>
+                  {['電話', '福袋編號', '獎項', '抽數', '帶走/點數', '套名', '單抽價', '獎項編號', '獎項/商品名稱', '單抽點數', '點數總計', '金額', '備註', '日期', 'id', '實收金額', '匯款', '信用卡', '現金', '點數扣', '通路(備註)', '點數異動'].map(h => (
+                    <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500">{h}</th>
                   ))}
-                </tbody>
-              </table>
-              </div>
-              {(() => {
-                const p = items.find(r => r.receivedAmount || r.creditCard || r.cash || r.remittance);
-                if (!p) return null;
-                return (
-                  <div className="flex flex-wrap gap-3 px-4 py-2 bg-slate-50 border-t border-slate-100 text-xs text-slate-500">
-                    <span className="font-semibold text-slate-600">支付：</span>
-                    {p.receivedAmount ? <span>實收 <b className="text-slate-700">${p.receivedAmount.toLocaleString()}</b></span> : null}
-                    {p.cash ? <span>現金 <b className="text-slate-700">${p.cash.toLocaleString()}</b></span> : null}
-                    {p.creditCard ? <span>信用卡 <b className="text-slate-700">${p.creditCard.toLocaleString()}</b></span> : null}
-                    {p.remittance ? <span>匯款 <b className="text-slate-700">${p.remittance.toLocaleString()}</b></span> : null}
-                    {p.pointsUsed ? <span>點數扣 <b className="text-slate-700">{p.pointsUsed}</b></span> : null}
-                    {p.pointDelta ? <span className="ml-auto font-medium">點數變動 <b className="text-indigo-600">{p.pointDelta > 0 ? `+${p.pointDelta}` : p.pointDelta}</b></span> : null}
-                    {p.channel ? <span className="bg-slate-200 px-1.5 py-0.5 rounded">{p.channel}</span> : null}
-                  </div>
-                );
-              })()}
-            </div>
-          );
-        })}
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-slate-500 sticky right-0 bg-slate-50 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredRecords.map((r, i) => (
+                  <tr key={i} className="hover:bg-amber-50/50 transition-colors text-xs">
+                    <td className="px-3 py-2.5 font-mono font-medium text-slate-700">{r.phone || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.lotteryId || '-'}</td>
+                    <td className="px-3 py-2.5 font-semibold text-slate-700">{r.prize || '-'}</td>
+                    <td className="px-3 py-2.5 text-center text-slate-600">{r.draws || '-'}</td>
+                    <td className="px-3 py-2.5"><span className={`px-1.5 py-0.5 rounded font-medium text-[10px] ${r.type === '帶走' || r.type === '現金' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'}`}>{r.type || '-'}</span></td>
+                    <td className="px-3 py-2.5 font-medium text-slate-700">{r.setName || r.name || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-600">{r.unitPrice ? `$${r.unitPrice}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-400">{r.prizeId || '-'}</td>
+                    <td className="px-3 py-2.5 font-medium text-slate-700">{r.prizeName || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.unitPoints || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono font-semibold text-indigo-600">{r.points !== 0 ? r.points : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono font-bold text-amber-600">{r.amount !== 0 ? `$${r.amount.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 text-slate-400 truncate max-w-[150px]" title={r.remark}>{r.remark || '-'}</td>
+                    <td className="px-3 py-2.5 text-slate-500">{r.date || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-[10px] text-slate-400">{r.checkoutUID || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono font-semibold text-emerald-600">{r.receivedAmount ? `$${r.receivedAmount.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.remittance ? `$${r.remittance.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.creditCard ? `$${r.creditCard.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-slate-500">{r.cash ? `$${r.cash.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2.5 font-mono text-rose-500">{r.pointsUsed ? `-${r.pointsUsed}` : '-'}</td>
+                    <td className="px-3 py-2.5 text-slate-500">{r.channel || '-'}</td>
+                    <td className="px-3 py-2.5 font-mono font-bold text-indigo-600">{r.pointDelta ? (r.pointDelta > 0 ? `+${r.pointDelta}` : r.pointDelta) : '-'}</td>
+                    <td className="px-3 py-2.5 text-center sticky right-0 bg-white group-hover:bg-amber-50 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                      <button onClick={() => { if (window.confirm('確定要作廢這筆交易並退回點數嗎？\\n(注意：只會作廢當日交易！)')) onDelete(r.checkoutUID); }} className="text-rose-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors mx-auto" title="作廢訂單"><Trash2 className="w-4 h-4" /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -619,7 +522,7 @@ function PrizeLibraryView({ branch: _branch, prizes, isLoading }: { branch: Bran
   );
 }
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzHEqiUGNSnSkp5ajqX7L-zTg-vFalgX_bXGUEStRXy3-W195dVQFrhIZbguh6HUPwo/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxA60NbTfBkxwFR9rBtEnP-dhRNRi7lLT3TDKpZKhobs1TWz6_He7NDNfU3iCoEaNjA/exec';
 
 async function gasPost(action: string, payload?: object) {
   const res = await fetch(GAS_URL, {
@@ -690,42 +593,56 @@ export default function App() {
       .finally(() => setLoadingDaily(false));
   };
 
-  const fetchSalesRecords = async (isLoadMore = false) => {
-    if (isLoadMore) setIsFetchingMoreSales(true);
-    else setLoadingSales(true);
+  const [lastCacheTime, setLastCacheTime] = useState<string>('');
+
+  const fetchSalesRecords = async (forceRefresh = false) => {
+    setLoadingSales(true);
+    const CACHE_KEY = 'salesRecordsCache_v2';
+    const CACHE_TIME_KEY = 'salesRecordsCacheTime_v2';
+
+    if (!forceRefresh) {
+      const cached = localStorage.getItem(CACHE_KEY);
+      const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+      if (cached && cachedTime) {
+        setSalesRecords(JSON.parse(cached));
+        setLastCacheTime(cachedTime);
+        setLoadingSales(false);
+        showBanner('已從快取讀取銷售紀錄', 'ok');
+        return;
+      }
+    }
 
     try {
-      const res = await gasPost('getSalesRecords', { 
-        branch, 
-        limit: 300, 
-        offset: isLoadMore ? salesRecords.length : 0 
-      });
+      showBanner('從伺服器取得最新1000筆紀錄...', 'loading', false);
+      const res = await gasPost('getSalesRecords', { limit: 1000, offset: 0 });
       if (res.success && res.data) {
-        if (isLoadMore) {
-          setSalesRecords(prev => [...prev, ...res.data]);
-        } else {
-          setSalesRecords(res.data);
-        }
-        setHasMoreSales(res.hasMore);
+        setSalesRecords(res.data);
+        const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+        setLastCacheTime(timeStr);
+        localStorage.setItem(CACHE_KEY, JSON.stringify(res.data));
+        localStorage.setItem(CACHE_TIME_KEY, timeStr);
+        showBanner('銷售紀錄已更新並儲存快取', 'ok');
       }
     } catch (e) {
       console.error(e);
+      showBanner('讀取銷售紀錄失敗', 'err');
     } finally {
-      if (isLoadMore) setIsFetchingMoreSales(false);
-      else setLoadingSales(false);
+      setLoadingSales(false);
     }
   };
 
+  const clearSalesCache = () => {
+    localStorage.removeItem('salesRecordsCache_v2');
+    localStorage.removeItem('salesRecordsCacheTime_v2');
+    setSalesRecords([]);
+    setLastCacheTime('');
+    showBanner('快取已清除', 'ok');
+  };
+
   useEffect(() => {
-    if (activeTab === 'sales') {
-      // Only initial fetch if list is empty or branch changed
-      if (salesRecords.length === 0) {
-        fetchSalesRecords();
-      }
-    } else if (activeTab === 'daily') {
-      fetchDailySales();
-    }
-  }, [activeTab, branch]);
+    if (activeTab === 'sales' && salesRecords.length === 0) fetchSalesRecords();
+    else if (activeTab === 'daily') fetchDailySales();
+  }, [activeTab]);
 
   // Reset records when branch changes to force re-fetch
   useEffect(() => {
@@ -1075,12 +992,11 @@ export default function App() {
         {activeTab === 'members' && <MembersView members={members} isLoading={loadingMembers} />}
         {activeTab === 'sales' && (
           <SalesView 
-            branch={branch} 
             records={salesRecords} 
             isLoading={loadingSales}
-            hasMore={hasMoreSales}
-            isFetchingMore={isFetchingMoreSales}
-            onLoadMore={() => fetchSalesRecords(true)}
+            onRefresh={() => fetchSalesRecords(true)}
+            onClearCache={clearSalesCache}
+            lastCacheTime={lastCacheTime}
           />
         )}
         {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes} isLoading={loadingLibrary} />}

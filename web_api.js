@@ -49,11 +49,13 @@ function doPost(e) {
 
 // ── 1. 結帳 API ──────────────────────────────────────────
 function apiCheckout(payload) {
-  var phoneNumbers = payload.customer.phone;
+  var phoneInput = payload.customer.phone || payload.customer.phoneName || '';
+  var phoneNumbers = phoneInput.split(/[- ]/)[0]; // Extract just the phone in case it includes name
+
   var branch = payload.branch; 
-  var lotteries = payload.lotteries;
-  var merchandises = payload.merchandises;
-  var payment = payload.payment;
+  var lotteries = payload.lotteries || [];
+  var merchandises = payload.merchandises || [];
+  var payment = payload.payment || { receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 };
   var totalCheckPoint = payload.summary.totalPoints;
   var costToPayPoint = payment.pointsUsed;
   var memberPoint = payload.customer.currentPoints;
@@ -193,7 +195,25 @@ function apiGetAllMembers() {
   try {
     var tempApp = SpreadsheetApp.openById(appBackground);
     var data = tempApp.getSheetByName(sheetMemberList).getDataRange().getValues();
-    return { success: true, data: data.slice(1).map(row => ({ name: row[1], phone: row[2], points: row[6]||0, note: row[7]||'' })) };
+    return { 
+      success: true, 
+      data: data.slice(1).map(row => {
+        var birthday = row[4];
+        if (birthday instanceof Date) birthday = Utilities.formatDate(birthday, "GMT+8", "yyyy/MM/dd");
+        var timestamp = row[0];
+        if (timestamp instanceof Date) timestamp = Utilities.formatDate(timestamp, "GMT+8", "yyyy/MM/dd HH:mm:ss");
+        return { 
+          timestamp: timestamp || '',
+          name: row[1] || '', 
+          phone: row[2] || '', 
+          gender: row[3] || '',
+          birthday: birthday || '',
+          store: row[5] || '',
+          points: row[6] || 0, 
+          note: row[7] || '' 
+        };
+      }) 
+    };
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 
