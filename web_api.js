@@ -46,6 +46,9 @@ function doPost(e) {
       case "getOpeningCash":
         result = apiGetOpeningCash(payload.branch);
         break;
+      case "getMemberSalesRecords":
+        result = apiGetMemberSalesRecords(payload.phone);
+        break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
     }
@@ -91,9 +94,9 @@ function apiCheckout(payload) {
   for (var j = 0; j < merchandises.length; j++) {
     var m = merchandises[j];
     targetData.push([
-      phoneNumbers, m.id, m.quantity, m.paymentType, m.unitAmount, 
-      m.name, m.suggestedPoints, m.totalPoints, m.actualAmount, 
-      m.remark, "", "", "", currentDate, checkoutUID
+      phoneNumbers, m.id, "", m.quantity, m.paymentType, 
+      "", m.unitAmount, "", m.name, m.suggestedPoints, 
+      m.totalPoints, m.actualAmount, m.remark, currentDate, checkoutUID
     ]);
   }
 
@@ -274,6 +277,64 @@ function apiGetAllMembers() {
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 
+// ── 5.5 銷售紀錄列解析公用函數 ─────────────────────────────
+function parseSalesRow(row, uid, phone, branchValue) {
+  var isOldMerch = row[4] && !isNaN(Number(row[4])) && row[4].toString().trim() !== '';
+  if (isOldMerch) {
+    return {
+      phone: phone,
+      lotteryId: row[1] ? row[1].toString() : '',
+      prize: '', 
+      draws: Number(row[2]) || 1,
+      type: row[3] ? row[3].toString() : '',
+      setName: '',
+      unitPrice: Number(row[4]) || 0,
+      prizeId: '',
+      prizeName: row[5] ? row[5].toString() : '',
+      unitPoints: Number(row[6]) || 0,
+      points: Number(row[7]) || 0,
+      amount: Number(row[8]) || 0,
+      remark: row[9] ? row[9].toString() : '',
+      date: row[13] instanceof Date ? Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm') : (row[13] ? row[13].toString() : ''),
+      checkoutUID: uid,
+      receivedAmount: Number(row[15]) || 0,
+      remittance: Number(row[16]) || 0,
+      creditCard: Number(row[17]) || 0,
+      cash: Number(row[18]) || 0,
+      pointsUsed: Number(row[19]) || 0,
+      channel: row[20] ? row[20].toString() : '',
+      pointDelta: Number(row[21]) || 0,
+      branch: branchValue
+    };
+  } else {
+    return {
+      phone: phone,
+      lotteryId: row[1] ? row[1].toString() : '',
+      prize: row[2] ? row[2].toString() : '',
+      draws: Number(row[3]) || 0,
+      type: row[4] ? row[4].toString() : '',
+      setName: row[5] ? row[5].toString() : '',
+      unitPrice: Number(row[6]) || 0,
+      prizeId: row[7] ? row[7].toString() : '',
+      prizeName: row[8] ? row[8].toString() : '',
+      unitPoints: Number(row[9]) || 0,
+      points: Number(row[10]) || 0,
+      amount: Number(row[11]) || 0,
+      remark: row[12] ? row[12].toString() : '',
+      date: row[13] instanceof Date ? Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm') : (row[13] ? row[13].toString() : ''),
+      checkoutUID: uid,
+      receivedAmount: Number(row[15]) || 0,
+      remittance: Number(row[16]) || 0,
+      creditCard: Number(row[17]) || 0,
+      cash: Number(row[18]) || 0,
+      pointsUsed: Number(row[19]) || 0,
+      channel: row[20] ? row[20].toString() : '',
+      pointDelta: Number(row[21]) || 0,
+      branch: branchValue
+    };
+  }
+}
+
 // ── 6. 取得銷售紀錄 API ───────────────────────────────────
 function apiGetSalesRecords(payload) {
   var limit = payload.limit || 300;
@@ -303,32 +364,7 @@ function apiGetSalesRecords(payload) {
 
       // 分店從 col[24] (Column Y) 讀取
       var rowBranch = row[24] ? row[24].toString().trim() : '';
-
-      results.push({
-        phone: phone,
-        lotteryId: row[1] ? row[1].toString() : '',
-        prize: row[2] ? row[2].toString() : '',
-        draws: Number(row[3]) || 0,
-        type: row[4] ? row[4].toString() : '',
-        setName: row[5] ? row[5].toString() : '',
-        unitPrice: Number(row[6]) || 0,
-        prizeId: row[7] ? row[7].toString() : '',
-        prizeName: row[8] ? row[8].toString() : '',
-        unitPoints: Number(row[9]) || 0,
-        points: Number(row[10]) || 0,
-        amount: Number(row[11]) || 0,
-        remark: row[12] ? row[12].toString() : '',
-        date: row[13] instanceof Date ? Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm') : (row[13] ? row[13].toString() : ''),
-        checkoutUID: uid,
-        receivedAmount: Number(row[15]) || 0,
-        remittance: Number(row[16]) || 0,
-        creditCard: Number(row[17]) || 0,
-        cash: Number(row[18]) || 0,
-        pointsUsed: Number(row[19]) || 0,
-        channel: row[20] ? row[20].toString() : '',
-        pointDelta: Number(row[21]) || 0,
-        branch: rowBranch
-      });
+      results.push(parseSalesRow(row, uid, phone, rowBranch));
     }
     
     var hasMore = (offset + numToFetch) < totalRecords;
@@ -355,31 +391,7 @@ function apiGetDailySales(branch) {
       var phone = row[0] ? row[0].toString().trim() : '';
       if (!uid || uid.toLowerCase() === 'id' || uid.toLowerCase() === 'checkoutuid' || phone === '電話') continue;
 
-      results.push({
-        phone: phone,
-        lotteryId: row[1] ? row[1].toString() : '',
-        prize: row[2] ? row[2].toString() : '',
-        draws: Number(row[3]) || 0,
-        type: row[4] ? row[4].toString() : '',
-        setName: row[5] ? row[5].toString() : '',
-        unitPrice: Number(row[6]) || 0,
-        prizeId: row[7] ? row[7].toString() : '',
-        prizeName: row[8] ? row[8].toString() : '',
-        unitPoints: Number(row[9]) || 0,
-        points: Number(row[10]) || 0,
-        amount: Number(row[11]) || 0,
-        remark: row[12] ? row[12].toString() : '',
-        date: row[13] instanceof Date ? Utilities.formatDate(row[13], 'GMT+8', 'yyyy/MM/dd HH:mm') : (row[13] ? row[13].toString() : ''),
-        checkoutUID: uid,
-        receivedAmount: Number(row[15]) || 0,
-        remittance: Number(row[16]) || 0,
-        creditCard: Number(row[17]) || 0,
-        cash: Number(row[18]) || 0,
-        pointsUsed: Number(row[19]) || 0,
-        channel: row[20] ? row[20].toString() : '',
-        pointDelta: Number(row[21]) || 0,
-        branch: branch
-      });
+      results.push(parseSalesRow(row, uid, phone, branch));
     }
     return { success: true, data: results.reverse() };
   } catch(error) { return { success: false, message: error.toString() }; }
@@ -492,5 +504,35 @@ function apiGetBlindBoxList() {
         });
     }
     return { success: true, data: results };
+  } catch(error) { return { success: false, message: error.toString() }; }
+}
+
+// ── 10. 取得特定會員銷售紀錄 API ─────────────────────────────
+function apiGetMemberSalesRecords(phone) {
+  if (!phone) return { success: false, message: '請提供會員電話' };
+  try {
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var sheet = tempApp.getSheetByName(sheetSalesRecord);
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { success: true, data: [] };
+
+    var lastCol = Math.max(sheet.getLastColumn(), 25);
+    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    
+    var results = [];
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      var rowPhone = row[0] ? row[0].toString().trim() : '';
+      if (rowPhone !== phone.toString().trim()) continue;
+
+      var uid = row[14] ? row[14].toString().trim() : '';
+      if (!uid || uid.toLowerCase() === 'id' || uid.toLowerCase() === 'checkoutuid') continue;
+
+      var rowBranch = row[24] ? row[24].toString().trim() : '';
+
+      results.push(parseSalesRow(row, uid, rowPhone, rowBranch));
+    }
+    
+    return { success: true, data: results.reverse() }; // newest first
   } catch(error) { return { success: false, message: error.toString() }; }
 }
