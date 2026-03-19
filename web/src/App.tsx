@@ -79,13 +79,14 @@ interface LotteryItem {
 interface MerchItem {
   id: string;
   quantity: number;
-  paymentType: '點數' | '現金';
+  paymentType: '點數' | '現金' | '贈送';
   unitAmount: number;
   name: string;
   suggestedPoints: number;
   totalPoints: number;
   actualAmount: number;
   remark: string;
+  isGk?: boolean;
 }
 
 interface StockEntry {
@@ -465,7 +466,7 @@ function SalesView({
 }
 
 // ── Daily Sales View ──────────────────────────────────────
-function DailySalesView({ branch, records, isLoading, onDelete }: { branch: Branch; records: DailySalesEntry[], isLoading: boolean, onDelete: (uid: string) => void }) {
+function DailySalesView({ branch, records, isLoading, onDelete, openingCash, onSetOpeningCash }: { branch: Branch; records: DailySalesEntry[], isLoading: boolean, onDelete: (uid: string) => void, openingCash: number | null, onSetOpeningCash: (amt: number) => void }) {
   const [search, setSearch] = useState('');
 
   // 1. Group by UID globally to calculate daily totals accurately (unaffected by text search)
@@ -559,7 +560,23 @@ function DailySalesView({ branch, records, isLoading, onDelete }: { branch: Bran
       </div>
 
       {/* ── Daily Summary Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+        {/* Opening Cash Card */}
+        <div className="bg-indigo-50/50 rounded-2xl shadow-sm border border-indigo-100 p-5 flex flex-col justify-center relative group">
+          <p className="text-xs text-indigo-500 font-bold mb-2 tracking-widest uppercase flex items-center gap-1"><Archive className="w-3 h-3"/> 開櫃準備金</p>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-indigo-400 font-bold">NT$</span>
+            <input 
+              type="number" 
+              className="w-full bg-transparent outline-none font-bold text-xl text-indigo-700 tracking-tight"
+              value={openingCash ?? ''} 
+              placeholder="0"
+              onChange={(e) => onSetOpeningCash(Number(e.target.value))}
+              onBlur={(e) => { if(e.target.value==='') onSetOpeningCash(0); }}
+            />
+          </div>
+        </div>
+
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex flex-col justify-center">
           <p className="text-xs text-slate-400 font-bold mb-1 tracking-widest uppercase">本日營業額</p>
           <p className="text-2xl font-bold text-slate-800 tracking-tight">NT$ {stats.rev.toLocaleString()}</p>
@@ -812,81 +829,97 @@ function StockView({ branch, records, isLoading, onRefresh, setBranch }: { branc
   }, [records, search]);
 
   return (
-    <div className="flex flex-col gap-6 mb-24">
-      <div className="flex flex-col md:flex-row shadow-sm overflow-hidden rounded-t-xl border border-slate-200 bg-slate-100">
-        <div className="flex items-stretch flex-1">
-          <div className="bg-slate-300 text-slate-700 font-bold px-4 py-3 flex items-center border-r border-slate-200">
-            輸入產品名稱
+    <div className="flex flex-col gap-6 mb-24 max-w-7xl mx-auto w-full">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        
+        {/* Header toolbar */}
+        <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 bg-slate-50">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-xl outline-none font-bold text-slate-700 transition-all shadow-sm placeholder:text-slate-400 placeholder:font-medium"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="搜尋貨號、名稱或類別..."
+            />
           </div>
-          <input
-            type="text"
-            className="flex-1 px-4 py-3 outline-none text-lg font-bold min-w-0"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="請輸入關鍵字..."
-          />
-        </div>
-        <div className="flex items-stretch bg-white relative">
-          <select 
-            className="appearance-none text-2xl md:text-3xl font-bold px-8 py-2 md:py-0 border-x border-slate-200 text-slate-800 tracking-widest min-w-[140px] text-center bg-transparent cursor-pointer hover:bg-slate-50 outline-none z-10 focus:ring-2 focus:ring-inset focus:ring-emerald-500"
-            value={branch}
-            onChange={e => setBranch(e.target.value as Branch)}
-          >
-            <option value="竹北">竹北</option>
-            <option value="金山">金山</option>
-          </select>
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none z-0">
-            <ChevronDown className="w-5 h-5 text-slate-400" />
-          </div>
-          <div className="bg-red-600 text-white text-xs font-bold px-4 py-2 flex flex-col justify-center leading-tight">
-            <span>點數為紅色的</span>
-            <span>以採購報價為準</span>
-          </div>
-          <div className="bg-red-600 text-white text-xs font-bold px-4 py-2 flex flex-col justify-center leading-tight ml-px">
-            <span>如有重複品項</span>
-            <span>以價高者為主</span>
-          </div>
-        </div>
-      </div>
 
-      <div className="bg-white border-x border-b border-slate-200 rounded-b-xl shadow-sm relative -mt-6 z-10 pt-2">
-        <div className="flex justify-end px-4 py-2 bg-slate-50 border-b border-slate-200">
-          <button onClick={onRefresh} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-300 shadow-sm rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-            <Search className="w-4 h-4 text-slate-400" />
-            更新資料庫
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+             {/* Warning info */}
+             <div className="hidden md:flex flex-col justify-center bg-rose-50 border border-rose-100 px-3 py-1.5 rounded-lg text-[11px] font-bold text-rose-600 tracking-wide uppercase shadow-sm">
+                <span>🔴 點數異常為採購報價</span>
+                <span>🔥 重複品項以價高為主</span>
+             </div>
+
+             <div className="relative shrink-0">
+               <select 
+                 className="appearance-none w-full pl-4 pr-10 py-2.5 bg-white border border-slate-300 focus:border-indigo-500 focus:ring-2 hover:bg-slate-50 focus:ring-indigo-100 rounded-xl outline-none font-bold text-slate-700 transition-all cursor-pointer shadow-sm text-sm"
+                 value={branch}
+                 onChange={e => setBranch(e.target.value as Branch)}
+               >
+                 <option value="竹北">竹北</option>
+                 <option value="金山">金山</option>
+               </select>
+               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                 <ChevronDown className="w-5 h-5 text-slate-400" />
+               </div>
+             </div>
+
+             <button onClick={onRefresh} className="flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-300 shadow-sm rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors active:scale-95">
+                <Search className="w-4 h-4" />
+                更新資料
+             </button>
+          </div>
         </div>
+
+        {/* Table Area */}
         {isLoading ? (
-          <div className="p-16 text-center text-slate-400">
-            <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-red-500" />
-            資料讀取中...
+          <div className="p-24 flex flex-col items-center justify-center text-slate-500">
+            <Loader2 className="w-10 h-10 mb-4 animate-spin text-indigo-500" />
+            <span className="font-bold tracking-wider">正在讀取庫存資料...</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-16 text-center text-slate-400">
-            <Package className="w-10 h-10 mx-auto mb-3 opacity-20" />
-            無符合條件的貨品
+          <div className="p-24 flex flex-col items-center justify-center text-slate-400">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
+              <Package className="w-8 h-8 text-slate-300" />
+            </div>
+            <span className="font-bold tracking-wider text-base">找不到相符的貨品</span>
           </div>
         ) : (
           <div className="overflow-x-auto max-h-[75vh]">
-            <table className="w-full text-sm whitespace-nowrap text-slate-600">
-              <thead className="bg-[#b3b3b3] text-gray-900 border-b-2 border-slate-400 sticky top-0 z-10">
+            <table className="w-full text-sm text-slate-700 whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 sticky top-0 z-10">
                 <tr>
-                  {['貨號', '名稱 非指定人士不要溜進來', '販售點數', '類別', '實際剩餘數量', '地點'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-bold">{h}</th>
-                  ))}
+                  <th className="px-5 py-3.5 text-left font-extrabold uppercase tracking-wider text-xs">貨號</th>
+                  <th className="px-5 py-3.5 text-left font-extrabold uppercase tracking-wider text-xs">商品名稱 <span className="ml-2 font-bold text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full lowercase tracking-normal">非指定人士請勿進入</span></th>
+                  <th className="px-5 py-3.5 text-right font-extrabold uppercase tracking-wider text-xs">販售點數</th>
+                  <th className="px-5 py-3.5 text-left font-extrabold uppercase tracking-wider text-xs">類別</th>
+                  <th className="px-5 py-3.5 text-right font-extrabold uppercase tracking-wider text-xs">剩餘數量</th>
+                  <th className="px-5 py-3.5 text-center font-extrabold uppercase tracking-wider text-xs">地點</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-100">
                 {filtered.map((r, i) => (
-                  <tr key={i} className="hover:bg-amber-50/50 transition-colors bg-white">
-                    <td className="px-3 py-2 text-right font-mono text-slate-600">{r.id}</td>
-                    <td className="px-3 py-2 text-slate-800 break-words whitespace-normal min-w-[200px]">{r.name}</td>
-                    <td className="px-3 py-2 text-right font-bold tracking-wide" style={{ backgroundColor: '#f2cdcd' }}>{r.points !== 0 ? r.points : ''}</td>
-                    <td className="px-3 py-2 text-slate-700">{r.category}</td>
-                    <td className="px-3 py-2 text-right font-mono">{r.quantity}</td>
-                    <td className="px-3 py-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border flex items-center justify-between w-16 ${(r.branch || branch) === '金山' ? 'text-blue-600 bg-blue-50 border-blue-200' : 'text-red-500 bg-red-50 border-red-100'}`}>
-                        {r.branch || branch} <ChevronDown className="w-3 h-3 ml-1" />
+                  <tr key={i} className="hover:bg-indigo-50/50 transition-all bg-white group">
+                    <td className="px-5 py-3 text-left font-mono font-bold text-slate-500">{r.id}</td>
+                    <td className="px-5 py-3 font-bold text-slate-800 whitespace-normal min-w-[280px] leading-relaxed group-hover:text-indigo-900 transition-colors">
+                      {r.name}
+                    </td>
+                    <td className={`px-5 py-3 text-right font-bold`}>
+                      <span className={`inline-flex px-2.5 py-1 rounded-lg text-[13px] ${r.points !== 0 ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'text-slate-400'}`}>
+                        {r.points !== 0 ? r.points : '0'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
+                        {r.category || '未分類'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right font-mono font-extrabold text-slate-700">{r.quantity}</td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-extrabold tracking-widest border ${(r.branch || branch) === '金山' ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
+                        {r.branch || branch}
                       </span>
                     </td>
                   </tr>
@@ -991,6 +1024,17 @@ async function gasPost(action: string, payload?: object) {
 function StatusBanner({ msg, type }: { msg: string; type: 'ok' | 'err' | 'loading' }) {
   const cls = type === 'ok' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : type === 'err' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-blue-50 text-blue-700 border-blue-200';
   return <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-xl border text-sm font-medium shadow-lg ${cls}`}>{msg}</div>;
+}
+
+function useStickyState<T>(defaultValue: T | (() => T), key: string): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(() => {
+    const stickyValue = window.localStorage.getItem(key);
+    return stickyValue !== null ? JSON.parse(stickyValue) : (typeof defaultValue === 'function' ? (defaultValue as any)() : defaultValue);
+  });
+  useEffect(() => {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+  return [value, setValue];
 }
 
 export default function App() {
@@ -1155,21 +1199,63 @@ export default function App() {
       .catch(() => showBanner('網路異常，無法作廢', 'err'));
   };
 
-  const [customer, setCustomer] = useState({ phoneName: '', gender: '', birthday: '', currentPoints: 0 });
-  const [payment, setPayment] = useState({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
-  const [lotteries, setLotteries] = useState<LotteryItem[]>([]);
-  const [merchandises, setMerchandises] = useState<MerchItem[]>([]);
-  const [summary, setSummary] = useState({ pointsChange: 0, dueAmount: 0 });
-
   const emptyLottery = (): LotteryItem => ({ id: '', prize: '', draws: 1, type: '帶走', setName: '', unitPrice: 0, prizeId: '', prizeName: '', unitPoints: 0, totalPoints: 0, amount: 0, remark: '' });
-  const emptyMerch = (): MerchItem => ({ id: '', quantity: 1, paymentType: '現金', unitAmount: 0, name: '', suggestedPoints: 0, totalPoints: 0, actualAmount: 0, remark: '' });
+  const emptyMerch = (): MerchItem => ({ id: '', quantity: 1, paymentType: '現金', unitAmount: 0, name: '', suggestedPoints: 0, actualAmount: 0, totalPoints: 0, remark: '' });
 
-  useEffect(() => { setLotteries([emptyLottery()]); setMerchandises([emptyMerch()]); }, []);
+  const [customer, setCustomer] = useStickyState({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 }, 'os_checkout_customer');
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+
+  const filteredCacheMembers = useMemo(() => {
+    const pn = String(customer.phoneName || '');
+    if (pn.length < 2) return [];
+    const q = pn.toLowerCase();
+    return members.filter(m => 
+      String(m.phone || '').includes(q) || 
+      String(m.name || '').toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [customer.phoneName, members]);
+
+  const selectCacheMember = (m: MemberEntry) => {
+    setCustomer(p => ({ 
+      ...p, 
+      phoneName: String(m.phone || ''), 
+      name: String(m.name || ''),
+      gender: String(m.gender || ''), 
+      birthday: String(m.birthday || ''), 
+      currentPoints: Number(m.points || 0) 
+    }));
+    setShowMemberDropdown(false);
+    showBanner(`✓ 已帶入會員 ${m.name || m.phone}`, 'ok');
+  };
+
+  const [payment, setPayment] = useStickyState({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 }, 'os_checkout_payment');
+  const [lotteries, setLotteries] = useStickyState<LotteryItem[]>(() => Array(5).fill(null).map(emptyLottery), 'os_checkout_lotteries');
+  const [merchandises, setMerchandises] = useStickyState<MerchItem[]>(() => Array(5).fill(null).map(emptyMerch), 'os_checkout_merchandises');
+  const [summary, setSummary] = useStickyState({ pointsChange: 0, dueAmount: 0 }, 'os_checkout_summary');
+
+  const [openingCash, setOpeningCash] = useState<number | null>(null);
+  const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
+  const [actualCashInput, setActualCashInput] = useState('');
+  const [closeNote, setCloseNote] = useState('');
+
+  const fetchOpeningCash = async () => {
+    try { const res = await gasPost('getOpeningCash', { branch }); if (res.success && res.data) setOpeningCash(res.data.amount); } catch {}
+  };
+  useEffect(() => { fetchOpeningCash(); }, [branch]);
+
+  const handleSetOpeningCash = async (amt: number) => {
+    showBanner('設定開櫃現金中…', 'loading', false);
+    const res = await gasPost('setOpeningCash', { branch, amount: amt }).catch(()=>null);
+    if(res?.success) { setOpeningCash(amt); showBanner('✓ 開櫃現金設定成功', 'ok'); }
+    else showBanner('✗ 設定失敗', 'err');
+  };
+
+  const getExpectedCash = () => (openingCash || 0) + dailySales.reduce((sum, r) => sum + r.cash, 0);
 
   useEffect(() => {
     let due = 0, pts = 0;
-    lotteries.forEach(it => { due += it.draws * it.unitPrice; pts += it.draws * it.unitPoints; });
-    merchandises.forEach(it => { if (it.paymentType === '現金') due += it.quantity * it.unitAmount; else pts -= it.quantity * it.suggestedPoints; });
+    lotteries.forEach(it => { due += it.amount; pts += it.totalPoints; });
+    merchandises.forEach(it => { if (it.paymentType === '現金') due += it.actualAmount; else if (it.paymentType !== '贈送') pts -= it.totalPoints; });
     setSummary({ dueAmount: due, pointsChange: pts });
   }, [lotteries, merchandises]);
 
@@ -1194,18 +1280,20 @@ export default function App() {
           item.unitPoints = prizeEntry.points;
           item.draws = prizeEntry.draws;
         }
-        // Special codes
         if (value === '88888') item.remark = '送1點';
         else if (value === '99999') item.remark = '扣1點';
         else if (value === 'x') item.remark = '盲盒';
-        else if (value === 'z' || value === 'Z') item.remark = '非GK';
+        else if (value === 'z' || value === 'Z') {
+          item.remark = '';
+          item.prizeName = '非GK';
+          item.unitPoints = 1;
+        }
       }
 
-      if (['draws', 'unitPrice'].includes(field as string)) item.amount = item.draws * item.unitPrice;
-      if (['draws', 'unitPoints'].includes(field as string)) item.totalPoints = item.draws * item.unitPoints;
-      // Recalc after autocomplete
-      item.amount = item.draws * item.unitPrice;
-      item.totalPoints = item.draws * item.unitPoints;
+      if (field !== 'amount' && field !== 'remark') {
+        if (field !== 'type') item.amount = item.draws * item.unitPrice;
+        item.totalPoints = item.type === '點數' ? (item.draws * (item.unitPoints || 0)) : 0;
+      }
 
       list[index] = item;
       return list;
@@ -1220,22 +1308,43 @@ export default function App() {
       const list = [...prev];
       const item = { ...list[index], [field]: value } as MerchItem;
 
-      // Autocomplete from stock library
+      // Autocomplete from stock & blindbox library
       if (field === 'id') {
         const stockEntry = stocks.find(s => s.id === String(value));
         if (stockEntry) {
           item.name = stockEntry.name;
           item.suggestedPoints = stockEntry.points;
           item.remark = stockEntry.remark;
+          item.unitAmount = 0;
+          
+          item.isGk = stockEntry.category.toLowerCase().includes('gk');
+          if (item.isGk && item.paymentType === '現金') {
+            item.paymentType = '點數';
+          }
+        } else {
+          const blindBoxEntry = blindBoxes.find(b => b.id === String(value));
+          if (blindBoxEntry) {
+            item.name = blindBoxEntry.name;
+            item.suggestedPoints = blindBoxEntry.points;
+            item.unitAmount = blindBoxEntry.manualPrice;
+            item.remark = blindBoxEntry.remark;
+            item.isGk = false;
+          }
         }
       }
 
-      if (['quantity', 'unitAmount'].includes(field as string)) item.actualAmount = item.quantity * item.unitAmount;
-      if (['quantity', 'suggestedPoints'].includes(field as string)) item.totalPoints = item.quantity * item.suggestedPoints;
-
-      // Recalc after autocomplete
-      item.actualAmount = item.quantity * item.unitAmount;
-      item.totalPoints = item.quantity * item.suggestedPoints;
+      if (field !== 'actualAmount' && field !== 'remark') {
+        if (item.paymentType === '贈送') {
+          item.actualAmount = 0;
+          item.totalPoints = 0;
+        } else if (item.paymentType === '點數') {
+          item.actualAmount = 0;
+          item.totalPoints = item.quantity * item.suggestedPoints;
+        } else {
+          item.actualAmount = item.quantity * item.unitAmount;
+          item.totalPoints = 0;
+        }
+      }
 
       list[index] = item;
       return list;
@@ -1244,25 +1353,38 @@ export default function App() {
 
 
 
+  const handleResetCheckout = () => {
+    if (!window.confirm('確定要清空所有已填寫的結帳資料嗎？')) return;
+    setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
+    setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
+    setLotteries(Array(5).fill(null).map(emptyLottery));
+    setMerchandises(Array(5).fill(null).map(emptyMerch));
+    showBanner('已清空畫面', 'ok');
+  };
+
   const handleCheckout = async () => {
     const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName);
     const filteredMerch = merchandises.filter(m => m.id || m.name);
     if (!customer.phoneName) { alert('請輸入客戶電話號碼'); return; }
 
+    const totalReceived = payment.cash + payment.remittance + payment.creditCard;
+    if (totalReceived !== summary.dueAmount) { alert('實收金額必須等於應收金額'); return; }
+
     showBanner('結帳資料傳送中…', 'loading', false);
     try {
+      const payloadPayment = { ...payment, receivedAmount: totalReceived };
       const res = await gasPost('checkout', {
-        branch, customer, payment, summary,
+        branch, customer, payment: payloadPayment, summary,
         lotteries: filteredLotteries,
         merchandises: filteredMerch,
       });
       if (res.success) {
         showBanner(`✓ 結帳成功！會員最新點數: ${res.newPoints}`, 'ok');
         // Reset form
-        setCustomer({ phoneName: '', gender: '', birthday: '', currentPoints: 0 });
+        setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
         setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
-        setLotteries([emptyLottery()]);
-        setMerchandises([emptyMerch()]);
+        setLotteries(Array(5).fill(null).map(emptyLottery));
+        setMerchandises(Array(5).fill(null).map(emptyMerch));
       } else {
         showBanner(`✗ 結帳失敗：${res.message}`, 'err');
       }
@@ -1271,12 +1393,35 @@ export default function App() {
     }
   };
 
-  const handleCloseDay = async () => {
-    if (!confirm(`確定要對【${branch}門市】執行關帳嗎？\n此操作將當日結帳資料轉移至銷售紀錄。`)) return;
-    showBanner('關帳中…', 'loading', false);
+  const handleConfirmCloseDay = async () => {
+    if (actualCashInput === '') { alert('請輸入實際盤點現金'); return; }
+    const expected = getExpectedCash();
+    const discrepancy = Number(actualCashInput) - expected;
+    
+    if (!confirm(`確定要關帳嗎？\n預期總現金: $${expected}\n實際輸入: $${actualCashInput}\n盤差: $${discrepancy}`)) {
+      return;
+    }
+
+    setIsClosingModalOpen(false);
+    showBanner('系統關帳與結算中…', 'loading', false);
     try {
-      const res = await gasPost('closeDay', { branch });
-      showBanner(res.success ? `✓ ${res.message}` : `✗ ${res.message}`, res.success ? 'ok' : 'err');
+      const res = await gasPost('closeDay', { 
+        branch, 
+        openingCash: openingCash || 0,
+        expectedCash: expected,
+        actualCash: Number(actualCashInput),
+        discrepancy,
+        note: closeNote
+      });
+      if (res.success) {
+        showBanner(`✓ ${res.message}`, 'ok');
+        setOpeningCash(null);
+        setActualCashInput('');
+        setCloseNote('');
+        fetchDailySales(); // clear daily view
+      } else {
+        showBanner(`✗ 關帳失敗: ${res.message}`, 'err');
+      }
     } catch {
       showBanner('✗ 網路錯誤', 'err');
     }
@@ -1290,6 +1435,7 @@ export default function App() {
       if (res.success && res.data) {
         setCustomer(prev => ({
           ...prev,
+          name: res.data.name,
           gender: res.data.gender,
           birthday: res.data.birthday,
           currentPoints: res.data.points,
@@ -1304,8 +1450,12 @@ export default function App() {
   };
 
   // ── Shared input styles ──
-  const inp = 'w-full bg-transparent outline-none focus:bg-indigo-50/50 rounded px-2 py-1 transition-colors';
-  const numInp = inp + ' text-right';
+  const inpBase = "w-full outline-none rounded-md px-2 py-1.5 transition-all text-sm";
+  const editableStyles = "bg-white border border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 hover:border-slate-400 text-slate-800 placeholder:text-slate-300";
+  const readonlyStyles = "disabled:bg-transparent disabled:border-transparent disabled:shadow-none disabled:text-slate-500 read-only:bg-transparent read-only:border-transparent read-only:shadow-none read-only:text-slate-500 disabled:cursor-not-allowed";
+  
+  const inp = `${inpBase} ${editableStyles} ${readonlyStyles}`;
+  const numInp = `${inp} text-right`;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
@@ -1329,7 +1479,7 @@ export default function App() {
                 <button key={b} onClick={() => setBranch(b)} className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${branch === b ? 'bg-white text-slate-700 shadow-md' : 'text-white/80 hover:text-white'}`}>{b}門市</button>
               ))}
             </div>
-            <button onClick={handleCloseDay} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/25 text-white rounded-xl text-sm font-semibold border border-white/20 transition-all backdrop-blur-sm">
+            <button onClick={() => setIsClosingModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/25 text-white rounded-xl text-sm font-semibold border border-white/20 transition-all backdrop-blur-sm">
               <Archive className="w-4 h-4" /> 執行關帳
             </button>
           </div>
@@ -1353,7 +1503,7 @@ export default function App() {
 
         {/* ── CHECKOUT ── */}
         {activeTab === 'checkout' && (
-          <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-32">
+          <div className="w-full mx-auto flex flex-col gap-6 pb-32">
             
             {/* Top row: Customer & Payment */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1369,19 +1519,48 @@ export default function App() {
                 </div>
                 <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 flex-1">
                   <div className="col-span-1 md:col-span-2 relative">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">電話號碼 <span className="text-indigo-400 font-normal ml-1">(按 Enter 查詢)</span></label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">電話號碼 <span className="text-indigo-400 font-normal ml-1">(按 Enter 遠端查詢)</span></label>
                     <div className="relative">
                       <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input type="text" className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 rounded-lg transition-all outline-none font-medium" placeholder="輸入電話號碼..." value={customer.phoneName} onChange={e => setCustomer({ ...customer, phoneName: e.target.value })} onKeyDown={handlePhoneKeyDown} />
+                      <input 
+                        type="text" 
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 rounded-lg transition-all outline-none font-medium" 
+                        placeholder="輸入號碼或姓名尋找..." 
+                        value={customer.phoneName} 
+                        onChange={e => {
+                          setCustomer({ ...customer, phoneName: e.target.value, name: '' });
+                          setShowMemberDropdown(true);
+                        }} 
+                        onFocus={() => setShowMemberDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowMemberDropdown(false), 200)}
+                        onKeyDown={handlePhoneKeyDown} 
+                      />
+                      {showMemberDropdown && filteredCacheMembers.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 shadow-2xl rounded-xl z-50 max-h-60 overflow-y-auto w-full transition-all">
+                          {filteredCacheMembers.map((m, idx) => (
+                             <div 
+                               key={idx} 
+                               className="px-4 py-3 hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-100 last:border-0 transition-colors" 
+                               onClick={() => selectCacheMember(m)}
+                             >
+                                <div className="flex flex-col">
+                                   <span className="font-bold text-slate-800">{m.name || '無名氏'}</span>
+                                   <span className="text-xs text-slate-500 font-mono mt-0.5">{m.phone}</span>
+                                </div>
+                                <span className="text-indigo-600 font-bold bg-indigo-50 px-2.5 py-1 rounded-lg text-xs">{m.points} pts</span>
+                             </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">性別</label>
-                    <input type="text" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 rounded-lg transition-all outline-none" placeholder="選填" value={customer.gender} onChange={e => setCustomer({ ...customer, gender: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">生日</label>
-                    <input type="text" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 rounded-lg transition-all outline-none" placeholder="YYYY/MM/DD 或選填" value={customer.birthday} onChange={e => setCustomer({ ...customer, birthday: e.target.value })} />
+                    {customer.name && (
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200 shadow-sm flex items-center gap-1.5 w-full">
+                          <Users className="w-4 h-4" />
+                          已帶入會員：<span className="text-emerald-900">{customer.name}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="col-span-1 md:col-span-2 pt-2 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-sm font-bold text-slate-600">目前累積點數</span>
@@ -1407,7 +1586,7 @@ export default function App() {
                     <span className="text-sm font-bold text-slate-700">實收金額</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-400 font-medium">NT$</span>
-                      <input type="number" className="w-32 text-right px-3 py-1.5 bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 rounded-lg transition-all outline-none font-bold text-xl text-slate-800" value={payment.receivedAmount} onChange={e => setPayment({ ...payment, receivedAmount: Number(e.target.value) })} />
+                      <span className="w-32 text-right px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xl text-slate-800 font-bold">{payment.cash + payment.remittance + payment.creditCard}</span>
                     </div>
                   </div>
                   
@@ -1422,10 +1601,6 @@ export default function App() {
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">信用卡 Card</label>
                     <input type="number" className="w-full text-right px-3 py-2 bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 rounded-lg outline-none font-mono text-slate-700" value={payment.creditCard} onChange={e => setPayment({ ...payment, creditCard: Number(e.target.value) })} />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-1 block">扣抵點數 Points</label>
-                    <input type="number" className="w-full text-right px-3 py-2 bg-indigo-50 border border-indigo-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 rounded-lg outline-none font-mono text-indigo-700 font-bold" value={payment.pointsUsed} onChange={e => setPayment({ ...payment, pointsUsed: Number(e.target.value) })} />
                   </div>
                 </div>
               </div>
@@ -1447,37 +1622,37 @@ export default function App() {
                   </button>
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto overflow-y-visible">
+                <table className="w-full text-sm min-w-[900px]">
                   <thead><tr className="bg-amber-100/50 text-amber-900 border-b border-amber-100 text-[13px]">
-                    {['福袋編號', '獎項', '抽數', '帶走/點數', '套名', '單抽價', '獎項編號', '獎項名稱', '單抽點數', '點數總計', '金額', '備註', ''].map(h => (
-                      <th key={h} className="px-3 py-3 font-bold text-left whitespace-nowrap">{h}</th>
+                    {['單號', '獎項', '抽數', '帶走/點數', '套名', '單抽價', '獎編', '名稱', '單抽點', '點數', '金額', '備註', ''].map(h => (
+                      <th key={h} className="px-2 py-3 font-bold text-left whitespace-nowrap">{h}</th>
                     ))}
                   </tr></thead>
                   <tbody className="divide-y divide-slate-100">
                     {lotteries.map((item, idx) => (
                       <tr key={idx} className="hover:bg-amber-50/30 transition-colors group">
-                        <td className="px-2 py-2"><input type="text" className={inp + ' text-center'} placeholder="編號" value={item.id} onChange={e => updateLottery(idx, 'id', e.target.value)} /></td>
-                        <td className="px-2 py-2"><input type="text" className={inp + ' text-center text-amber-700 font-bold bg-amber-50 focus:bg-amber-100 border border-amber-100 focus:border-amber-300'} placeholder="A/1/Z" value={item.prize} onChange={e => updateLottery(idx, 'prize', e.target.value)} /></td>
-                        <td className="px-2 py-2"><input type="number" className={numInp + ' w-16 bg-slate-50 focus:bg-white border border-transparent focus:border-slate-300'} value={item.draws} onChange={e => updateLottery(idx, 'draws', Number(e.target.value))} /></td>
-                        <td className="px-2 py-2">
-                          <select className="text-xs bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 text-amber-700 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" value={item.type} onChange={e => updateLottery(idx, 'type', e.target.value)}>
+                        <td className="px-1 py-2"><input type="text" className={inp + ' text-center text-xs !w-12 !min-w-[3rem] !px-1'} placeholder="單號" value={item.id} onChange={e => updateLottery(idx, 'id', e.target.value)} /></td>
+                        <td className="px-1 py-2"><input type="text" className={inp + ' text-center text-amber-700 font-bold text-xs !w-12 !min-w-[3rem] !px-1'} placeholder="A/1/Z" value={item.prize} onChange={e => updateLottery(idx, 'prize', e.target.value)} /></td>
+                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.draws} onChange={e => updateLottery(idx, 'draws', Number(e.target.value))} /></td>
+                        <td className="px-1 py-2">
+                          <select className={inp + ' text-amber-700 font-bold min-w-[5rem]'} value={item.type} onChange={e => updateLottery(idx, 'type', e.target.value)}>
                             <option>帶走</option><option>點數</option>
                           </select>
                         </td>
-                        <td className="px-2 py-2"><input type="text" className={inp + ' text-[13px] text-slate-500'} placeholder="大套名稱" value={item.setName} onChange={e => updateLottery(idx, 'setName', e.target.value)} /></td>
-                        <td className="px-2 py-2"><input type="number" className={numInp + ' w-20 text-slate-600'} value={item.unitPrice} onChange={e => updateLottery(idx, 'unitPrice', Number(e.target.value))} /></td>
-                        <td className="px-2 py-2"><input type="text" className={inp + ' text-[13px] text-slate-500'} placeholder="獎編" value={item.prizeId} onChange={e => updateLottery(idx, 'prizeId', e.target.value)} /></td>
-                        <td className="px-2 py-2"><input type="text" className={inp + ' font-medium'} placeholder="輸入名稱" value={item.prizeName} onChange={e => updateLottery(idx, 'prizeName', e.target.value)} /></td>
-                        <td className="px-2 py-2"><input type="number" className={numInp + ' w-20 text-indigo-500 font-medium'} value={item.unitPoints} onChange={e => updateLottery(idx, 'unitPoints', Number(e.target.value))} /></td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[200px]'} placeholder="大套名稱" value={item.setName} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-[11px] text-slate-400 font-mono !w-12 !min-w-[3rem] !px-1'} value={item.unitPrice} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="text" className={inp + ' text-[11px] text-slate-400 font-mono !w-10 !min-w-[2.5rem] !px-1 text-center'} placeholder="獎編" value={item.prizeId} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[200px]'} placeholder="輸入名稱" value={item.prizeName} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-[11px] text-indigo-300 font-mono !w-10 !min-w-[2.5rem] !px-1'} value={item.unitPoints} disabled readOnly /></td>
+                        <td className="px-2 py-2 text-right">
                           <span className={`px-2 py-1 rounded flex w-min ml-auto ${item.totalPoints > 0 ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-400'}`}>{item.totalPoints > 0 ? `+${item.totalPoints}` : '0'}</span>
                         </td>
-                        <td className="px-3 py-2 text-right">
-                          <span className={`font-mono text-[15px] block min-w-[60px] ${item.amount > 0 ? 'text-amber-700 font-bold' : 'text-slate-400'}`}>{item.amount.toLocaleString()}</span>
+                        <td className="px-1 py-2">
+                          <input type="number" className={numInp + ' font-bold text-amber-700 min-w-[6rem]'} placeholder="金額" value={item.amount} onChange={e => updateLottery(idx, 'amount', Number(e.target.value))} />
                         </td>
-                        <td className="px-2 py-2"><input type="text" className={inp + ' text-slate-400 text-xs'} placeholder="備註..." value={item.remark} onChange={e => updateLottery(idx, 'remark', e.target.value)} /></td>
-                        <td className="px-3 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => removeLotteryRow(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded p-1.5 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
+                        <td className="px-1 py-2"><input type="text" className={inp + ' text-slate-400 text-xs min-w-[7rem]'} placeholder="備註..." value={item.remark} onChange={e => updateLottery(idx, 'remark', e.target.value)} /></td>
+                        <td className="px-1 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => removeLotteryRow(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded p-1.5 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
                       </tr>
                     ))}
                     {lotteries.length === 0 && <tr><td colSpan={13} className="text-center py-10 bg-slate-50/50 text-slate-400 text-sm font-medium border-t border-slate-100"><Archive className="w-8 h-8 mx-auto mb-2 opacity-20" />請點擊右上方新增列開始輸入</td></tr>}
@@ -1497,34 +1672,36 @@ export default function App() {
                   <Plus className="w-3.5 h-3.5" /> 手動新增列
                 </button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto overflow-y-visible">
+                <table className="w-full text-sm min-w-[800px]">
                   <thead><tr className="bg-rose-100/50 text-rose-900 border-b border-rose-100 text-[13px]">
-                    {['商品貨號', '數量', '付款方式', '金額/售價', '商品名稱', '建議扣除點數', '點數異動總計', '實收總金額', '備註', ''].map(h => (
-                      <th key={h} className="px-3 py-3 font-bold text-left whitespace-nowrap">{h}</th>
+                    {['貨號', '數量', '付款', '售價', '名稱', '扣點', '點數', '實收', '備註', ''].map(h => (
+                      <th key={h} className="px-2 py-3 font-bold text-left whitespace-nowrap">{h}</th>
                     ))}
                   </tr></thead>
                   <tbody className="divide-y divide-slate-100">
                     {merchandises.map((item, idx) => (
                       <tr key={idx} className="hover:bg-rose-50/30 transition-colors group">
-                        <td className="px-2 py-2"><input type="text" className={inp + ' font-mono text-slate-600'} placeholder="輸入貨號" value={item.id} onChange={e => updateMerch(idx, 'id', e.target.value)} /></td>
-                        <td className="px-2 py-2"><input type="number" className={numInp + ' w-16 bg-slate-50 focus:bg-white border border-transparent focus:border-slate-300 font-bold'} value={item.quantity} onChange={e => updateMerch(idx, 'quantity', Number(e.target.value))} /></td>
-                        <td className="px-2 py-2">
-                          <select className={`text-xs border rounded-md px-2 py-1.5 font-bold focus:outline-none ${item.paymentType === '現金' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`} value={item.paymentType} onChange={e => updateMerch(idx, 'paymentType', e.target.value as '現金'|'點數')}>
-                            <option>現金</option><option>點數</option>
+                        <td className="px-1 py-2"><input type="text" className={inp + ' text-xs font-mono text-slate-600 !w-24 !min-w-[5rem] !px-1'} placeholder="輸入貨號" value={item.id} onChange={e => updateMerch(idx, 'id', e.target.value)} /></td>
+                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.quantity} onChange={e => updateMerch(idx, 'quantity', Number(e.target.value))} /></td>
+                        <td className="px-1 py-2">
+                          <select className={`${inp} text-xs font-bold !w-16 !min-w-[4rem] !px-1 ${item.paymentType === '現金' ? 'text-rose-700' : item.paymentType === '點數' ? 'text-indigo-700' : 'text-emerald-700'}`} value={item.paymentType} onChange={e => updateMerch(idx, 'paymentType', e.target.value as '現金'|'點數'|'贈送')}>
+                            {!item.isGk && <option>現金</option>}
+                            <option>點數</option>
+                            <option>贈送</option>
                           </select>
                         </td>
-                        <td className="px-2 py-2"><input type="number" className={numInp + ' w-24 text-slate-700'} placeholder="0" value={item.unitAmount} onChange={e => updateMerch(idx, 'unitAmount', Number(e.target.value))} disabled={item.paymentType === '點數'} /></td>
-                        <td className="px-2 py-2"><input type="text" className={inp + ' font-medium min-w-[150px]'} placeholder="商品名稱" value={item.name} onChange={e => updateMerch(idx, 'name', e.target.value)} /></td>
-                        <td className="px-2 py-2"><input type="number" className={numInp + ' w-24 text-indigo-500'} placeholder="0" value={item.suggestedPoints} onChange={e => updateMerch(idx, 'suggestedPoints', Number(e.target.value))} disabled={item.paymentType === '現金'} /></td>
-                        <td className="px-3 py-2 text-right">
-                          <span className={`px-2 py-1 rounded flex w-min ml-auto ${item.paymentType === '點數' && item.totalPoints > 0 ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-400'}`}>{item.paymentType === '點數' && item.totalPoints > 0 ? `-${item.totalPoints}` : '0'}</span>
+                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-[11px] font-mono text-slate-400 !w-14 !min-w-[3.5rem] !px-1'} placeholder="0" value={item.unitAmount} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[200px]'} placeholder="商品名稱" value={item.name} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-[11px] font-mono text-indigo-400 !w-12 !min-w-[3rem] !px-1'} placeholder="0" value={item.suggestedPoints} disabled readOnly /></td>
+                        <td className="px-2 py-2 text-right">
+                          <span className={`px-2 py-1 rounded flex w-min ml-auto text-xs ${item.paymentType === '點數' && item.totalPoints > 0 ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-400'}`}>{item.paymentType === '點數' && item.totalPoints > 0 ? `-${item.totalPoints}` : '0'}</span>
                         </td>
-                        <td className="px-3 py-2 text-right">
-                           <span className={`font-mono text-[15px] block min-w-[60px] ${item.paymentType === '現金' && item.actualAmount > 0 ? 'text-rose-700 font-bold' : 'text-slate-400'}`}>{(item.paymentType === '現金' ? item.actualAmount : 0).toLocaleString()}</span>
+                        <td className="px-1 py-2">
+                           <input type="number" className={numInp + ' text-sm font-bold text-rose-700 !w-20 !min-w-[5rem] !px-1'} placeholder="0" value={item.actualAmount} onChange={e => updateMerch(idx, 'actualAmount', Number(e.target.value))} />
                         </td>
-                        <td className="px-2 py-2"><input type="text" className={inp + ' text-slate-400 text-xs'} placeholder="備註..." value={item.remark} onChange={e => updateMerch(idx, 'remark', e.target.value)} /></td>
-                        <td className="px-3 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => removeMerchRow(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded p-1.5 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
+                        <td className="px-1 py-2"><input type="text" className={inp + ' text-slate-400 text-xs !w-20 !min-w-[5rem] !px-1'} placeholder="備註..." value={item.remark} onChange={e => updateMerch(idx, 'remark', e.target.value)} /></td>
+                        <td className="px-1 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => removeMerchRow(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded p-1.5 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
                       </tr>
                     ))}
                     {merchandises.length === 0 && <tr><td colSpan={10} className="text-center py-10 bg-slate-50/50 text-slate-400 text-sm font-medium border-t border-slate-100"><ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-20" />請點擊新增列掛載商品</td></tr>}
@@ -1549,15 +1726,20 @@ export default function App() {
                     <span className="text-2xl font-bold text-slate-800">NT$ {summary.dueAmount.toLocaleString()}</span>
                   </div>
                 </div>
-                <button onClick={handleCheckout} className={`bg-gradient-to-r ${branchGradient[branch]} hover:opacity-90 text-white px-10 py-3 rounded-xl font-bold text-base shadow-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95`}>
-                  <ShoppingCart className="w-5 h-5" /> 送出結帳
-                </button>
+                <div className="flex gap-4">
+                  <button onClick={handleResetCheckout} className="bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-500 font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all active:scale-95 shadow-sm">
+                    <Trash2 className="w-5 h-5" /> 全新結帳
+                  </button>
+                  <button onClick={handleCheckout} className={`bg-gradient-to-r ${branchGradient[branch]} hover:opacity-90 text-white px-10 py-3 rounded-xl font-bold text-base shadow-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95`}>
+                    <ShoppingCart className="w-5 h-5" /> 送出結帳
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {activeTab === 'daily' && <DailySalesView branch={branch} records={dailySales} isLoading={loadingDaily} onDelete={handleDeleteDaily} />}
+        {activeTab === 'daily' && <DailySalesView branch={branch} records={dailySales} isLoading={loadingDaily} onDelete={handleDeleteDaily} openingCash={openingCash} onSetOpeningCash={handleSetOpeningCash} />}
         {activeTab === 'members' && <MembersView members={members} isLoading={loadingMembers} />}
         {activeTab === 'sales' && (
           <SalesView
@@ -1571,6 +1753,60 @@ export default function App() {
         {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes} isLoading={loadingLibrary} />}
         {activeTab === 'stock' && <StockView branch={branch} records={stocks} isLoading={loadingStocks} onRefresh={fetchStocks} setBranch={setBranch} />}
         {activeTab === 'blindbox' && <BlindBoxView records={blindBoxes} isLoading={loadingBlindBox} onRefresh={fetchBlindBoxes} />}
+
+        {isClosingModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white/20">
+              <div className="px-6 py-5 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100/50 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-indigo-950 flex items-center gap-3 tracking-tight">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/20"><Archive className="w-4 h-4" /></div>
+                  門市關帳結算 ({branch})
+                </h3>
+                <button onClick={() => setIsClosingModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 hover:bg-rose-50 p-2 rounded-full"><X className="w-4 h-4"/></button>
+              </div>
+              <div className="p-7 flex flex-col gap-6">
+                <div className="flex flex-col gap-3">
+                  <div className="flex justify-between items-center text-slate-500 text-sm">
+                    <span className="font-bold tracking-widest uppercase">今日開櫃金</span>
+                    <span className="font-bold text-slate-700">NT$ {(openingCash || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-500 text-sm">
+                    <span className="font-bold tracking-widest uppercase">現金營收</span>
+                    <span className="font-bold text-emerald-600">+ NT$ {(getExpectedCash() - (openingCash || 0)).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                    <span className="font-black text-slate-800 tracking-wider">系統應收總計</span>
+                    <span className="font-black text-3xl text-indigo-600 tracking-tight">NT$ {getExpectedCash().toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 mt-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">實際盤點現金</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">NT$</span>
+                    <input type="number" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 rounded-2xl outline-none font-black text-2xl text-slate-800 transition-all shadow-inner" placeholder="0" value={actualCashInput} onChange={e => setActualCashInput(e.target.value)} autoFocus />
+                  </div>
+                </div>
+
+                {actualCashInput !== '' && (
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border ${Number(actualCashInput) - getExpectedCash() === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                    <span className="font-bold tracking-widest uppercase text-xs">盤差金額</span>
+                    <span className="font-black text-xl">{(Number(actualCashInput) - getExpectedCash() > 0 ? '+' : '')}{(Number(actualCashInput) - getExpectedCash()).toLocaleString()}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">備註說明 (選填)</label>
+                  <textarea className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 rounded-2xl outline-none text-sm text-slate-700 transition-all resize-none h-20 placeholder:text-slate-300" placeholder="若有盤差或其他事項請備註..." value={closeNote} onChange={e => setCloseNote(e.target.value)} />
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-3">
+                <button onClick={() => setIsClosingModalOpen(false)} className="px-4 py-3 rounded-xl font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition-colors">取消</button>
+                <button onClick={handleConfirmCloseDay} className="px-4 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all active:scale-95">確認送出關帳</button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -40,6 +40,12 @@ function doPost(e) {
       case "getBlindBoxList":
         result = apiGetBlindBoxList();
         break;
+      case "setOpeningCash":
+        result = apiSetOpeningCash(payload.branch, payload.amount);
+        break;
+      case "getOpeningCash":
+        result = apiGetOpeningCash(payload.branch);
+        break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
     }
@@ -126,9 +132,35 @@ function apiCheckout(payload) {
   return { success: true, message: '結帳成功', newPoints: newPoints, checkoutUID: checkoutUID };
 }
 
-// ── 2. 關帳 API ──────────────────────────────────────────
+// ── 2. 關帳 API 與 現金管理 API ────────────────────────────
+function apiSetOpeningCash(branch, amount) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    props.setProperty('openingCash_' + branch, amount.toString());
+    return { success: true, message: '開櫃現金設定成功', amount: Number(amount) };
+  } catch(error) {
+    return { success: false, message: '設定開櫃現金失敗: ' + error.toString() };
+  }
+}
+
+function apiGetOpeningCash(branch) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var val = props.getProperty('openingCash_' + branch);
+    return { success: true, amount: val ? Number(val) : null };
+  } catch(error) {
+    return { success: false, message: '讀取開櫃現金失敗: ' + error.toString() };
+  }
+}
+
 function apiCloseDay(payload) {
   var branch = payload.branch;
+  var openingCash = payload.openingCash || 0;
+  var expectedCash = payload.expectedCash || 0;
+  var actualCash = payload.actualCash || 0;
+  var discrepancy = payload.discrepancy || 0;
+  var note = payload.note || '';
+
   var tempApp = SpreadsheetApp.openById(appBackground);
   var sourceSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
   var targetSheetName = sheetSalesRecord;
@@ -137,7 +169,7 @@ function apiCloseDay(payload) {
   var targetSheet = tempApp.getSheetByName(targetSheetName);
   var lastRowSource = sourceSheet.getLastRow();
   
-  if (lastRowSource <= 5) return { success: true, message: '無資料需要關帳' };
+  if (lastRowSource <= 5) return { success: true, message: '無資料需要關帳（但仍可記錄盤點）' };
   
   try {
     var numToMove = lastRowSource - 5;
@@ -151,11 +183,30 @@ function apiCloseDay(payload) {
       return row;
     });
 
+    // 建立關帳特殊紀錄 (特殊列)
+    // 依據前端讀取邏輯： col[0] = phone, col[8] = prizeName(作為紀錄重點), col[12] = remark, col[14] = checkoutUID(須有值避免被略過), col[24] = branch
+    var summaryRow = [];
+    while (summaryRow.length < 25) summaryRow.push('');
+    summaryRow[0] = '【系統結帳紀錄】';
+    summaryRow[8] = '【' + branch + '】關帳結算'; // 商品名稱位
+    summaryRow[12] = '開櫃: $' + openingCash + ', 應收: $' + expectedCash + ', 實收: $' + actualCash + ', 差異: $' + discrepancy + (note ? ', 備註: ' + note : '');
+    summaryRow[13] = Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss");
+    summaryRow[14] = 'SYS_CLOSE_' + branch + '_' + new Date().getTime(); // checkoutUID 假造一個作為唯一識別
+    summaryRow[24] = branch;
+    
+    // 把 Summary row 放進目標陣列最後面
+    dataWithBranch.push(summaryRow);
+
     var lastRowTarget = targetSheet.getLastRow();
     var targetCols = Math.max(srcCols, 25);
     targetSheet.getRange(lastRowTarget + 1, 1, dataWithBranch.length, targetCols).setValues(dataWithBranch);
     sourceSheet.getRange(6, 1, numToMove, srcCols).clearContent();
-    return { success: true, message: branch + ' 關帳成功' };
+
+    // 清空開櫃現金
+    var props = PropertiesService.getScriptProperties();
+    props.deleteProperty('openingCash_' + branch);
+
+    return { success: true, message: branch + ' 關帳與結算紀錄成功' };
   } catch(error) {
     return { success: false, message: '關帳異常: ' + error.toString() };
   }
