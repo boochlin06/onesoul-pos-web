@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  ShoppingCart, Plus, Trash2, Store, Archive, History,
+  ShoppingCart, Plus, Minus, Trash2, Store, Archive, History,
   Users, BarChart3, ClipboardList, Receipt, Search, BookOpen, X, Loader2, ChevronDown, Package, CheckCircle2, Box
 } from 'lucide-react';
 
@@ -1245,8 +1245,23 @@ async function gasPost(action: string, payload?: object) {
 
 // ── Main App ───────────────────────────────────────────
 function StatusBanner({ msg, type }: { msg: string; type: 'ok' | 'err' | 'loading' }) {
-  const cls = type === 'ok' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : type === 'err' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-blue-50 text-blue-700 border-blue-200';
-  return <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-xl border text-sm font-medium shadow-lg ${cls}`}>{msg}</div>;
+  if (type === 'loading') {
+    return (
+      <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-200">
+        <div className="bg-white/95 px-10 py-8 rounded-3xl shadow-2xl flex flex-col items-center gap-5 border border-white/50 transform transition-all saturate-150">
+          <div className="relative">
+            <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-20 rounded-full animate-pulse"></div>
+            <Loader2 className="w-14 h-14 animate-spin text-indigo-600 relative z-10" />
+          </div>
+          <span className="font-black text-indigo-950 text-xl tracking-wider">{msg}</span>
+          <span className="text-sm font-medium text-slate-500">請稍候，不要關閉頁面</span>
+        </div>
+      </div>
+    );
+  }
+
+  const cls = type === 'ok' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200';
+  return <div className={`fixed top-4 right-4 z-[100] px-5 py-3 rounded-xl border text-sm font-bold shadow-lg animate-in fade-in slide-in-from-top-4 ${cls}`}>{msg}</div>;
 }
 
 function useStickyState<T>(defaultValue: T | (() => T), key: string): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -1487,8 +1502,9 @@ export default function App() {
 
   const [payment, setPayment] = useStickyState({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 }, 'os_checkout_payment');
   const [lotteries, setLotteries] = useStickyState<LotteryItem[]>(() => Array(5).fill(null).map(emptyLottery), 'os_checkout_lotteries');
-  const [merchandises, setMerchandises] = useStickyState<MerchItem[]>(() => Array(5).fill(null).map(emptyMerch), 'os_checkout_merchandises');
+  const [merchandises, setMerchandises] = useStickyState<MerchItem[]>(() => Array(2).fill(null).map(emptyMerch), 'os_checkout_merchandises');
   const [summary, setSummary] = useStickyState({ pointsChange: 0, dueAmount: 0 }, 'os_checkout_summary');
+  const [orderNote, setOrderNote] = useStickyState('', 'os_checkout_ordernote');
 
   const [openingCash, setOpeningCash] = useState<number | null>(null);
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
@@ -1641,17 +1657,66 @@ export default function App() {
     setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
     setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
     setLotteries(Array(5).fill(null).map(emptyLottery));
-    setMerchandises(Array(5).fill(null).map(emptyMerch));
+    setMerchandises(Array(2).fill(null).map(emptyMerch));
+    setOrderNote('');
     showBanner('已清空畫面', 'ok');
   };
 
   const handleCheckout = async () => {
-    const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName);
-    const filteredMerch = merchandises.filter(m => m.id || m.name);
+    const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName || l.amount > 0);
+    const filteredMerch = merchandises.filter(m => m.id || m.name || m.quantity > 1);
+
+    // 1. 購物車為空防呆
+    if (filteredLotteries.length === 0 && filteredMerch.length === 0) {
+      alert('無法結帳：請至少輸入一項福袋或商品');
+      return;
+    }
+
+    // 2. 會員狀態驗證 (確實按下 Enter)
     if (!customer.phoneName) { alert('請輸入客戶電話號碼'); return; }
+    if (!customer.name) { alert('請先按下 Enter 完成會員查詢，確認會員身份與最新點數後再結帳'); return; }
+
+    // 3. 福袋欄位缺失防呆
+    for (let i = 0; i < filteredLotteries.length; i++) {
+      const l = filteredLotteries[i];
+      if (!l.id || !l.prize || !l.setName || l.draws < 1 || !Number.isInteger(l.draws)) {
+        alert(`無法結帳：福袋區第 ${i + 1} 項資料不完整（請確認編號、獎項、套名皆已帶出，且抽數必須為大於 0 的整數）`);
+        return;
+      }
+    }
+
+    // 4. 直購商品欄位缺失防呆
+    for (let i = 0; i < filteredMerch.length; i++) {
+      const m = filteredMerch[i];
+      if (!m.id || !m.name || m.quantity < 1 || !Number.isInteger(m.quantity)) {
+        alert(`無法結帳：直購商品區第 ${i + 1} 項資料不完整（請確認貨號與商品名稱皆已帶出，且數量必須為大於 0 的整數）`);
+        return;
+      }
+    }
+
+    // 5. 金額核對與負數防呆
+    const isNegativePayment = payment.cash < 0 || payment.remittance < 0 || payment.creditCard < 0 || payment.pointsUsed < 0;
+    const isNegativePrice = filteredLotteries.some(l => l.amount < 0) || filteredMerch.some(m => m.actualAmount < 0);
+    if (isNegativePayment || isNegativePrice || summary.dueAmount < 0) {
+      alert('無法結帳：輸入的收款明細、系統應收總額，以及單項商品金額均不能為負數');
+      return;
+    }
 
     const totalReceived = payment.cash + payment.remittance + payment.creditCard;
-    if (totalReceived !== summary.dueAmount) { alert('實收金額必須等於應收金額'); return; }
+    if (totalReceived !== summary.dueAmount) { 
+      alert(`無法結帳：實收總額 (${totalReceived}) 與系統應付總額 (${summary.dueAmount}) 不符`); 
+      return; 
+    }
+
+    // 6. 點數餘額不足防呆
+    const itemPointsCost = summary.pointsChange < 0 ? Math.abs(summary.pointsChange) : 0;
+    const manualPointsCost = payment.pointsUsed || 0;
+    const totalPointsCost = itemPointsCost + manualPointsCost;
+
+    if (totalPointsCost > customer.currentPoints) {
+      alert(`無法結帳：點數餘額不足！\n本單需扣除：${totalPointsCost} 點 (商品扣 ${itemPointsCost} + 手動扣 ${manualPointsCost})\n會員目前僅有：${customer.currentPoints} 點`);
+      return;
+    }
 
     showBanner('結帳資料傳送中…', 'loading', false);
     try {
@@ -1660,14 +1725,23 @@ export default function App() {
         branch, customer, payment: payloadPayment, summary,
         lotteries: filteredLotteries,
         merchandises: filteredMerch,
+        orderNote
       });
       if (res.success) {
         showBanner(`✓ 結帳成功！會員最新點數: ${res.newPoints}`, 'ok');
+
+        // 更新前端內存的 Members Cache
+        if (typeof res.newPoints !== 'undefined') {
+          const rawPhone = customer.phoneName.split(/[- ]/)[0];
+          setMembers(prev => prev.map(m => String(m.phone).trim() === rawPhone ? { ...m, points: res.newPoints } : m));
+        }
+
         // Reset form
         setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
         setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
         setLotteries(Array(5).fill(null).map(emptyLottery));
-        setMerchandises(Array(5).fill(null).map(emptyMerch));
+        setMerchandises(Array(2).fill(null).map(emptyMerch));
+        setOrderNote('');
       } else {
         showBanner(`✗ 結帳失敗：${res.message}`, 'err');
       }
@@ -1849,7 +1923,7 @@ export default function App() {
                     <span className="text-sm font-bold text-slate-600">目前累積點數</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-indigo-400 font-medium">pts</span>
-                      <input type="number" className="w-24 text-right px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 rounded-lg transition-all outline-none font-bold text-lg" value={customer.currentPoints} onChange={e => setCustomer({ ...customer, currentPoints: Number(e.target.value) })} />
+                      <input type="number" min="0" className="w-24 text-right px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 rounded-lg transition-all outline-none font-bold text-lg" value={customer.currentPoints} onChange={e => setCustomer({ ...customer, currentPoints: Number(e.target.value) })} />
                     </div>
                   </div>
                 </div>
@@ -1875,15 +1949,15 @@ export default function App() {
                   
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">現金 Cash</label>
-                    <input type="number" className="w-full text-right px-3 py-2 bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 rounded-lg outline-none font-mono text-slate-700" value={payment.cash} onChange={e => setPayment({ ...payment, cash: Number(e.target.value) })} />
+                    <input type="number" min="0" className="w-full text-right px-3 py-2 bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 rounded-lg outline-none font-mono text-slate-700" value={payment.cash} onChange={e => setPayment({ ...payment, cash: Number(e.target.value) })} />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">匯款 Transfer</label>
-                    <input type="number" className="w-full text-right px-3 py-2 bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 rounded-lg outline-none font-mono text-slate-700" value={payment.remittance} onChange={e => setPayment({ ...payment, remittance: Number(e.target.value) })} />
+                    <input type="number" min="0" className="w-full text-right px-3 py-2 bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 rounded-lg outline-none font-mono text-slate-700" value={payment.remittance} onChange={e => setPayment({ ...payment, remittance: Number(e.target.value) })} />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">信用卡 Card</label>
-                    <input type="number" className="w-full text-right px-3 py-2 bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 rounded-lg outline-none font-mono text-slate-700" value={payment.creditCard} onChange={e => setPayment({ ...payment, creditCard: Number(e.target.value) })} />
+                    <input type="number" min="0" className="w-full text-right px-3 py-2 bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 rounded-lg outline-none font-mono text-slate-700" value={payment.creditCard} onChange={e => setPayment({ ...payment, creditCard: Number(e.target.value) })} />
                   </div>
                 </div>
               </div>
@@ -1917,22 +1991,22 @@ export default function App() {
                       <tr key={idx} className="hover:bg-amber-50/30 transition-colors group">
                         <td className="px-1 py-2"><input type="text" className={inp + ' text-center text-xs !w-12 !min-w-[3rem] !px-1'} placeholder="單號" value={item.id} onChange={e => updateLottery(idx, 'id', e.target.value)} /></td>
                         <td className="px-1 py-2"><input type="text" className={inp + ' text-center text-amber-700 font-bold text-xs !w-12 !min-w-[3rem] !px-1'} placeholder="A/1/Z" value={item.prize} onChange={e => updateLottery(idx, 'prize', e.target.value)} /></td>
-                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.draws} onChange={e => updateLottery(idx, 'draws', Number(e.target.value))} /></td>
+                        <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.draws} onChange={e => updateLottery(idx, 'draws', Number(e.target.value))} /></td>
                         <td className="px-1 py-2">
                           <select className={inp + ' text-amber-700 font-bold min-w-[5rem]'} value={item.type} onChange={e => updateLottery(idx, 'type', e.target.value)}>
                             <option>帶走</option><option>點數</option>
                           </select>
                         </td>
                         <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[200px]'} placeholder="大套名稱" value={item.setName} disabled readOnly /></td>
-                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-[11px] text-slate-400 font-mono !w-12 !min-w-[3rem] !px-1'} value={item.unitPrice} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-[11px] text-slate-400 font-mono !w-12 !min-w-[3rem] !px-1'} value={item.unitPrice} disabled readOnly /></td>
                         <td className="px-1 py-2"><input type="text" className={inp + ' text-[11px] text-slate-400 font-mono !w-10 !min-w-[2.5rem] !px-1 text-center'} placeholder="獎編" value={item.prizeId} disabled readOnly /></td>
                         <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[200px]'} placeholder="輸入名稱" value={item.prizeName} disabled readOnly /></td>
-                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-[11px] text-indigo-300 font-mono !w-10 !min-w-[2.5rem] !px-1'} value={item.unitPoints} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-[11px] text-indigo-300 font-mono !w-10 !min-w-[2.5rem] !px-1'} value={item.unitPoints} disabled readOnly /></td>
                         <td className="px-2 py-2 text-right">
                           <span className={`px-2 py-1 rounded flex w-min ml-auto ${item.totalPoints > 0 ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-400'}`}>{item.totalPoints > 0 ? `+${item.totalPoints}` : '0'}</span>
                         </td>
                         <td className="px-1 py-2">
-                          <input type="number" className={numInp + ' font-bold text-amber-700 min-w-[6rem]'} placeholder="金額" value={item.amount} onChange={e => updateLottery(idx, 'amount', Number(e.target.value))} />
+                          <input type="number" min="0" className={numInp + ' font-bold text-amber-700 min-w-[6rem]'} placeholder="金額" value={item.amount} onChange={e => updateLottery(idx, 'amount', Number(e.target.value))} />
                         </td>
                         <td className="px-1 py-2"><input type="text" className={inp + ' text-slate-400 text-xs min-w-[7rem]'} placeholder="備註..." value={item.remark} onChange={e => updateLottery(idx, 'remark', e.target.value)} /></td>
                         <td className="px-1 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => removeLotteryRow(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded p-1.5 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
@@ -1966,7 +2040,7 @@ export default function App() {
                     {merchandises.map((item, idx) => (
                       <tr key={idx} className="hover:bg-rose-50/30 transition-colors group">
                         <td className="px-1 py-2"><input type="text" className={inp + ' text-xs font-mono text-slate-600 !w-24 !min-w-[5rem] !px-1'} placeholder="輸入貨號" value={item.id} onChange={e => updateMerch(idx, 'id', e.target.value)} /></td>
-                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.quantity} onChange={e => updateMerch(idx, 'quantity', Number(e.target.value))} /></td>
+                        <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.quantity} onChange={e => updateMerch(idx, 'quantity', Number(e.target.value))} /></td>
                         <td className="px-1 py-2">
                           <select className={`${inp} text-xs font-bold !w-16 !min-w-[4rem] !px-1 ${item.paymentType === '現金' ? 'text-rose-700' : item.paymentType === '點數' ? 'text-indigo-700' : 'text-emerald-700'}`} value={item.paymentType} onChange={e => updateMerch(idx, 'paymentType', e.target.value as '現金'|'點數'|'贈送')}>
                             {!item.isGk && <option>現金</option>}
@@ -1974,14 +2048,14 @@ export default function App() {
                             <option>贈送</option>
                           </select>
                         </td>
-                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-[11px] font-mono text-slate-400 !w-14 !min-w-[3.5rem] !px-1'} placeholder="0" value={item.unitAmount} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-[11px] font-mono text-slate-400 !w-14 !min-w-[3.5rem] !px-1'} placeholder="0" value={item.unitAmount} disabled readOnly /></td>
                         <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[200px]'} placeholder="商品名稱" value={item.name} disabled readOnly /></td>
-                        <td className="px-1 py-2"><input type="number" className={numInp + ' text-[11px] font-mono text-indigo-400 !w-12 !min-w-[3rem] !px-1'} placeholder="0" value={item.suggestedPoints} disabled readOnly /></td>
+                        <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-[11px] font-mono text-indigo-400 !w-12 !min-w-[3rem] !px-1'} placeholder="0" value={item.suggestedPoints} disabled readOnly /></td>
                         <td className="px-2 py-2 text-right">
                           <span className={`px-2 py-1 rounded flex w-min ml-auto text-xs ${item.paymentType === '點數' && item.totalPoints > 0 ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-400'}`}>{item.paymentType === '點數' && item.totalPoints > 0 ? `-${item.totalPoints}` : '0'}</span>
                         </td>
                         <td className="px-1 py-2">
-                           <input type="number" className={numInp + ' text-sm font-bold text-rose-700 !w-20 !min-w-[5rem] !px-1'} placeholder="0" value={item.actualAmount} onChange={e => updateMerch(idx, 'actualAmount', Number(e.target.value))} />
+                           <input type="number" min="0" className={numInp + ' text-sm font-bold text-rose-700 !w-20 !min-w-[5rem] !px-1'} placeholder="0" value={item.actualAmount} onChange={e => updateMerch(idx, 'actualAmount', Number(e.target.value))} />
                         </td>
                         <td className="px-1 py-2"><input type="text" className={inp + ' text-slate-400 text-xs !w-20 !min-w-[5rem] !px-1'} placeholder="備註..." value={item.remark} onChange={e => updateMerch(idx, 'remark', e.target.value)} /></td>
                         <td className="px-1 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => removeMerchRow(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded p-1.5 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
@@ -1991,6 +2065,20 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            {/* Note Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold shadow-sm">5</div>
+                <span className="text-base font-bold text-amber-900">結帳單備註 (選填)</span>
+              </div>
+              <textarea 
+                className={inp + ' resize-none h-20 bg-slate-50 placeholder:text-slate-400 p-3'} 
+                placeholder="請輸入這筆訂單的結帳備註，將會寫入銷售紀錄的 U 欄..."
+                value={orderNote}
+                onChange={e => setOrderNote(e.target.value)}
+              />
             </div>
 
             {/* Sticky footer */}
@@ -2078,7 +2166,7 @@ export default function App() {
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">實際盤點現金</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">NT$</span>
-                    <input type="number" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 rounded-2xl outline-none font-black text-2xl text-slate-800 transition-all shadow-inner" placeholder="0" value={actualCashInput} onChange={e => setActualCashInput(e.target.value)} autoFocus />
+                    <input type="number" min="0" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 rounded-2xl outline-none font-black text-2xl text-slate-800 transition-all shadow-inner" placeholder="0" value={actualCashInput} onChange={e => setActualCashInput(e.target.value)} autoFocus />
                   </div>
                 </div>
 

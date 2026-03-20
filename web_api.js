@@ -71,9 +71,10 @@ function apiCheckout(payload) {
   var lotteries = payload.lotteries || [];
   var merchandises = payload.merchandises || [];
   var payment = payload.payment || { receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 };
-  var totalCheckPoint = payload.summary.totalPoints;
-  var costToPayPoint = payment.pointsUsed;
-  var memberPoint = payload.customer.currentPoints;
+  var orderNote = payload.orderNote || '';
+  var totalCheckPoint = payload.summary.pointsChange || 0;
+  var costToPayPoint = payment.pointsUsed || 0;
+  var memberPoint = payload.customer.currentPoints || 0;
 
   var checkoutUID = phoneNumbers + "_" + Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd_HHmmss");
   var currentDate = Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd");
@@ -93,10 +94,17 @@ function apiCheckout(payload) {
   // 處理一般商品
   for (var j = 0; j < merchandises.length; j++) {
     var m = merchandises[j];
+    var mPoints = 0;
+    if (m.paymentType === '點數' || m.id === '99999') {
+      mPoints = -Math.abs(m.totalPoints);
+    } else if (m.id === '88888') {
+      mPoints = Math.abs(m.totalPoints);
+    }
+    
     targetData.push([
-      phoneNumbers, m.id, "", m.quantity, m.paymentType, 
+      phoneNumbers, "", m.id, m.quantity, m.paymentType, 
       "", m.unitAmount, "", m.name, m.suggestedPoints, 
-      m.totalPoints, m.actualAmount, m.remark, currentDate, checkoutUID
+      mPoints, m.actualAmount, m.remark, currentDate, checkoutUID
     ]);
   }
 
@@ -119,7 +127,7 @@ function apiCheckout(payload) {
 
   try {
     var lastRow = dailySheet.getLastRow();
-    var saleMethodValues = [payment.receivedAmount, payment.remittance, payment.creditCard, payment.cash, payment.pointsUsed, "Web POS"];
+    var saleMethodValues = [payment.receivedAmount, payment.remittance, payment.creditCard, payment.cash, payment.pointsUsed, orderNote];
     var newData = targetData.map(function(row, index) {
       return index === 0 ? row.concat(saleMethodValues).concat(totalCheckPoint - costToPayPoint) : row.concat(["","","","","","",""]);
     });
