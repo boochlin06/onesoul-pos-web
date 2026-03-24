@@ -421,14 +421,18 @@ function apiDeleteDailySales(branch, checkoutUID) {
     
     // 從最後一行往上找，避開 1-5 列標題 (index 0-4)
     for (var i = data.length - 1; i >= 5; i--) {
-      if (data[i][14] && data[i][14].toString() === checkoutUID.toString()) {
+      if (data[i][14] && data[i][14].toString().trim() === checkoutUID.toString().trim()) {
         rowsToDelete.push(i + 1);
-        if (!phoneToUpdate) { 
-          phoneToUpdate = data[i][0] ? data[i][0].toString() : ''; 
-          totalPointsImpact = Number(data[i][21]); 
+        if (!phoneToUpdate && data[i][0]) { 
+          phoneToUpdate = data[i][0].toString().trim(); 
+        }
+        // 指摘 Column V (Index 21: 點數異動)，只有第一筆項目列會寫入此值，其他通常是空白。
+        if (data[i][21] !== '' && data[i][21] !== undefined) {
+          totalPointsImpact += Number(data[i][21]);
         }
       }
     }
+    
     if (rowsToDelete.length === 0) return { success: false, message: '找不到訂單' };
     
     // 退點
@@ -436,8 +440,10 @@ function apiDeleteDailySales(branch, checkoutUID) {
       var memberSheet = tempApp.getSheetByName(sheetMemberList);
       var mData = memberSheet.getDataRange().getValues();
       for (var m = 1; m < mData.length; m++) {
-        if (mData[m][2] == phoneToUpdate) {
+        var rawPhone = mData[m][2];
+        if (rawPhone && String(rawPhone).trim() === String(phoneToUpdate).trim()) {
           memberSheet.getRange(m + 1, 7).setValue((Number(mData[m][6])||0) - totalPointsImpact);
+          SpreadsheetApp.flush();
           break;
         }
       }
