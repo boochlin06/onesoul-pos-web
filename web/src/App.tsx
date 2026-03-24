@@ -1550,7 +1550,20 @@ export default function App() {
       // Autocomplete from prize library
       if (field === 'id') {
         const setEntry = prizes.find(p => p.setId === String(value));
-        if (setEntry) { item.setName = setEntry.setName; item.unitPrice = setEntry.unitPrice; }
+        if (setEntry) { 
+          item.setName = setEntry.setName; 
+          item.unitPrice = setEntry.unitPrice; 
+        } else {
+          item.setName = '';
+          item.unitPrice = 0;
+          item.prize = '';
+          item.prizeId = '';
+          item.prizeName = '';
+          item.unitPoints = 0;
+          item.draws = 0;
+          item.amount = 0;
+          item.totalPoints = 0;
+        }
       }
       if (field === 'prize') {
         const prizeEntry = prizes.find(p => p.setId === item.id && p.prize === String(value));
@@ -1559,7 +1572,16 @@ export default function App() {
           item.prizeName = prizeEntry.prizeName;
           item.unitPoints = prizeEntry.points;
           item.draws = prizeEntry.draws;
+        } else {
+          item.prizeId = '';
+          item.prizeName = '';
+          item.unitPoints = 0;
+          item.draws = 0;
+          item.amount = 0;
+          item.totalPoints = 0;
         }
+
+        // Special remark mapping overrides
         if (value === '88888') item.remark = '送1點';
         else if (value === '99999') item.remark = '扣1點';
         else if (value === 'x') item.remark = '盲盒';
@@ -1571,7 +1593,7 @@ export default function App() {
       }
 
       if (field !== 'amount' && field !== 'remark') {
-        if (field !== 'type') item.amount = item.draws * item.unitPrice;
+        if (field !== 'type') item.amount = item.draws * (item.unitPrice || 0);
         item.totalPoints = item.type === '點數' ? (item.draws * (item.unitPoints || 0)) : 0;
       }
 

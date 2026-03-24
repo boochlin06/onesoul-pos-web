@@ -28,14 +28,14 @@ describe('Checkout Validation (防呆機制)', () => {
     const objIds = Array.from(merchIdInputs) as HTMLInputElement[];
     const objNames = Array.from(merchNameInputs) as HTMLInputElement[];
 
-    fireEvent.change(objIds[0], { target: { value: 'TEST-01' } });
-    fireEvent.change(objNames[0], { target: { value: '測試公仔' } });
-    
+    fireEvent.change(objIds[0], { target: { value: '100065' } });
+    fireEvent.change(objNames[0], { target: { value: '數碼寶貝玩偶服' } });
+
     // Find quantity and amount
     const numbers = screen.getAllByRole('spinbutton') as HTMLInputElement[];
     // Indexing the spinbuttons could be tricky. Let's just mock it out manually if we can.
     // Let's use getByText or whatever we can find. The quantity is next to ID.
-    
+
     // Just click checkout. Customer is empty.
     const checkoutBtn = screen.getByText('確認送出結帳');
     fireEvent.click(checkoutBtn);
