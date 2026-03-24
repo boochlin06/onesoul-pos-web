@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ShoppingCart, Plus, Minus, Trash2, Store, Archive, History,
-  Users, BarChart3, ClipboardList, Receipt, Search, BookOpen, X, Loader2, ChevronDown, Package, CheckCircle2, Box, Check, MessageSquare
+  Users, BarChart3, ClipboardList, Receipt, Search, BookOpen, X, Loader2, ChevronDown, Package, CheckCircle2, Box, Check, MessageSquare, AlertCircle
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────
@@ -1244,7 +1244,7 @@ async function gasPost(action: string, payload?: object) {
 }
 
 // ── Main App ───────────────────────────────────────────
-function StatusBanner({ msg, type }: { msg: string; type: 'ok' | 'err' | 'loading' }) {
+function StatusBanner({ msg, type, onClose }: { msg: string; type: 'ok' | 'err' | 'loading', onClose?: () => void }) {
   if (type === 'loading') {
     return (
       <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-200">
@@ -1260,7 +1260,19 @@ function StatusBanner({ msg, type }: { msg: string; type: 'ok' | 'err' | 'loadin
     );
   }
 
-  const cls = type === 'ok' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200';
+  if (type === 'err') {
+    return (
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-200">
+        <div className="bg-white px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border-2 border-rose-500 transform transition-all max-w-lg mx-auto relative">
+          {onClose && <button onClick={onClose} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><X className="w-6 h-6"/></button>}
+          <AlertCircle className="w-16 h-16 text-rose-500 mt-2" />
+          <span className="font-black text-rose-600 text-xl text-center whitespace-pre-wrap leading-relaxed">{msg}</span>
+        </div>
+      </div>
+    );
+  }
+
+  const cls = 'bg-emerald-50 text-emerald-700 border-emerald-200';
   return <div className={`fixed top-4 right-4 z-[100] px-5 py-3 rounded-xl border text-sm font-bold shadow-lg animate-in fade-in slide-in-from-top-4 ${cls}`}>{msg}</div>;
 }
 
@@ -1728,19 +1740,19 @@ export default function App() {
 
     // 1. 購物車為空防呆
     if (filteredLotteries.length === 0 && filteredMerch.length === 0) {
-      alert('無法結帳：請至少輸入一項福袋或商品');
+      showBanner('無法結帳：請至少輸入一項福袋或商品', 'err');
       return;
     }
 
     // 2. 會員狀態驗證 (確實按下 Enter)
-    if (!customer.phoneName) { alert('請輸入客戶電話號碼'); return; }
-    if (!customer.name) { alert('請先按下 Enter 完成會員查詢，確認會員身份與最新點數後再結帳'); return; }
+    if (!customer.phoneName) { showBanner('請輸入客戶電話號碼', 'err'); return; }
+    if (!customer.name) { showBanner('請先按下 Enter 完成會員查詢，確認會員身份與最新點數後再結帳', 'err'); return; }
 
     // 3. 福袋欄位缺失防呆
     for (let i = 0; i < filteredLotteries.length; i++) {
       const l = filteredLotteries[i];
       if (!l.id || !l.prize || !l.setName || l.draws < 1 || !Number.isInteger(l.draws)) {
-        alert(`無法結帳：福袋區第 ${i + 1} 項資料不完整（請確認編號、獎項、套名皆已帶出，且抽數必須為大於 0 的整數）`);
+        showBanner(`無法結帳：福袋區第 ${i + 1} 項資料不完整（請確認編號、獎項、套名皆已帶出，且抽數必須為大於 0 的整數）`, 'err');
         return;
       }
     }
@@ -1749,7 +1761,7 @@ export default function App() {
     for (let i = 0; i < filteredMerch.length; i++) {
       const m = filteredMerch[i];
       if (!m.id || !m.name || m.quantity < 1 || !Number.isInteger(m.quantity)) {
-        alert(`無法結帳：直購商品區第 ${i + 1} 項資料不完整（請確認貨號與商品名稱皆已帶出，且數量必須為大於 0 的整數）`);
+        showBanner(`無法結帳：直購商品區第 ${i + 1} 項資料不完整（請確認貨號與商品名稱皆已帶出，且數量必須為大於 0 的整數）`, 'err');
         return;
       }
     }
@@ -1758,13 +1770,13 @@ export default function App() {
     const isNegativePayment = payment.cash < 0 || payment.remittance < 0 || payment.creditCard < 0 || payment.pointsUsed < 0;
     const isNegativePrice = filteredLotteries.some(l => l.amount < 0) || filteredMerch.some(m => m.actualAmount < 0);
     if (isNegativePayment || isNegativePrice || summary.dueAmount < 0) {
-      alert('無法結帳：輸入的收款明細、系統應收總額，以及單項商品金額均不能為負數');
+      showBanner('無法結帳：輸入的收款明細、系統應收總額，以及單項商品金額均不能為負數', 'err');
       return;
     }
 
     const totalReceived = payment.cash + payment.remittance + payment.creditCard;
     if (totalReceived !== summary.dueAmount) { 
-      alert(`無法結帳：實收總額 (${totalReceived}) 與系統應付總額 (${summary.dueAmount}) 不符`); 
+      showBanner(`無法結帳：實收總額 (${totalReceived}) 與系統應付總額 (${summary.dueAmount}) 不符`, 'err'); 
       return; 
     }
 
@@ -1774,7 +1786,7 @@ export default function App() {
     const totalPointsCost = itemPointsCost + manualPointsCost;
 
     if (totalPointsCost > customer.currentPoints) {
-      alert(`無法結帳：點數餘額不足！\n本單需扣除：${totalPointsCost} 點 (商品扣 ${itemPointsCost} + 手動扣 ${manualPointsCost})\n會員目前僅有：${customer.currentPoints} 點`);
+      showBanner(`無法結帳：點數餘額不足！本單需扣除：${totalPointsCost} 點，會員目前僅有：${customer.currentPoints} 點`, 'err');
       return;
     }
 
@@ -1897,7 +1909,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
-      {banner && <StatusBanner msg={banner.msg} type={banner.type} />}
+      {banner && <StatusBanner msg={banner.msg} type={banner.type} onClose={() => setBanner(null)} />}
 
       {/* ── Top Bar ── */}
       <header className={`bg-gradient-to-r ${branchGradient[branch]} shadow-lg`}>
@@ -2006,7 +2018,7 @@ export default function App() {
                     <span className="text-sm font-bold text-slate-600">目前累積點數</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-indigo-400 font-medium">pts</span>
-                      <input type="number" min="0" className="w-24 text-right px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 rounded-lg transition-all outline-none font-bold text-lg" value={customer.currentPoints} onChange={e => setCustomer({ ...customer, currentPoints: Number(e.target.value) })} />
+                      <span className="w-24 text-right px-3 py-1.5 bg-indigo-50/50 border border-indigo-100 text-indigo-700 rounded-lg font-bold text-lg select-all">{customer.currentPoints.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
