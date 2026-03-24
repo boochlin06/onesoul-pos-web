@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ShoppingCart, Plus, Minus, Trash2, Store, Archive, History,
-  Users, BarChart3, ClipboardList, Receipt, Search, BookOpen, X, Loader2, ChevronDown, Package, CheckCircle2, Box
+  Users, BarChart3, ClipboardList, Receipt, Search, BookOpen, X, Loader2, ChevronDown, Package, CheckCircle2, Box, Check, MessageSquare
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────
@@ -487,7 +487,7 @@ function SalesView({
                   {pay.pointsUsed ? <span className="text-slate-500">點數扣 <strong className="text-rose-500 font-mono">-{pay.pointsUsed}</strong></span> : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
-                  {pay.channel ? <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">{pay.channel}</span> : null}
+                  {pay.channel ? <div className="text-slate-500 text-xs flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-md border border-amber-100 max-w-xs shadow-sm" title={pay.channel}><MessageSquare className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /><span className="truncate flex-1 font-medium">{pay.channel}</span></div> : null}
                   {pay.pointDelta ? <span className="text-slate-500 font-medium bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-sm">點數異動 <strong className={`font-mono text-[15px] ${pay.pointDelta > 0 ? 'text-indigo-600' : 'text-slate-600'}`}>{pay.pointDelta > 0 ? `+${pay.pointDelta}` : pay.pointDelta}</strong></span> : null}
                 </div>
               </div>
@@ -797,7 +797,7 @@ function DailySalesView({ branch, records, isLoading, onDelete, openingCash, onS
                   {pay.creditCard ? <span className="text-slate-500">信用卡 <strong className="text-slate-700 font-mono">${pay.creditCard.toLocaleString()}</strong></span> : null}
                   {pay.remittance ? <span className="text-slate-500">匯款 <strong className="text-slate-700 font-mono">${pay.remittance.toLocaleString()}</strong></span> : null}
                   {pay.pointsUsed ? <span className="text-slate-500">點數扣 <strong className="text-rose-500 font-mono">-{pay.pointsUsed}</strong></span> : null}
-                  {pay.channel ? <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">{pay.channel}</span> : null}
+                  {pay.channel ? <div className="text-slate-500 text-xs flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-md border border-amber-100 max-w-sm shadow-sm ml-2" title={pay.channel}><MessageSquare className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /><span className="truncate flex-1 font-medium">{pay.channel}</span></div> : null}
                   {pay.pointDelta ? <span className="text-slate-500 font-medium bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-sm ml-2">點數異動 <strong className={`font-mono text-[15px] ${pay.pointDelta > 0 ? 'text-indigo-600' : 'text-slate-600'}`}>{pay.pointDelta > 0 ? `+${pay.pointDelta}` : pay.pointDelta}</strong></span> : null}
                 </div>
 
@@ -1509,7 +1509,21 @@ export default function App() {
   const [openingCash, setOpeningCash] = useState<number | null>(null);
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [actualCashInput, setActualCashInput] = useState('');
+  const [actualCreditCardInput, setActualCreditCardInput] = useState('');
+  const [actualRemittanceInput, setActualRemittanceInput] = useState('');
   const [closeNote, setCloseNote] = useState('');
+
+  // Checklists
+  const [checkedGks, setCheckedGks] = useState<Set<number>>(new Set());
+
+  const toggleGk = (index: number) => {
+    setCheckedGks(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   const fetchOpeningCash = async () => {
     try { const res = await gasPost('getOpeningCash', { branch }); if (res.success && res.data) setOpeningCash(res.data.amount); } catch {}
@@ -1524,6 +1538,30 @@ export default function App() {
   };
 
   const getExpectedCash = () => (openingCash || 0) + dailySales.reduce((sum, r) => sum + r.cash, 0);
+  const getExpectedCreditCard = () => dailySales.reduce((sum, r) => sum + r.creditCard, 0);
+  const getExpectedRemittance = () => dailySales.reduce((sum, r) => sum + r.remittance, 0);
+
+  // ── GK Checklist Data ──
+  const gkTakenList = useMemo(() => dailySales.filter(r => {
+    const iStr = (r.prizeName || '').toLowerCase();
+    const isExcluded = iStr.includes('非gk') || iStr.includes('盲盒');
+    return r.type === '帶走' && !!r.prizeId && !isExcluded;
+  }), [dailySales]);
+
+  const gkPointsList = useMemo(() => dailySales.filter(r => {
+    const iStr = (r.prizeName || '').toLowerCase();
+    const isExcluded = iStr.includes('非gk') || iStr.includes('盲盒');
+    return r.type === '點數' && !!r.prizeId && !isExcluded;
+  }), [dailySales]);
+
+  const merchGkPointsList = useMemo(() => dailySales.filter(r => {
+    if (r.lotteryId) return false;
+    const cStr = String(r.prize || '').trim();
+    const cNum = Number(cStr);
+    if (cStr === '' || isNaN(cNum) || cNum >= 100000) return false;
+    if (cStr === '88888' || cStr === '99999') return false;
+    return true;
+  }), [dailySales]);
 
   useEffect(() => {
     let due = 0, pts = 0;
@@ -1773,29 +1811,50 @@ export default function App() {
   };
 
   const handleConfirmCloseDay = async () => {
-    if (actualCashInput === '') { alert('請輸入實際盤點現金'); return; }
-    const expected = getExpectedCash();
-    const discrepancy = Number(actualCashInput) - expected;
+    if (actualCashInput === '' || actualCreditCardInput === '' || actualRemittanceInput === '') { 
+      alert('請輸入所有盤點金額（現金、信用卡、匯款）'); 
+      return; 
+    }
+
+    const expectedCash = getExpectedCash();
+    const expectedCreditCard = getExpectedCreditCard();
+    const expectedRemittance = getExpectedRemittance();
     
-    if (!confirm(`確定要關帳嗎？\n預期總現金: $${expected}\n實際輸入: $${actualCashInput}\n盤差: $${discrepancy}`)) {
+    const diffCash = Number(actualCashInput) - expectedCash;
+    const diffCreditCard = Number(actualCreditCardInput) - expectedCreditCard;
+    const diffRemittance = Number(actualRemittanceInput) - expectedRemittance;
+
+    if (diffCash !== 0 || diffCreditCard !== 0 || diffRemittance !== 0) {
+      showBanner('無法關帳：盤差計算錯誤或為浮點數誤差，請重試！', 'err');
       return;
     }
 
+    const requiredGks = Array.from(new Set([...gkTakenList, ...gkPointsList, ...merchGkPointsList].map(r => dailySales.indexOf(r))));
+    const allChecked = requiredGks.length === 0 || requiredGks.every(idx => checkedGks.has(idx));
+    if (!allChecked) {
+      showBanner(`無法關帳：需勾選 ${requiredGks.length} 項但僅勾選了 ${checkedGks.size} 項！`, 'err');
+      return;
+    }
+    
+    // 移除原生 confirm 避免瀏覽器瞬間關閉或被阻擋
     setIsClosingModalOpen(false);
     showBanner('系統關帳與結算中…', 'loading', false);
     try {
       const res = await gasPost('closeDay', { 
         branch, 
         openingCash: openingCash || 0,
-        expectedCash: expected,
+        expectedCash: expectedCash,
         actualCash: Number(actualCashInput),
-        discrepancy,
+        discrepancy: diffCash,
         note: closeNote
       });
       if (res.success) {
         showBanner(`✓ ${res.message}`, 'ok');
         setOpeningCash(null);
         setActualCashInput('');
+        setActualCreditCardInput('');
+        setActualRemittanceInput('');
+        setCheckedGks(new Set());
         setCloseNote('');
         fetchDailySales(); // clear daily view
       } else {
@@ -1858,9 +1917,11 @@ export default function App() {
                 <button key={b} onClick={() => setBranch(b)} className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${branch === b ? 'bg-white text-slate-700 shadow-md' : 'text-white/80 hover:text-white'}`}>{b}門市</button>
               ))}
             </div>
-            <button onClick={() => setIsClosingModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/25 text-white rounded-xl text-sm font-semibold border border-white/20 transition-all backdrop-blur-sm">
-              <Archive className="w-4 h-4" /> 執行關帳
-            </button>
+            {activeTab === 'daily' && (
+              <button onClick={() => setIsClosingModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/25 text-white rounded-xl text-sm font-semibold border border-white/20 transition-all backdrop-blur-sm">
+                <Archive className="w-4 h-4" /> 執行關帳
+              </button>
+            )}
           </div>
         </div>
 
@@ -2160,54 +2221,230 @@ export default function App() {
 
         {isClosingModalOpen && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white/20">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col border border-white/20">
               <div className="px-6 py-5 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100/50 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-indigo-950 flex items-center gap-3 tracking-tight">
                   <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/20"><Archive className="w-4 h-4" /></div>
                   門市關帳結算 ({branch})
                 </h3>
-                <button onClick={() => setIsClosingModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 hover:bg-rose-50 p-2 rounded-full"><X className="w-4 h-4"/></button>
+                <button onClick={() => { setIsClosingModalOpen(false); setCheckedGks(new Set()); }} className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 hover:bg-rose-50 p-2 rounded-full"><X className="w-4 h-4"/></button>
               </div>
-              <div className="p-7 flex flex-col gap-6">
-                <div className="flex flex-col gap-3">
-                  <div className="flex justify-between items-center text-slate-500 text-sm">
-                    <span className="font-bold tracking-widest uppercase">今日開櫃金</span>
-                    <span className="font-bold text-slate-700">NT$ {(openingCash || 0).toLocaleString()}</span>
+
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-y-auto max-h-[75vh]">
+                {/* ── 左欄 (帳務核對) ── */}
+                <div className="lg:col-span-5 flex flex-col gap-5">
+                  <div className="flex items-center justify-between mb-[-12px] px-2">
+                     <h3 className="font-bold text-slate-800 tracking-wider">現金、信用卡、匯款盤點</h3>
                   </div>
-                  <div className="flex justify-between items-center text-slate-500 text-sm">
-                    <span className="font-bold tracking-widest uppercase">現金營收</span>
-                    <span className="font-bold text-emerald-600">+ NT$ {(getExpectedCash() - (openingCash || 0)).toLocaleString()}</span>
+                  
+                  {/* Cash */}
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col gap-3">
+                    <div className="flex justify-between items-center text-slate-500 text-sm">
+                      <span className="font-bold tracking-widest uppercase">今日開櫃金</span>
+                      <span className="font-bold text-slate-700">NT$ {(openingCash || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-500 text-sm">
+                      <span className="font-bold tracking-widest uppercase">現金營收</span>
+                      <span className="font-bold text-emerald-600">+ NT$ {(getExpectedCash() - (openingCash || 0)).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-200/60">
+                      <span className="font-black text-slate-800 tracking-wider">現金應收總計</span>
+                      <span className="font-black text-xl text-indigo-600 tracking-tight">NT$ {getExpectedCash().toLocaleString()}</span>
+                    </div>
+                    <div className="flex flex-col gap-2 mt-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">實際盤點 現金</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">NT$</span>
+                        <input type="number" min="0" className="w-full pl-12 pr-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none font-black text-lg text-slate-800 transition-all shadow-sm" placeholder="0" value={actualCashInput} onChange={e => setActualCashInput(e.target.value)} autoFocus />
+                      </div>
+                    </div>
+                    {actualCashInput !== '' && (
+                      <div className={`p-3 rounded-xl flex items-center justify-between border ${Number(actualCashInput) - getExpectedCash() === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                        <span className="font-bold tracking-widest uppercase text-xs">盤差</span>
+                        <span className="font-black text-sm">{(Number(actualCashInput) - getExpectedCash() > 0 ? '+' : '')}{(Number(actualCashInput) - getExpectedCash()).toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-                    <span className="font-black text-slate-800 tracking-wider">系統應收總計</span>
-                    <span className="font-black text-3xl text-indigo-600 tracking-tight">NT$ {getExpectedCash().toLocaleString()}</span>
+
+                  {/* CC */}
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-black text-slate-800 tracking-wider">信用卡應收總計</span>
+                      <span className="font-black text-xl text-indigo-600 tracking-tight">NT$ {getExpectedCreditCard().toLocaleString()}</span>
+                    </div>
+                    <div className="flex flex-col gap-2 mt-1">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">實際盤點 信用卡</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">NT$</span>
+                        <input type="number" min="0" className="w-full pl-12 pr-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none font-black text-lg text-slate-800 transition-all shadow-sm" placeholder="0" value={actualCreditCardInput} onChange={e => setActualCreditCardInput(e.target.value)} />
+                      </div>
+                    </div>
+                    {actualCreditCardInput !== '' && (
+                      <div className={`p-3 rounded-xl flex items-center justify-between border ${Number(actualCreditCardInput) - getExpectedCreditCard() === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                        <span className="font-bold tracking-widest uppercase text-xs">盤差</span>
+                        <span className="font-black text-sm">{(Number(actualCreditCardInput) - getExpectedCreditCard() > 0 ? '+' : '')}{(Number(actualCreditCardInput) - getExpectedCreditCard()).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Remittance */}
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-black text-slate-800 tracking-wider">匯款應收總計</span>
+                      <span className="font-black text-xl text-indigo-600 tracking-tight">NT$ {getExpectedRemittance().toLocaleString()}</span>
+                    </div>
+                    <div className="flex flex-col gap-2 mt-1">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">實際盤點 匯款</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">NT$</span>
+                        <input type="number" min="0" className="w-full pl-12 pr-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none font-black text-lg text-slate-800 transition-all shadow-sm" placeholder="0" value={actualRemittanceInput} onChange={e => setActualRemittanceInput(e.target.value)} />
+                      </div>
+                    </div>
+                    {actualRemittanceInput !== '' && (
+                      <div className={`p-3 rounded-xl flex items-center justify-between border ${Number(actualRemittanceInput) - getExpectedRemittance() === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                        <span className="font-bold tracking-widest uppercase text-xs">盤差</span>
+                        <span className="font-black text-sm">{(Number(actualRemittanceInput) - getExpectedRemittance() > 0 ? '+' : '')}{(Number(actualRemittanceInput) - getExpectedRemittance()).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-2">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">備註說明 (選填)</label>
+                    <textarea className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 rounded-2xl outline-none text-sm text-slate-700 transition-all resize-none h-24 placeholder:text-slate-300" placeholder="若有其他事項請備註..." value={closeNote} onChange={e => setCloseNote(e.target.value)} />
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 mt-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">實際盤點現金</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">NT$</span>
-                    <input type="number" min="0" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 rounded-2xl outline-none font-black text-2xl text-slate-800 transition-all shadow-inner" placeholder="0" value={actualCashInput} onChange={e => setActualCashInput(e.target.value)} autoFocus />
+                {/* ── 右欄 (實物與獎項核查) ── */}
+                <div className="lg:col-span-7 flex flex-col h-full">
+                  <div className="bg-indigo-50/50 rounded-2xl p-5 border border-indigo-100 flex flex-col gap-4 shadow-sm h-full">
+                    <span className="text-[13px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-100/50 pb-3">店員關帳確認清單 (必選) - 當日庫存與獎項核查</span>
+                    
+                    {/* List 1 */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-slate-700">福袋抽中獎項 👉 要帶走的款式</span>
+                      {gkTakenList.length > 0 ? (
+                        <div className="ml-2 pl-4 border-l-2 border-indigo-100 flex flex-col gap-1.5">
+                          {gkTakenList.map((item, i) => {
+                            const idx = dailySales.indexOf(item);
+                            const phoneRaw = String(item.phone || '').trim();
+                            const cleanP = phoneRaw.replace(/^0+/, '');
+                            const m = members.find(m => String(m.phone || '').trim().replace(/^0+/, '') === cleanP);
+                            const customerName = m ? m.name : (phoneRaw || '散客');
+                            return (
+                              <label key={idx} className={`cursor-pointer text-xs p-2 rounded-lg border shadow-sm flex flex-col xl:flex-row xl:items-center gap-2 transition-all ${checkedGks.has(idx) ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex items-center">
+                                    <input type="checkbox" className="peer w-4 h-4 appearance-none border-2 border-slate-300 rounded focus:ring-2 focus:ring-indigo-500/20 checked:bg-indigo-600 checked:border-indigo-600 transition-all cursor-pointer" checked={checkedGks.has(idx)} onChange={() => toggleGk(idx)} />
+                                    <Check className="w-3 h-3 text-white absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
+                                  </div>
+                                  <span className="font-bold text-slate-600 px-2 py-0.5 bg-slate-100 rounded flex-shrink-0">{customerName}</span>
+                                </div>
+                                <span className="font-bold flex-1 truncate">{item.setName || item.prizeName} <span className="text-slate-400 font-normal ml-1">({item.prize || ''}) {item.draws > 1 ? `x${item.draws}` : ''}</span></span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="ml-2 text-xs text-slate-400 italic">今日無此類紀錄</div>
+                      )}
+                    </div>
+
+                    {/* List 2 */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-slate-700">福袋抽中獎項 👉 換成點數的款式</span>
+                      {gkPointsList.length > 0 ? (
+                        <div className="ml-2 pl-4 border-l-2 border-indigo-100 flex flex-col gap-1.5">
+                          {gkPointsList.map((item, i) => {
+                            const idx = dailySales.indexOf(item);
+                            const phoneRaw = String(item.phone || '').trim();
+                            const cleanP = phoneRaw.replace(/^0+/, '');
+                            const m = members.find(m => String(m.phone || '').trim().replace(/^0+/, '') === cleanP);
+                            const customerName = m ? m.name : (phoneRaw || '散客');
+                            return (
+                              <label key={idx} className={`cursor-pointer text-xs p-2 rounded-lg border shadow-sm flex flex-col xl:flex-row xl:items-center gap-2 transition-all ${checkedGks.has(idx) ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex items-center">
+                                    <input type="checkbox" className="peer w-4 h-4 appearance-none border-2 border-slate-300 rounded focus:ring-2 focus:ring-indigo-500/20 checked:bg-indigo-600 checked:border-indigo-600 transition-all cursor-pointer" checked={checkedGks.has(idx)} onChange={() => toggleGk(idx)} />
+                                    <Check className="w-3 h-3 text-white absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
+                                  </div>
+                                  <span className="font-bold text-slate-600 px-2 py-0.5 bg-slate-100 rounded flex-shrink-0">{customerName}</span>
+                                </div>
+                                <span className="font-bold flex-1 truncate">{item.setName || item.prizeName} <span className="text-slate-400 font-normal ml-1">({item.prize || ''}) {item.draws > 1 ? `x${item.draws}` : ''}</span></span>
+                                <span className="text-indigo-500 font-bold ml-1 flex-shrink-0">返 ${Math.abs(item.points)} 點</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="ml-2 text-xs text-slate-400 italic">今日無此類紀錄</div>
+                      )}
+                    </div>
+
+                    {/* List 3 */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-slate-700">點數直購區 👉 客戶用點數兌換的商品</span>
+                      {merchGkPointsList.length > 0 ? (
+                        <div className="ml-2 pl-4 border-l-2 border-indigo-100 flex flex-col gap-1.5">
+                          {merchGkPointsList.map((item, i) => {
+                            const idx = dailySales.indexOf(item);
+                            const phoneRaw = String(item.phone || '').trim();
+                            const cleanP = phoneRaw.replace(/^0+/, '');
+                            const m = members.find(m => String(m.phone || '').trim().replace(/^0+/, '') === cleanP);
+                            const customerName = m ? m.name : (phoneRaw || '散客');
+                            return (
+                              <label key={idx} className={`cursor-pointer text-xs p-2 rounded-lg border shadow-sm flex flex-col xl:flex-row xl:items-center gap-2 transition-all ${checkedGks.has(idx) ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'}`}>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex items-center">
+                                    <input type="checkbox" className="peer w-4 h-4 appearance-none border-2 border-slate-300 rounded focus:ring-2 focus:ring-indigo-500/20 checked:bg-indigo-600 checked:border-indigo-600 transition-all cursor-pointer" checked={checkedGks.has(idx)} onChange={() => toggleGk(idx)} />
+                                    <Check className="w-3 h-3 text-white absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
+                                  </div>
+                                  <span className="font-bold text-slate-600 px-2 py-0.5 bg-slate-100 rounded flex-shrink-0">{customerName}</span>
+                                </div>
+                                <span className="font-bold flex-1 truncate">{item.name || item.prizeName || item.setName} <span className="text-slate-400 font-normal ml-1 pr-1">x{item.draws}</span></span>
+                                <span className="text-rose-500 font-bold ml-auto flex-shrink-0">扣 {Math.abs(item.points)} 點</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="ml-2 text-xs text-slate-400 italic">今日無此類紀錄</div>
+                      )}
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                {actualCashInput !== '' && (
-                  <div className={`p-4 rounded-2xl flex items-center justify-between border ${Number(actualCashInput) - getExpectedCash() === 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
-                    <span className="font-bold tracking-widest uppercase text-xs">盤差金額</span>
-                    <span className="font-black text-xl">{(Number(actualCashInput) - getExpectedCash() > 0 ? '+' : '')}{(Number(actualCashInput) - getExpectedCash()).toLocaleString()}</span>
+              {(() => {
+                const diffCash = actualCashInput !== '' ? Number(actualCashInput) - getExpectedCash() : null;
+                const diffCreditCard = actualCreditCardInput !== '' ? Number(actualCreditCardInput) - getExpectedCreditCard() : null;
+                const diffRemittance = actualRemittanceInput !== '' ? Number(actualRemittanceInput) - getExpectedRemittance() : null;
+                
+                const allFilled = actualCashInput !== '' && actualCreditCardInput !== '' && actualRemittanceInput !== '';
+                const allZeroDiff = diffCash === 0 && diffCreditCard === 0 && diffRemittance === 0;
+                const requiredGks = Array.from(new Set([...gkTakenList, ...gkPointsList, ...merchGkPointsList].map(r => dailySales.indexOf(r))));
+                const allChecked = requiredGks.length === 0 || requiredGks.every(idx => checkedGks.has(idx));
+                const canSubmit = allFilled && allZeroDiff && allChecked;
+
+                return (
+                  <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-col gap-3">
+                    {allFilled && allZeroDiff && allChecked && (
+                      <div className="bg-emerald-100 text-emerald-800 text-sm font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm border border-emerald-200">
+                        <Check className="w-5 h-5" /> 所有盤點與確認清單皆已完成，可執行關帳
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button onClick={() => { setIsClosingModalOpen(false); setCheckedGks(new Set()); }} className="px-4 py-3 rounded-xl font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition-colors">取消</button>
+                      <button 
+                        onClick={handleConfirmCloseDay} 
+                        disabled={!canSubmit}
+                        className={`px-4 py-3 rounded-xl font-bold text-white transition-all ${canSubmit ? 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 active:scale-95' : 'bg-slate-300 cursor-not-allowed shadow-none'}`}
+                      >
+                        確認送出關帳
+                      </button>
+                    </div>
                   </div>
-                )}
-
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">備註說明 (選填)</label>
-                  <textarea className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 rounded-2xl outline-none text-sm text-slate-700 transition-all resize-none h-20 placeholder:text-slate-300" placeholder="若有盤差或其他事項請備註..." value={closeNote} onChange={e => setCloseNote(e.target.value)} />
-                </div>
-              </div>
-              <div className="p-4 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-3">
-                <button onClick={() => setIsClosingModalOpen(false)} className="px-4 py-3 rounded-xl font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition-colors">取消</button>
-                <button onClick={handleConfirmCloseDay} className="px-4 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all active:scale-95">確認送出關帳</button>
-              </div>
+                );
+              })()}
             </div>
           </div>
         )}
