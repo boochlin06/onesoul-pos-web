@@ -40,6 +40,9 @@ function doPost(e) {
       case "getBlindBoxList":
         result = apiGetBlindBoxList();
         break;
+      case "deletePrizeLibrary":
+        result = apiDeletePrizeLibrary(payload.branch, payload.setId);
+        break;
       case "setOpeningCash":
         result = apiSetOpeningCash(payload.branch, payload.amount);
         break;
@@ -255,6 +258,40 @@ function apiGetPrizeLibrary(branch) {
       results.push({ setId: row[0].toString(), setName: row[1]||'', unitPrice: row[2]||0, prize: row[3]||'', prizeId: row[4]||'', prizeName: row[5]||'', points: row[6]||0, draws: row[7]||1, branch: row[9]||'' });
     }
     return { success: true, data: results };
+  } catch(error) { return { success: false, message: error.toString() }; }
+}
+
+function apiDeletePrizeLibrary(branch, setId) {
+  try {
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var sheet = tempApp.getSheetByName(sheetLotteryDB);
+    var data = sheet.getDataRange().getValues();
+    var rowsToDelete = [];
+    
+    // 從後面往前找，這樣刪除列時 Index 才不會跑到錯亂
+    for (var i = data.length - 1; i >= 1; i--) {
+      var row = data[i];
+      if (row[0] && row[0].toString().trim() === setId.toString().trim()) {
+        
+        // 如果有傳 branch，進一步確認 branch 相符才刪除 (防誤刪其他店同編號獎項)
+        if (branch && row[9] && row[9].toString().trim() !== branch.toString().trim()) {
+           continue; 
+        }
+        
+        rowsToDelete.push(i + 1);
+      }
+    }
+    
+    if (rowsToDelete.length === 0) {
+      return { success: false, message: '找不到此編號對應的任何獎項' };
+    }
+    
+    for (var r = 0; r < rowsToDelete.length; r++) {
+       sheet.deleteRow(rowsToDelete[r]);
+    }
+    SpreadsheetApp.flush();
+    return { success: true, message: '已成功作廢整套福袋' };
+    
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 

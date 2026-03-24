@@ -887,7 +887,7 @@ function DailySalesView({ branch, records, isLoading, onDelete, openingCash, onS
 }
 
 // ── Prize Library View ────────────────────────────────
-function PrizeLibraryView({ branch: _branch, prizes, isLoading }: { branch: Branch; prizes: PrizeEntry[], isLoading: boolean }) {
+function PrizeLibraryView({ branch: _branch, prizes, isLoading, onDeletePrize }: { branch: Branch; prizes: PrizeEntry[], isLoading: boolean, onDeletePrize: (entries: PrizeEntry[]) => void }) {
   const [search, setSearch] = useState('');
   const [filterBranch, setFilterBranch] = useState<'all' | Branch>('all');
 
@@ -944,9 +944,18 @@ function PrizeLibraryView({ branch: _branch, prizes, isLoading }: { branch: Bran
                 <span className="font-semibold text-slate-700">{entries[0].setName}</span>
                 <div className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded ml-2">NT${entries[0].unitPrice} / 抽</div>
               </div>
-              <div className="flex items-center gap-2">
-                {entries[0].branch && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${branchBadge[entries[0].branch as Branch] || 'bg-slate-100 text-slate-600'}`}>{entries[0].branch}</span>}
-                <span className="text-xs text-slate-400">{entries[0].date}</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {entries[0].branch && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${branchBadge[entries[0].branch as Branch] || 'bg-slate-100 text-slate-600'}`}>{entries[0].branch}</span>}
+                  <span className="text-xs text-slate-400">{entries[0].date}</span>
+                </div>
+                <button 
+                  onClick={() => onDeletePrize(entries)}
+                  className="flex items-center gap-1 text-xs font-bold text-rose-500 hover:text-white hover:bg-rose-500 border border-rose-200 px-3 py-1.5 rounded-lg transition-all shadow-sm"
+                  title="作廢整套福袋"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> 作廢整套
+                </button>
               </div>
             </div>
             <table className="w-full text-sm">
@@ -1339,6 +1348,7 @@ export default function App() {
   const [isFetchingMoreSales, setIsFetchingMoreSales] = useState(false);
   const [hasMoreSales, setHasMoreSales] = useState(false);
   const [loadingDaily, setLoadingDaily] = useState(false);
+  const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
 
   const showBanner = (msg: string, type: 'ok' | 'err' | 'loading', autoDismiss = true) => {
     setBanner({ msg, type });
@@ -1353,14 +1363,18 @@ export default function App() {
       .finally(() => setLoadingMembers(false));
   };
 
-  // Load backend data on mount
-  useEffect(() => {
+  const fetchLibrary = () => {
     setLoadingLibrary(true);
     gasPost('getPrizeLibrary')
       .then(res => { if (res.success && res.data?.length) setPrizes(res.data); })
       .catch(() => { })
       .finally(() => setLoadingLibrary(false));
+  };
 
+  // Load backend data on mount
+  useEffect(() => {
+    fetchLibrary();
+    
     fetchMembers();
     fetchStocks();
     fetchBlindBoxes();
@@ -1524,6 +1538,33 @@ export default function App() {
         }
       })
       .catch(() => showBanner('網路異常，無法作廢', 'err'));
+  };
+
+  const [voidingPrizeLoading, setVoidingPrizeLoading] = useState(false);
+  const [voidConfirmPrize, setVoidConfirmPrize] = useState<PrizeEntry[] | null>(null);
+
+  const handleDeletePrize = (entries: PrizeEntry[]) => {
+    if (!entries.length) return;
+    setVoidConfirmPrize(entries);
+  };
+
+  const executeVoidPrize = () => {
+    if (!voidConfirmPrize || !voidConfirmPrize.length) return;
+    const { setId } = voidConfirmPrize[0];
+    setVoidingPrizeLoading(true);
+    showBanner('執行整套作廢中...', 'loading', false);
+    gasPost('deletePrizeLibrary', { branch, setId })
+      .then(res => {
+        if (res.success) {
+          showBanner('整套獎項作廢成功！', 'ok');
+          fetchLibrary();
+          setVoidConfirmPrize(null);
+        } else {
+          showBanner(`作廢失敗：${res.message}`, 'err');
+        }
+      })
+      .catch(() => showBanner('網路錯誤，作廢失敗', 'err'))
+      .finally(() => setVoidingPrizeLoading(false));
   };
 
   const emptyLottery = (): LotteryItem => ({ id: '', prize: '', draws: 1, type: '帶走', setName: '', unitPrice: 0, prizeId: '', prizeName: '', unitPoints: 0, totalPoints: 0, amount: 0, remark: '' });
@@ -1794,8 +1835,8 @@ export default function App() {
     // 3. 福袋欄位缺失防呆
     for (let i = 0; i < filteredLotteries.length; i++) {
       const l = filteredLotteries[i];
-      if (!l.id || !l.prize || !l.setName || l.draws < 1 || !Number.isInteger(l.draws)) {
-        showBanner(`無法結帳：福袋區第 ${i + 1} 項資料不完整（請確認編號、獎項、套名皆已帶出，且抽數必須為大於 0 的整數）`, 'err');
+      if (!l.id || !l.prize || !l.setName || !l.prizeName || l.draws < 1 || !Number.isInteger(l.draws)) {
+        showBanner(`無法結帳：福袋區第 ${i + 1} 項資料有誤（請確認單號與獎項正確，且套名與獎項名稱皆已帶出）`, 'err');
         return;
       }
     }
@@ -1833,6 +1874,8 @@ export default function App() {
       return;
     }
 
+    if (isSubmittingCheckout) return;
+    setIsSubmittingCheckout(true);
     showBanner('結帳資料傳送中…', 'loading', false);
     try {
       const payloadPayment = { ...payment, receivedAmount: totalReceived };
@@ -1865,6 +1908,8 @@ export default function App() {
       }
     } catch (err) {
       showBanner('✗ 網路錯誤，請檢查連線', 'err');
+    } finally {
+      setIsSubmittingCheckout(false);
     }
   };
 
@@ -2262,7 +2307,7 @@ export default function App() {
             lastCacheTime={lastCacheTime}
           />
         )}
-        {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes} isLoading={loadingLibrary} />}
+        {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes} isLoading={loadingLibrary || voidingPrizeLoading} onDeletePrize={handleDeletePrize} />}
         {activeTab === 'stock' && <StockView branch={branch} records={stocks} isLoading={loadingStocks} onRefresh={fetchStocks} setBranch={setBranch} />}
         {activeTab === 'blindbox' && <BlindBoxView records={blindBoxes} isLoading={loadingBlindBox} onRefresh={fetchBlindBoxes} />}
         {activeTab === 'member_history' && 
@@ -2506,6 +2551,38 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* ── [VOIDING PRIZE MODAL] ── */}
+        {voidConfirmPrize && voidConfirmPrize.length > 0 && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all border border-slate-100 p-6 m-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-rose-600" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800">確定作廢整套福袋？</h3>
+              </div>
+              <p className="text-slate-500 text-sm mt-3 mb-6 ml-13 leading-relaxed">
+                確定要作廢「<strong className="text-slate-700">{voidConfirmPrize[0].setName}</strong>」包含的所有 <strong className="text-rose-500">{voidConfirmPrize.length}</strong> 個剩餘獎項嗎？<br/><br/>
+                ⚠️ 作廢後，這 {voidConfirmPrize.length} 筆獎項紀錄將從資料庫永遠刪除，且<strong className="text-rose-500">無法復原</strong>！
+              </p>
+              <div className="flex gap-3 justify-end mt-2">
+                <button onClick={() => setVoidConfirmPrize(null)} disabled={voidingPrizeLoading} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50">
+                  取消
+                </button>
+                <button 
+                  onClick={executeVoidPrize} 
+                  disabled={voidingPrizeLoading}
+                  className="px-5 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-md shadow-rose-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {voidingPrizeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  確認作廢
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
