@@ -92,7 +92,7 @@ export function CheckoutView({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Customer Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all hover:shadow-md">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-visible flex flex-col transition-all hover:shadow-md">
           <div className="px-5 py-4 border-b border-indigo-100 bg-indigo-50/60 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shadow-sm">1</div>

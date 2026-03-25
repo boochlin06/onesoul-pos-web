@@ -13,6 +13,22 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // ★ Google ID Token 驗證 — 擋掉非白名單帳號
+    var idToken = params.idToken;
+    if (idToken) {
+      var tokenEmail = verifyGoogleIdToken_(idToken);
+      if (!tokenEmail) {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, message: '無效的登入 Token' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var allowedStr = PropertiesService.getScriptProperties().getProperty('ALLOWED_EMAILS') || '';
+      var allowed = allowedStr.split(',').map(function(s) { return s.trim().toLowerCase(); });
+      if (allowed.length > 0 && allowed[0] !== '' && allowed.indexOf(tokenEmail.toLowerCase()) === -1) {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, message: '此帳號無權限使用 (' + tokenEmail + ')' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     var action = params.action;
     var payload = params.payload || {};
     
@@ -741,3 +757,44 @@ function apiCreateSet(payload) {
     lock.releaseLock();
   }
 }
+
+/**
+ * 驗證 Google ID Token — 回傳 email 或 null
+ * 直接解碼 JWT payload (Base64url)，檢查 exp 和 aud
+ */
+function verifyGoogleIdToken_(idToken) {
+  try {
+    if (!idToken || typeof idToken !== 'string') return null;
+    
+    var parts = idToken.split('.');
+    if (parts.length !== 3) return null;
+    
+    // Base64url → Base64（加 padding）
+    var base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4 !== 0) base64 += '=';
+    
+    var decoded = Utilities.base64Decode(base64);
+    var jsonStr = Utilities.newBlob(decoded).getDataAsString('UTF-8');
+    var payload = JSON.parse(jsonStr);
+    
+    // 檢查 token 是否過期
+    var now = Math.floor(new Date().getTime() / 1000);
+    if (payload.exp && payload.exp < now) {
+      Logger.log('Token expired: exp=' + payload.exp + ' now=' + now);
+      return null;
+    }
+    
+    // 可選：驗證 audience
+    var expectedClientId = PropertiesService.getScriptProperties().getProperty('GOOGLE_CLIENT_ID');
+    if (expectedClientId && payload.aud !== expectedClientId) {
+      Logger.log('Token audience mismatch: expected=' + expectedClientId + ' got=' + payload.aud);
+      return null;
+    }
+    
+    return payload.email || null;
+  } catch (e) {
+    Logger.log('Token verification error: ' + e.toString());
+    return null;
+  }
+}
+

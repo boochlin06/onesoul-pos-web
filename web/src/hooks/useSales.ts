@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Branch, SalesEntry, DailySalesEntry, SalesRecordEntry } from '../types';
 import { gasPost } from '../services/api';
+import { SALES_RECORDS_LIMIT } from '../config';
 import type { BannerState } from './useBanner';
 
 interface UseDailySalesDeps {
@@ -116,7 +117,7 @@ export function useSalesRecords({ showBanner }: UseSalesRecordsDeps) {
 
     try {
       showBanner('從伺服器取得最新紀錄...', 'loading', false);
-      const res = await gasPost('getSalesRecords', { limit: 1000, offset: 0 });
+      const res = await gasPost('getSalesRecords', { limit: SALES_RECORDS_LIMIT, offset: 0 });
       if (res.success && res.data) {
         setSalesRecords(res.data);
         const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false });

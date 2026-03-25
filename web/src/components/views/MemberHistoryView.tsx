@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, Users, Receipt, Loader2 } from 'lucide-react';
+import { MEMBER_AUTOCOMPLETE_LIMIT } from '../../config';
 import type { MemberEntry } from '../../types';
 
 interface MemberHistoryViewProps {
@@ -16,7 +17,7 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
   const [showAutoComplete, setShowAutoComplete] = useState(false);
   const filteredCache = useMemo(() => {
     if (!phone) return [];
-    return allMembers.filter((m: any) => String(m.phone || '').includes(phone) || String(m.name || '').includes(phone)).slice(0, 10);
+    return allMembers.filter((m: any) => String(m.phone || '').includes(phone) || String(m.name || '').includes(phone)).slice(0, MEMBER_AUTOCOMPLETE_LIMIT);
   }, [phone, allMembers]);
 
   const selectMember = (m: any) => {
@@ -58,7 +59,7 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full mb-24">
       {/* Search Bar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 overflow-visible">
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
           <div className="w-full md:w-96 relative">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">會員電話 / 姓名</label>

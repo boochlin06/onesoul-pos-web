@@ -1,4 +1,5 @@
 import type { LotteryItem, MerchItem, PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
+import { CHECKOUT_SUGGESTION_LIMIT } from '../config';
 
 // ── Factory helpers ──
 export const emptyLottery = (): LotteryItem => ({
@@ -96,7 +97,7 @@ export function applyMerchUpdate(
 export function filterMembers(
   phoneName: string,
   members: { phone: string | number; name: string }[],
-  limit = 8,
+  limit = CHECKOUT_SUGGESTION_LIMIT,
 ) {
   const pn = String(phoneName || '');
   if (pn.length < 2) return [];

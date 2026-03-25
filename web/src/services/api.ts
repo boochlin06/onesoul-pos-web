@@ -1,4 +1,5 @@
 import { GAS_URL, API_KEY } from '../constants';
+import { getIdToken } from '../hooks/useAuth';
 import type {
   MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry,
   SalesEntry, Branch,
@@ -8,7 +9,12 @@ import type {
 export async function gasPost(action: string, payload?: object) {
   const res = await fetch(GAS_URL, {
     method: 'POST',
-    body: JSON.stringify({ action, payload: payload ?? {}, apiKey: API_KEY }),
+    body: JSON.stringify({
+      action,
+      payload: payload ?? {},
+      apiKey: API_KEY,
+      idToken: getIdToken(),
+    }),
   });
   return res.json();
 }

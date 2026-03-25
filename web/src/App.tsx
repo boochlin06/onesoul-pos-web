@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { Store, Archive } from 'lucide-react';
+import { Archive, LogOut } from 'lucide-react';
 import type { Branch, Tab } from './types';
 import { useState } from 'react';
-import { TABS, branchGradient } from './constants';
+import { TABS, branchGradient, CROSS_BRANCH_DAILY_VIEW } from './constants';
+import { useAuth } from './hooks/useAuth';
+import { LoginScreen } from './components/LoginScreen';
 import { useBanner } from './hooks/useBanner';
 import { useMembers, useMemberHistory } from './hooks/useMembers';
 import { usePrizes } from './hooks/usePrizes';
@@ -21,9 +23,16 @@ import { BlindBoxView } from './components/views/BlindBoxView';
 import { MemberHistoryView } from './components/views/MemberHistoryView';
 
 export default function App() {
+  const auth = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('checkout');
   const [branch, setBranch] = useState<Branch>('竹北');
 
+  // 登入後自動切換到該帳號允許的第一個門市
+  useEffect(() => {
+    if (auth.isAuthenticated && auth.allowedBranches.length > 0) {
+      setBranch(prev => auth.allowedBranches.includes(prev) ? prev : auth.allowedBranches[0]);
+    }
+  }, [auth.isAuthenticated, auth.allowedBranches]);
   // ── Compose domain hooks ──
   const { banner, showBanner, clearBanner } = useBanner();
   const { members, setMembers, loadingMembers, fetchMembers } = useMembers({ showBanner });
@@ -47,6 +56,10 @@ export default function App() {
   useEffect(() => {
     if (activeTab === 'sales' && sales.salesRecords.length === 0) sales.fetchSalesRecords();
     else if (activeTab === 'daily') daily.fetchDailySales();
+    // 離開 daily tab 時，確保 branch 在允許範圍內
+    if (activeTab !== 'daily' && !auth.allowedBranches.includes(branch)) {
+      setBranch(auth.allowedBranches[0]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -57,6 +70,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branch]);
 
+  // ── Guard: require login ──
+  if (!auth.isAuthenticated) {
+    return <LoginScreen renderGoogleButton={auth.renderGoogleButton} error={auth.error} isLoading={auth.isLoading} />;
+  }
+
+  // ── Branch filter for role ──
+  // 當日銷售 tab 允許看雙店（唯讀），其他 tab 只能看自己的店
+  const availableBranches = (activeTab === 'daily' && CROSS_BRANCH_DAILY_VIEW)
+    ? (['竹北', '金山'] as Branch[])
+    : (['竹北', '金山'] as Branch[]).filter(b => auth.allowedBranches.includes(b));
+  const canEditBranch = auth.allowedBranches.includes(branch);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans overflow-x-hidden">
       {banner && <StatusBanner msg={banner.msg} type={banner.type} onClose={clearBanner} />}
@@ -65,8 +90,8 @@ export default function App() {
       <header className={`bg-gradient-to-r ${branchGradient[branch]} shadow-lg`}>
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 rounded-xl p-2">
-              <Store className="w-6 h-6 text-white" />
+            <div className="bg-white/20 rounded-xl p-1">
+              <img src="/logo-only-monster.png" alt="OneSoul" className="w-9 h-9" />
             </div>
             <div>
               <h1 className="text-white font-bold text-lg leading-none">OneSoul POS</h1>
@@ -75,15 +100,23 @@ export default function App() {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex bg-black/20 rounded-xl p-1 backdrop-blur-sm">
-              {(['竹北', '金山'] as Branch[]).map(b => (
+              {availableBranches.map(b => (
                 <button key={b} onClick={() => setBranch(b)} className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${branch === b ? 'bg-white text-slate-700 shadow-md' : 'text-white/80 hover:text-white'}`}>{b}門市</button>
               ))}
             </div>
-            {activeTab === 'daily' && (
+            {activeTab === 'daily' && canEditBranch && (
               <button onClick={() => daily.setIsClosingModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/25 text-white rounded-xl text-sm font-semibold border border-white/20 transition-all backdrop-blur-sm">
                 <Archive className="w-4 h-4" /> 執行關帳
               </button>
             )}
+            {/* User info + Logout */}
+            <div className="flex items-center gap-2">
+              {auth.user?.picture && <img src={auth.user.picture} className="w-7 h-7 rounded-full border-2 border-white/30" alt="" />}
+              <span className="text-white/70 text-xs hidden sm:inline">{auth.user?.email}</span>
+              <button onClick={auth.logout} className="flex items-center gap-1 px-2 py-1.5 bg-white/10 hover:bg-white/25 text-white/80 rounded-lg text-xs transition-all border border-white/10" title="登出">
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6">
@@ -99,7 +132,7 @@ export default function App() {
       </header>
 
       {/* ── Content ── */}
-      <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 overflow-x-hidden">
+      <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
         {activeTab === 'checkout' && (
           <CheckoutView
             branch={branch}
@@ -114,7 +147,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'daily' && <DailySalesView branch={branch} records={daily.dailySales} isLoading={daily.loadingDaily} onDelete={daily.handleDeleteDaily} openingCash={daily.openingCash} onSetOpeningCash={daily.handleSetOpeningCash} />}
+        {activeTab === 'daily' && <DailySalesView branch={branch} records={daily.dailySales} isLoading={daily.loadingDaily} onDelete={daily.handleDeleteDaily} openingCash={daily.openingCash} onSetOpeningCash={daily.handleSetOpeningCash} readOnly={!canEditBranch} />}
         {activeTab === 'members' && <MembersView members={members} isLoading={loadingMembers} onRefresh={fetchMembers} />}
         {activeTab === 'sales' && <SalesView records={sales.salesRecords} isLoading={sales.loadingSales} onRefresh={() => sales.fetchSalesRecords(true)} onClearCache={sales.clearSalesCache} lastCacheTime={sales.lastCacheTime} />}
         {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes.prizes} isLoading={prizes.loadingLibrary || prizes.voidingPrizeLoading} onDeletePrize={prizes.handleDeletePrize} onCreateSetSuccess={prizes.fetchLibrary} />}

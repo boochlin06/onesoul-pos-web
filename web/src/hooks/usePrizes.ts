@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { PrizeEntry } from '../types';
 import type { Branch } from '../types';
-import { DEMO_PRIZES } from '../constants';
 import { gasPost } from '../services/api';
 import type { BannerState } from './useBanner';
 
@@ -11,7 +10,7 @@ interface UsePrizesDeps {
 }
 
 export function usePrizes({ branch, showBanner }: UsePrizesDeps) {
-  const [prizes, setPrizes] = useState<PrizeEntry[]>(DEMO_PRIZES);
+  const [prizes, setPrizes] = useState<PrizeEntry[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
 
   const fetchLibrary = useCallback(() => {

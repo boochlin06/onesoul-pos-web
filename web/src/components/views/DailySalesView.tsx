@@ -11,9 +11,10 @@ interface DailySalesViewProps {
   onDelete: (uid: string) => void;
   openingCash: number | null;
   onSetOpeningCash: (amt: number) => void;
+  readOnly?: boolean;
 }
 
-export function DailySalesView({ branch, records, isLoading, onDelete, openingCash, onSetOpeningCash }: DailySalesViewProps) {
+export function DailySalesView({ branch, records, isLoading, onDelete, openingCash, onSetOpeningCash, readOnly = false }: DailySalesViewProps) {
   const [search, setSearch] = useState('');
   const [uiMode, setUiMode] = useStickyState<'classic' | 'audit'>('audit', 'pos_daily_ui_mode');
   const [voidConfirmUid, setVoidConfirmUid] = useState<string | null>(null);
@@ -273,11 +274,13 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
                   {pay.channel ? <div className="text-slate-500 text-xs flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-md border border-amber-100 max-w-sm shadow-sm ml-2" title={pay.channel}><MessageSquare className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /><span className="truncate flex-1 font-medium">{pay.channel}</span></div> : null}
                   {pay.pointDelta ? <span className="text-slate-500 font-medium bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-sm ml-2">點數異動 <strong className={`font-mono text-[15px] ${pay.pointDelta > 0 ? 'text-indigo-600' : 'text-slate-600'}`}>{pay.pointDelta > 0 ? `+${pay.pointDelta}` : pay.pointDelta}</strong></span> : null}
                 </div>
+                {!readOnly && (
                 <div>
                   <button onClick={() => setVoidConfirmUid(uid)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-500 bg-rose-50 border border-rose-100 rounded-lg hover:bg-rose-500 hover:text-white transition-colors shadow-sm" title="作廢訂單">
                     <Trash2 className="w-3.5 h-3.5" /> 作廢
                   </button>
                 </div>
+                )}
               </div>
             </div>
           );
