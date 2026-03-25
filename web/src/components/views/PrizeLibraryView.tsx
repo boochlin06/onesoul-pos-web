@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Search, BookOpen, Trash2, X, Loader2, Plus, Package } from 'lucide-react';
 import { branchBadge, CREATE_SET_CONFIG } from '../../constants';
 import { gasPost } from '../../services/api';
+import { calcSuggestedPrice, validateCreateSetPrice } from '../../logic/createSet';
 import type { Branch, PrizeEntry } from '../../types';
 
 interface PrizeLibraryViewProps {
@@ -32,7 +33,7 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
 
   const csSuggestedPrice = useMemo(() => {
     if (!csItemPoints || !csTotalDraws) return 0;
-    return Math.ceil(csItemPoints * priceMultiplier / csTotalDraws);
+    return calcSuggestedPrice(csItemPoints, csTotalDraws, priceMultiplier);
   }, [csItemPoints, csTotalDraws]);
 
   const handleLookupItem = useCallback(async () => {
@@ -59,9 +60,8 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
     if (!csTotalDraws) { setCsError('請選擇抽數方案'); return; }
     const price = parseInt(csActualPrice);
     if (!price || price <= 0) { setCsError('請輸入有效的單抽價格'); return; }
-    const minPrice = Math.ceil(csSuggestedPrice * minPriceRatio);
-    const maxPrice = Math.floor(csSuggestedPrice * maxPriceRatio);
-    if (price < minPrice || price > maxPrice) { setCsError(`單抽價格必須在 NT$${minPrice} ~ NT$${maxPrice} 之間`); return; }
+    const priceErr = validateCreateSetPrice(price, csSuggestedPrice, { minPriceRatio, maxPriceRatio });
+    if (priceErr) { setCsError(priceErr); return; }
 
     setCsSubmitting(true);
     setCsError('');
@@ -287,10 +287,8 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
                   className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono"
                 />
                 {csSuggestedPrice > 0 && csActualPrice && (() => {
-                  const p = parseInt(csActualPrice);
-                  const minP = Math.ceil(csSuggestedPrice * minPriceRatio);
-                  const maxP = Math.floor(csSuggestedPrice * maxPriceRatio);
-                  if (p < minP || p > maxP) return <p className="text-xs text-rose-500 mt-1 font-medium">⚠️ 允許範圍：NT${minP} ~ NT${maxP}</p>;
+                  const err = validateCreateSetPrice(parseInt(csActualPrice), csSuggestedPrice, { minPriceRatio, maxPriceRatio });
+                  if (err) return <p className="text-xs text-rose-500 mt-1 font-medium">⚠️ {err}</p>;
                   return null;
                 })()}
               </div>
