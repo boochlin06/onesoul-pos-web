@@ -35,10 +35,15 @@ export function useMemberHistory({ showBanner }: UseMembersDeps) {
     }
     setLoadingHistory(true);
     try {
-      const memRes = await gasPost('getMember', { phone: historySearchPhone });
+      // ★ 並行呼叫，省掉一次 round trip 延遲
+      const [memRes, histRes] = await Promise.all([
+        gasPost('getMember', { phone: historySearchPhone }),
+        gasPost('getMemberSalesRecords', { phone: historySearchPhone }),
+      ]);
+
       if (memRes.success) { setHistoryMember(memRes.data as MemberEntry); }
       else { setHistoryMember(null); showBanner(memRes.message || '找不到此會員', 'err'); }
-      const histRes = await gasPost('getMemberSalesRecords', { phone: historySearchPhone });
+
       if (histRes.success) { setHistoryRecords(histRes.data); }
       else { setHistoryRecords([]); }
     } catch (e) {

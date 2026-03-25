@@ -558,9 +558,10 @@ function apiGetBlindBoxList() {
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 
-// ── 10. 取得特定會員銷售紀錄 API ─────────────────────────────
-function apiGetMemberSalesRecords(phone) {
+// ── 10. 取得特定會員銷售紀錄 API (TextFinder 優化版) ────────────
+function apiGetMemberSalesRecords(phone, limit) {
   if (!phone) return { success: false, message: '請提供會員電話' };
+  limit = limit || 200; // 預設最多回傳 200 筆
   try {
     var tempApp = SpreadsheetApp.openById(appBackground);
     var sheet = tempApp.getSheetByName(sheetSalesRecord);
@@ -568,22 +569,31 @@ function apiGetMemberSalesRecords(phone) {
     if (lastRow <= 1) return { success: true, data: [] };
 
     var lastCol = Math.max(sheet.getLastColumn(), 25);
-    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-    
-    var results = [];
-    for (var i = 0; i < data.length; i++) {
-      var row = data[i];
-      var rowPhone = row[0] ? row[0].toString().trim() : '';
-      if (rowPhone !== phone.toString().trim()) continue;
+    var phoneStr = phone.toString().trim();
 
-      var uid = row[14] ? row[14].toString().trim() : '';
+    // ★ 用 TextFinder 僅在 A 欄搜尋 phone，避免全表 getValues()
+    var searchRange = sheet.getRange(2, 1, lastRow - 1, 1); // A2:A(lastRow)
+    var matches = searchRange.createTextFinder(phoneStr)
+      .matchEntireCell(true)
+      .matchCase(true)
+      .findAll();
+
+    if (matches.length === 0) return { success: true, data: [] };
+
+    // 只讀取匹配列的完整資料（批次讀取，非逐行）
+    var results = [];
+    // 從後面往前取，newest first，且限制筆數
+    for (var i = matches.length - 1; i >= 0 && results.length < limit; i--) {
+      var matchRow = matches[i].getRow();
+      var rowData = sheet.getRange(matchRow, 1, 1, lastCol).getValues()[0];
+
+      var uid = rowData[14] ? rowData[14].toString().trim() : '';
       if (!uid || uid.toLowerCase() === 'id' || uid.toLowerCase() === 'checkoutuid') continue;
 
-      var rowBranch = row[24] ? row[24].toString().trim() : '';
-
-      results.push(parseSalesRow(row, uid, rowPhone, rowBranch));
+      var rowBranch = rowData[24] ? rowData[24].toString().trim() : '';
+      results.push(parseSalesRow(rowData, uid, phoneStr, rowBranch));
     }
-    
-    return { success: true, data: results.reverse() }; // newest first
+
+    return { success: true, data: results }; // already newest-first from reverse iteration
   } catch(error) { return { success: false, message: error.toString() }; }
 }
