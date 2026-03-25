@@ -558,10 +558,20 @@ function apiGetBlindBoxList() {
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 
-// ── 10. 取得特定會員銷售紀錄 API (TextFinder 優化版) ────────────
+// ── 10. 取得特定會員銷售紀錄 API (v3: batch read + cache) ────────
 function apiGetMemberSalesRecords(phone, limit) {
   if (!phone) return { success: false, message: '請提供會員電話' };
-  limit = limit || 200; // 預設最多回傳 200 筆
+  limit = limit || 200;
+  var phoneStr = phone.toString().trim();
+
+  // ★ CacheService：5 分鐘快取，同一會員連續查不重撈
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'memberSales_' + phoneStr;
+  var cached = cache.get(cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch(e) { /* cache corrupt, re-fetch */ }
+  }
+
   try {
     var tempApp = SpreadsheetApp.openById(appBackground);
     var sheet = tempApp.getSheetByName(sheetSalesRecord);
@@ -569,31 +579,55 @@ function apiGetMemberSalesRecords(phone, limit) {
     if (lastRow <= 1) return { success: true, data: [] };
 
     var lastCol = Math.max(sheet.getLastColumn(), 25);
-    var phoneStr = phone.toString().trim();
 
-    // ★ 用 TextFinder 僅在 A 欄搜尋 phone，避免全表 getValues()
-    var searchRange = sheet.getRange(2, 1, lastRow - 1, 1); // A2:A(lastRow)
-    var matches = searchRange.createTextFinder(phoneStr)
-      .matchEntireCell(true)
-      .matchCase(true)
-      .findAll();
+    // ★ Step 1: 只讀 A 欄 (1 column)，極快
+    var phoneCol = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    
+    // ★ Step 2: 在 JS 裡找出所有匹配的行號 (0-indexed in phoneCol)
+    var matchedIndices = [];
+    for (var i = phoneCol.length - 1; i >= 0 && matchedIndices.length < limit; i--) {
+      var val = phoneCol[i][0];
+      if (val && val.toString().trim() === phoneStr) {
+        matchedIndices.push(i);
+      }
+    }
+    if (matchedIndices.length === 0) return { success: true, data: [] };
 
-    if (matches.length === 0) return { success: true, data: [] };
+    // ★ Step 3: 一次批次讀取所有匹配行的完整資料
+    //    找出最小和最大 index，讀取那個區間，再 filter
+    var minIdx = matchedIndices[matchedIndices.length - 1]; // smallest (因為 reverse 迭代)
+    var maxIdx = matchedIndices[0]; // largest
+    var batchStart = minIdx + 2; // +2 因為 phoneCol 從 row 2 開始
+    var batchCount = maxIdx - minIdx + 1;
+    var batchData = sheet.getRange(batchStart, 1, batchCount, lastCol).getValues();
 
-    // 只讀取匹配列的完整資料（批次讀取，非逐行）
-    var results = [];
-    // 從後面往前取，newest first，且限制筆數
-    for (var i = matches.length - 1; i >= 0 && results.length < limit; i--) {
-      var matchRow = matches[i].getRow();
-      var rowData = sheet.getRange(matchRow, 1, 1, lastCol).getValues()[0];
-
-      var uid = rowData[14] ? rowData[14].toString().trim() : '';
-      if (!uid || uid.toLowerCase() === 'id' || uid.toLowerCase() === 'checkoutuid') continue;
-
-      var rowBranch = rowData[24] ? rowData[24].toString().trim() : '';
-      results.push(parseSalesRow(rowData, uid, phoneStr, rowBranch));
+    // ★ Step 4: 從 batch 中挑出匹配行，組裝結果
+    var matchedSet = {};
+    for (var m = 0; m < matchedIndices.length; m++) {
+      matchedSet[matchedIndices[m] - minIdx] = true; // offset into batchData
     }
 
-    return { success: true, data: results }; // already newest-first from reverse iteration
+    var results = [];
+    // matchedIndices 已經是 newest-first (因為 reverse 迭代)
+    for (var j = 0; j < matchedIndices.length; j++) {
+      var batchOffset = matchedIndices[j] - minIdx;
+      var row = batchData[batchOffset];
+
+      var uid = row[14] ? row[14].toString().trim() : '';
+      if (!uid || uid.toLowerCase() === 'id' || uid.toLowerCase() === 'checkoutuid') continue;
+
+      var rowBranch = row[24] ? row[24].toString().trim() : '';
+      results.push(parseSalesRow(row, uid, phoneStr, rowBranch));
+    }
+
+    var response = { success: true, data: results };
+
+    // ★ 寫入快取 (最多 100KB, TTL 300秒=5分鐘)
+    try {
+      var jsonStr = JSON.stringify(response);
+      if (jsonStr.length < 100000) cache.put(cacheKey, jsonStr, 300);
+    } catch(e) { /* cache write failed, ignore */ }
+
+    return response;
   } catch(error) { return { success: false, message: error.toString() }; }
 }

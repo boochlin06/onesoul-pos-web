@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { MemberEntry } from '../types';
 import { gasPost } from '../services/api';
 import type { BannerState } from './useBanner';
@@ -10,14 +10,34 @@ interface UseMembersDeps {
 export function useMembers({ showBanner }: UseMembersDeps) {
   const [members, setMembers] = useState<MemberEntry[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
+  const retryRef = useRef(0);
 
-  const fetchMembers = useCallback(() => {
+  const fetchMembers = useCallback((isRetry = false) => {
     setLoadingMembers(true);
     gasPost('getAllMembers')
-      .then(res => { if (res.success && res.data?.length) setMembers(res.data); })
-      .catch(e => console.error('[useMembers] fetchMembers failed:', e))
+      .then(res => {
+        if (res.success && res.data?.length) {
+          setMembers(res.data);
+          retryRef.current = 0; // 成功 → 歸零
+        } else if (!isRetry && retryRef.current < 2) {
+          // API 回傳但無資料 → 自動重試一次
+          retryRef.current++;
+          setTimeout(() => fetchMembers(true), 2000);
+          return; // 先不 setLoadingMembers(false)
+        }
+      })
+      .catch(e => {
+        console.error('[useMembers] fetchMembers failed:', e);
+        if (!isRetry && retryRef.current < 2) {
+          retryRef.current++;
+          showBanner('會員資料載入失敗，2 秒後重試…', 'err');
+          setTimeout(() => fetchMembers(true), 2000);
+          return;
+        }
+        showBanner('會員資料載入失敗，請手動重新整理', 'err');
+      })
       .finally(() => setLoadingMembers(false));
-  }, []);
+  }, [showBanner]);
 
   return { members, setMembers, loadingMembers, fetchMembers };
 }
