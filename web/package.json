@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "TMPDIR=/tmp npx vitest run --config /tmp/vitest.config.mjs",
+    "test:watch": "TMPDIR=/tmp npx vitest --config /tmp/vitest.config.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

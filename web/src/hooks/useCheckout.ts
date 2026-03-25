@@ -1,0 +1,158 @@
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
+import { useStickyState } from './useStickyState';
+import { gasPost } from '../services/api';
+import type { BannerState } from './useBanner';
+import {
+  emptyLottery, emptyMerch,
+  calcSummary, applyLotteryUpdate, applyMerchUpdate,
+  filterMembers, validateCheckout,
+} from '../logic/checkout';
+
+interface UseCheckoutDeps {
+  branch: Branch;
+  prizes: PrizeEntry[];
+  stocks: StockEntry[];
+  blindBoxes: BlindBoxEntry[];
+  members: MemberEntry[];
+  setMembers: React.Dispatch<React.SetStateAction<MemberEntry[]>>;
+  fetchMembers: () => void;
+  showBanner: (msg: string, type: BannerState['type'], autoDismiss?: boolean) => void;
+}
+
+export function useCheckout({
+  branch, prizes, stocks, blindBoxes, members, setMembers, fetchMembers, showBanner,
+}: UseCheckoutDeps) {
+  const [customer, setCustomer] = useStickyState(
+    { phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 },
+    'os_checkout_customer',
+  );
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [payment, setPayment] = useStickyState(
+    { receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 },
+    'os_checkout_payment',
+  );
+  const [lotteries, setLotteries] = useStickyState<LotteryItem[]>(
+    () => Array(5).fill(null).map(emptyLottery), 'os_checkout_lotteries',
+  );
+  const [merchandises, setMerchandises] = useStickyState<MerchItem[]>(
+    () => Array(2).fill(null).map(emptyMerch), 'os_checkout_merchandises',
+  );
+  const [summary, setSummary] = useStickyState({ pointsChange: 0, dueAmount: 0 }, 'os_checkout_summary');
+  const [orderNote, setOrderNote] = useStickyState('', 'os_checkout_ordernote');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ── Auto-calculate summary (delegated to pure function) ──
+  useEffect(() => {
+    setSummary(calcSummary(lotteries, merchandises));
+  }, [lotteries, merchandises]);
+
+  // ── Member autocomplete (delegated to pure function) ──
+  const filteredCacheMembers = useMemo(
+    () => filterMembers(customer.phoneName, members),
+    [customer.phoneName, members],
+  );
+
+  const selectCacheMember = useCallback((m: MemberEntry) => {
+    setCustomer(p => ({
+      ...p,
+      phoneName: String(m.phone || ''),
+      name: String(m.name || ''),
+      gender: String(m.gender || ''),
+      birthday: String(m.birthday || ''),
+      currentPoints: Number(m.points || 0),
+    }));
+    setShowMemberDropdown(false);
+    showBanner(`✓ 已帶入會員 ${m.name || m.phone}`, 'ok');
+  }, [showBanner]);
+
+  // ── Lottery CRUD (delegated to pure function) ──
+  const addLotteryRow = () => setLotteries(p => [...p, emptyLottery()]);
+  const removeLotteryRow = (i: number) => setLotteries(p => p.filter((_, idx) => idx !== i));
+  const updateLottery = useCallback((index: number, field: keyof LotteryItem, value: unknown) => {
+    setLotteries(prev => {
+      const list = [...prev];
+      list[index] = applyLotteryUpdate(list[index], field, value, prizes);
+      return list;
+    });
+  }, [prizes]);
+
+  // ── Merch CRUD (delegated to pure function) ──
+  const addMerchRow = () => setMerchandises(p => [...p, emptyMerch()]);
+  const removeMerchRow = (i: number) => setMerchandises(p => p.filter((_, idx) => idx !== i));
+  const updateMerch = useCallback((index: number, field: keyof MerchItem, value: unknown) => {
+    setMerchandises(prev => {
+      const list = [...prev];
+      list[index] = applyMerchUpdate(list[index], field, value, stocks, blindBoxes);
+      return list;
+    });
+  }, [stocks, blindBoxes]);
+
+  // ── Phone Lookup ──
+  const handlePhoneKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    showBanner('查詢會員中…', 'loading', false);
+    try {
+      const res = await gasPost('getMember', { phone: customer.phoneName });
+      if (res.success && res.data) {
+        setCustomer(prev => ({ ...prev, name: res.data.name, gender: res.data.gender, birthday: res.data.birthday, currentPoints: res.data.points }));
+        showBanner(`✓ 找到會員: ${res.data.name}，點數 ${res.data.points}`, 'ok');
+      } else { showBanner(`✗ ${res.message || '找不到會員'}`, 'err'); }
+    } catch { showBanner('✗ 網路錯誤', 'err'); }
+  }, [customer.phoneName, showBanner]);
+
+  // ── Reset ──
+  const handleResetCheckout = useCallback(() => {
+    if (!window.confirm('確定要清空所有已填寫的結帳資料嗎？')) return;
+    setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
+    setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
+    setLotteries(Array(5).fill(null).map(emptyLottery));
+    setMerchandises(Array(2).fill(null).map(emptyMerch));
+    setOrderNote('');
+    showBanner('已清空畫面', 'ok');
+  }, [showBanner]);
+
+  // ── Submit Checkout ──
+  const handleCheckout = useCallback(async () => {
+    const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName || l.amount > 0);
+    const filteredMerch = merchandises.filter(m => m.id || m.name || m.quantity > 1);
+
+    const error = validateCheckout({ lotteries, merchandises, customer, payment, summary });
+    if (error) { showBanner(error, 'err'); return; }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    showBanner('結帳資料傳送中…', 'loading', false);
+    try {
+      const totalReceived = payment.cash + payment.remittance + payment.creditCard;
+      const payloadPayment = { ...payment, receivedAmount: totalReceived };
+      const res = await gasPost('checkout', { branch, customer, payment: payloadPayment, summary, lotteries: filteredLotteries, merchandises: filteredMerch, orderNote });
+      if (res.success) {
+        showBanner(`✓ 結帳成功！會員最新點數: ${res.newPoints}`, 'ok');
+        if (typeof res.newPoints !== 'undefined') {
+          const rawPhone = customer.phoneName.split(/[- ]/)[0];
+          setMembers(prev => prev.map(m => String(m.phone).trim() === rawPhone ? { ...m, points: res.newPoints } : m));
+        }
+        fetchMembers();
+        setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
+        setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
+        setLotteries(Array(5).fill(null).map(emptyLottery));
+        setMerchandises(Array(2).fill(null).map(emptyMerch));
+        setOrderNote('');
+      } else { showBanner(`✗ 結帳失敗：${res.message}`, 'err'); }
+    } catch { showBanner('✗ 網路錯誤，請檢查連線', 'err'); }
+    finally { setIsSubmitting(false); }
+  }, [branch, customer, payment, lotteries, merchandises, summary, orderNote, isSubmitting, showBanner, setMembers, fetchMembers]);
+
+  return {
+    customer, setCustomer,
+    showMemberDropdown, setShowMemberDropdown,
+    filteredCacheMembers, selectCacheMember,
+    payment, setPayment,
+    lotteries, setLotteries, addLotteryRow, removeLotteryRow, updateLottery,
+    merchandises, setMerchandises, addMerchRow, removeMerchRow, updateMerch,
+    summary, orderNote, setOrderNote,
+    isSubmitting,
+    handlePhoneKeyDown, handleResetCheckout, handleCheckout,
+  };
+}
