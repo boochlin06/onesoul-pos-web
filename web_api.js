@@ -60,6 +60,12 @@ function doPost(e) {
       case "getMemberSalesRecords":
         result = apiGetMemberSalesRecords(payload.phone);
         break;
+      case "createSet":
+        result = apiCreateSet(payload);
+        break;
+      case "getStockItemByNo":
+        result = apiGetStockItemByNo(payload.itemNo);
+        break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
     }
@@ -654,4 +660,84 @@ function apiGetMemberSalesRecords(phone, limit) {
 
     return response;
   } catch(error) { return { success: false, message: error.toString() }; }
+}
+
+// ── 11. 根據貨號查詢貨品資料 API ───────────────────────────
+function apiGetStockItemByNo(itemNo) {
+  try {
+    if (!itemNo) return { success: false, message: '請輸入貨號' };
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var sheet = tempApp.getSheetByName(sheetItemDB);
+    if (!sheet) return { success: false, message: '找不到貨品資料庫' };
+    var data = sheet.getDataRange().getValues();
+    var target = itemNo.toString().trim();
+    
+    for (var i = 1; i < data.length; i++) {
+      var id = data[i][0] ? data[i][0].toString().trim() : '';
+      if (id === target) {
+        return {
+          success: true,
+          data: {
+            id: id,
+            name: data[i][1] ? data[i][1].toString() : '',
+            points: Number(data[i][4]) || 0,  // Column E = 販售建議點數
+          }
+        };
+      }
+    }
+    return { success: false, message: '找不到貨號 ' + itemNo };
+  } catch(error) { return { success: false, message: error.toString() }; }
+}
+
+// ── 12. 開套 (建立新福袋組) API ─────────────────────────────
+function apiCreateSet(payload) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+  } catch(e) {
+    return { success: false, message: '系統忙碌中，請稍後再試開套' };
+  }
+  
+  try {
+    var itemNo = (payload.itemNo || '').toString().trim();
+    var itemName = (payload.itemName || '').toString().trim();
+    var totalDraws = parseInt(payload.totalDraws) || 0;
+    var actualPrice = parseInt(payload.actualPrice) || 0;
+    var suggestedPrice = parseInt(payload.suggestedPrice) || 0;
+    var branch = payload.branch || '竹北';
+    
+    if (!itemNo || !itemName) return { success: false, message: '貨號或名稱不可為空' };
+    if (!totalDraws || totalDraws <= 0) return { success: false, message: '抽數必須大於 0' };
+    if (!actualPrice || actualPrice <= 0) return { success: false, message: '單抽價格必須大於 0' };
+    if (actualPrice < suggestedPrice * 0.92) return { success: false, message: '實際價格不可低於建議價格的 92% (' + Math.ceil(suggestedPrice * 0.92) + ')' };
+    if (actualPrice > suggestedPrice * 1.5) return { success: false, message: '實際價格不可高於建議價格的 150% (' + Math.floor(suggestedPrice * 1.5) + ')' };
+    
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var dbSheet = tempApp.getSheetByName(sheetLotteryDB);
+    if (!dbSheet) return { success: false, message: '找不到獎項庫分頁' };
+    
+    // 計算下一個套號 (在鎖保護下讀取)
+    var lastRow = dbSheet.getLastRow();
+    var nextId = 1;
+    if (lastRow > 1) {
+      var lastValue = dbSheet.getRange(lastRow, 1).getValue();
+      nextId = (parseInt(lastValue) || 0) + 1;
+    }
+    
+    var formattedDate = Utilities.formatDate(new Date(), "GMT+8", "yyyy/M/d");
+    
+    // 固定寫入兩列：GK獎項(1抽) + 非GK(剩餘抽數)
+    var newData = [
+      [nextId, itemName, actualPrice, "1", itemNo, itemName, "0", 1, formattedDate, branch],
+      [nextId, itemName, actualPrice, "Z", "0p", "非GK", "0", totalDraws - 1, formattedDate, branch]
+    ];
+    
+    dbSheet.getRange(lastRow + 1, 1, 2, 10).setValues(newData);
+    
+    return { success: true, message: '📦 [' + branch + '] 開套成功！編號 #' + nextId + ' 已入庫', setId: nextId.toString() };
+  } catch(error) {
+    return { success: false, message: '開套失敗: ' + error.toString() };
+  } finally {
+    lock.releaseLock();
+  }
 }

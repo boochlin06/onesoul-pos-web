@@ -29,6 +29,18 @@ export const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 export const GAS_URL = import.meta.env.VITE_GAS_URL as string;
 export const API_KEY = import.meta.env.VITE_API_KEY as string;
 
+// ── 開套設定 (維護人員可在此調整) ────────────────────────────
+export const CREATE_SET_CONFIG = {
+  /** 可選的抽數方案 */
+  drawOptions: [20, 40, 80, 100, 120],
+  /** 建議價格計算公式: CEIL(建議點數 * multiplier / 抽數) */
+  priceMultiplier: 60,
+  /** 實際價格的最低比例 (0.92 = 建議價 -8%) */
+  minPriceRatio: 0.92,
+  /** 實際價格的最高比例 (1.5 = 建議價 +50%) */
+  maxPriceRatio: 1.5,
+};
+
 // ── Demo Prizes ────────────────────────────────────────
 export const DEMO_PRIZES: PrizeEntry[] = [
   { setId: '1165', setName: '硬殼三式機龍(銀)', unitPrice: 800, prize: '1', prizeId: '2148', prizeName: '硬殼三式機龍(銀)', points: 170, draws: 1, date: '2025/5/1', branch: '金山' },
