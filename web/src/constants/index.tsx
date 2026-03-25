@@ -26,7 +26,8 @@ export const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 // ── GAS ────────────────────────────────────────────────
-export const GAS_URL = 'https://script.google.com/macros/s/AKfycbyG4EO3XVIIUIyc05fwgktgcld-RMhdfxp9-ge9TZTLVcOUG_DGvD3wAnxYFneUuSR6/exec';
+export const GAS_URL = import.meta.env.VITE_GAS_URL as string;
+export const API_KEY = import.meta.env.VITE_API_KEY as string;
 
 // ── Demo Prizes ────────────────────────────────────────
 export const DEMO_PRIZES: PrizeEntry[] = [

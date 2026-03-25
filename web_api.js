@@ -5,6 +5,14 @@
 function doPost(e) {
   try {
     var params = JSON.parse(e.postData.contents);
+
+    // ★ API Key 驗證 — 擋掉未授權存取
+    var storedKey = PropertiesService.getScriptProperties().getProperty('API_KEY');
+    if (storedKey && params.apiKey !== storedKey) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, message: '未授權存取 (Invalid API Key)' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     var action = params.action;
     var payload = params.payload || {};
     
@@ -65,70 +73,70 @@ function doPost(e) {
   }
 }
 
-// ── 1. 結帳 API ──────────────────────────────────────────
+// ── 1. 結帳 API (含 LockService) ─────────────────────────────
 function apiCheckout(payload) {
-  var phoneInput = payload.customer.phone || payload.customer.phoneName || '';
-  var phoneNumbers = phoneInput.split(/[- ]/)[0]; // Extract just the phone in case it includes name
-
-  var branch = payload.branch; 
-  var lotteries = payload.lotteries || [];
-  var merchandises = payload.merchandises || [];
-  var payment = payload.payment || { receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 };
-  var orderNote = payload.orderNote || '';
-  var totalCheckPoint = payload.summary.pointsChange || 0;
-  var costToPayPoint = payment.pointsUsed || 0;
-  var memberPoint = payload.customer.currentPoints || 0;
-
-  var checkoutUID = phoneNumbers + "_" + Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd_HHmmss");
-  var currentDate = Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd");
-
-  var targetData = [];
-  
-  // 處理福袋資料
-  for (var i = 0; i < lotteries.length; i++) {
-    var item = lotteries[i];
-    targetData.push([
-      phoneNumbers, item.id, item.prize, item.draws, item.type, item.setName, 
-      item.unitPrice, item.prizeId, item.prizeName, item.unitPoints, 
-      item.totalPoints, item.amount, item.remark, currentDate, checkoutUID
-    ]);
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000); // 等待最多 30 秒取得鎖
+  } catch(e) {
+    return { success: false, message: '系統忙碌中，請稍後再試 (鎖定逾時)' };
   }
-  
-  // 處理一般商品
-  for (var j = 0; j < merchandises.length; j++) {
-    var m = merchandises[j];
-    var mPoints = 0;
-    if (m.paymentType === '點數' || m.id === '99999') {
-      mPoints = -Math.abs(m.totalPoints);
-    } else if (m.id === '88888') {
-      mPoints = Math.abs(m.totalPoints);
+
+  try {
+    var phoneInput = payload.customer.phone || payload.customer.phoneName || '';
+    var phoneNumbers = phoneInput.split(/[- ]/)[0];
+
+    var branch = payload.branch; 
+    var lotteries = payload.lotteries || [];
+    var merchandises = payload.merchandises || [];
+    var payment = payload.payment || { receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 };
+    var orderNote = payload.orderNote || '';
+    var totalCheckPoint = payload.summary.pointsChange || 0;
+    var costToPayPoint = payment.pointsUsed || 0;
+    var memberPoint = payload.customer.currentPoints || 0;
+
+    var checkoutUID = phoneNumbers + "_" + Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd_HHmmss");
+    var currentDate = Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd");
+
+    var targetData = [];
+    
+    for (var i = 0; i < lotteries.length; i++) {
+      var item = lotteries[i];
+      targetData.push([
+        phoneNumbers, item.id, item.prize, item.draws, item.type, item.setName, 
+        item.unitPrice, item.prizeId, item.prizeName, item.unitPoints, 
+        item.totalPoints, item.amount, item.remark, currentDate, checkoutUID
+      ]);
     }
     
-    targetData.push([
-      phoneNumbers, "", m.id, m.quantity, m.paymentType, 
-      "", m.unitAmount, "", m.name, m.suggestedPoints, 
-      mPoints, m.actualAmount, m.remark, currentDate, checkoutUID
-    ]);
-  }
+    for (var j = 0; j < merchandises.length; j++) {
+      var m = merchandises[j];
+      var mPoints = 0;
+      if (m.paymentType === '點數' || m.id === '99999') {
+        mPoints = -Math.abs(m.totalPoints);
+      } else if (m.id === '88888') {
+        mPoints = Math.abs(m.totalPoints);
+      }
+      
+      targetData.push([
+        phoneNumbers, "", m.id, m.quantity, m.paymentType, 
+        "", m.unitAmount, "", m.name, m.suggestedPoints, 
+        mPoints, m.actualAmount, m.remark, currentDate, checkoutUID
+      ]);
+    }
 
-  var newPoints = memberPoint;
-  try {
+    var newPoints = memberPoint;
     if (memberPoint + totalCheckPoint - costToPayPoint < 0) {
       return { success: false, message: '客戶點數不足' };
     } else {
       newPoints = updateMemberPointsByPhone(phoneNumbers, memberPoint + totalCheckPoint - costToPayPoint);
       if (newPoints == -1) return { success: false, message: '會員電話不存在或結帳失敗' };
     }
-  } catch (error) {
-    return { success: false, message: '更新點數發生異常: ' + error.toString() };
-  }
 
-  // 寫入當日紀錄
-  var tempApp = SpreadsheetApp.openById(appBackground);
-  var targetSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
-  var dailySheet = tempApp.getSheetByName(targetSheetName);
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var targetSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
+    var dailySheet = tempApp.getSheetByName(targetSheetName);
 
-  try {
     var lastRow = dailySheet.getLastRow();
     var saleMethodValues = [payment.receivedAmount, payment.remittance, payment.creditCard, payment.cash, payment.pointsUsed, orderNote];
     var newData = targetData.map(function(row, index) {
@@ -139,11 +147,13 @@ function apiCheckout(payload) {
        dailySheet.getRange(lastRow + 1, 1, newData.length, newData[0].length).setValues(newData);
        dailySheet.getRange(lastRow + 1, 1, newData.length, newData[0].length).setBorder(true, false, true, false, false, false);
     }
-  } catch(error) {
-    return { success: false, message: '寫入紀錄失敗: ' + error.toString() };
-  }
 
-  return { success: true, message: '結帳成功', newPoints: newPoints, checkoutUID: checkoutUID };
+    return { success: true, message: '結帳成功', newPoints: newPoints, checkoutUID: checkoutUID };
+  } catch(error) {
+    return { success: false, message: '結帳失敗: ' + error.toString() };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ── 2. 關帳 API 與 現金管理 API ────────────────────────────
@@ -168,47 +178,50 @@ function apiGetOpeningCash(branch) {
 }
 
 function apiCloseDay(payload) {
-  var branch = payload.branch;
-  var openingCash = payload.openingCash || 0;
-  var expectedCash = payload.expectedCash || 0;
-  var actualCash = payload.actualCash || 0;
-  var discrepancy = payload.discrepancy || 0;
-  var note = payload.note || '';
-
-  var tempApp = SpreadsheetApp.openById(appBackground);
-  var sourceSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
-  var targetSheetName = sheetSalesRecord;
-  
-  var sourceSheet = tempApp.getSheetByName(sourceSheetName);
-  var targetSheet = tempApp.getSheetByName(targetSheetName);
-  var lastRowSource = sourceSheet.getLastRow();
-  
-  if (lastRowSource <= 5) return { success: true, message: '無資料需要關帳（但仍可記錄盤點）' };
-  
+  var lock = LockService.getScriptLock();
   try {
+    lock.waitLock(30000);
+  } catch(e) {
+    return { success: false, message: '另一間門市正在關帳中，請稍後再試' };
+  }
+
+  try {
+    var branch = payload.branch;
+    var openingCash = payload.openingCash || 0;
+    var expectedCash = payload.expectedCash || 0;
+    var actualCash = payload.actualCash || 0;
+    var discrepancy = payload.discrepancy || 0;
+    var note = payload.note || '';
+
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var sourceSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
+    var targetSheetName = sheetSalesRecord;
+    
+    var sourceSheet = tempApp.getSheetByName(sourceSheetName);
+    var targetSheet = tempApp.getSheetByName(targetSheetName);
+    var lastRowSource = sourceSheet.getLastRow();
+    
+    if (lastRowSource <= 5) return { success: true, message: '無資料需要關帳（但仍可記錄盤點）' };
+    
     var numToMove = lastRowSource - 5;
     var srcCols = sourceSheet.getLastColumn();
     var dataToMove = sourceSheet.getRange(6, 1, numToMove, srcCols).getValues();
     
-    // 在第 25 欄 (index 24, Column Y) 加蓋分店標籤，方便歷史→讀取正確分店
     var dataWithBranch = dataToMove.map(function(row) {
       while (row.length < 25) row.push('');
-      if (!row[24]) row[24] = branch; // 只在空白時寫入、避免覆蓋既有標記
+      if (!row[24]) row[24] = branch;
       return row;
     });
 
-    // 建立關帳特殊紀錄 (特殊列)
-    // 依據前端讀取邏輯： col[0] = phone, col[8] = prizeName(作為紀錄重點), col[12] = remark, col[14] = checkoutUID(須有值避免被略過), col[24] = branch
     var summaryRow = [];
     while (summaryRow.length < 25) summaryRow.push('');
     summaryRow[0] = '【系統結帳紀錄】';
-    summaryRow[8] = '【' + branch + '】關帳結算'; // 商品名稱位
+    summaryRow[8] = '【' + branch + '】關帳結算';
     summaryRow[12] = '開櫃: $' + openingCash + ', 應收: $' + expectedCash + ', 實收: $' + actualCash + ', 差異: $' + discrepancy + (note ? ', 備註: ' + note : '');
     summaryRow[13] = Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss");
-    summaryRow[14] = 'SYS_CLOSE_' + branch + '_' + new Date().getTime(); // checkoutUID 假造一個作為唯一識別
+    summaryRow[14] = 'SYS_CLOSE_' + branch + '_' + new Date().getTime();
     summaryRow[24] = branch;
     
-    // 把 Summary row 放進目標陣列最後面
     dataWithBranch.push(summaryRow);
 
     var lastRowTarget = targetSheet.getLastRow();
@@ -216,13 +229,14 @@ function apiCloseDay(payload) {
     targetSheet.getRange(lastRowTarget + 1, 1, dataWithBranch.length, targetCols).setValues(dataWithBranch);
     sourceSheet.getRange(6, 1, numToMove, srcCols).clearContent();
 
-    // 清空開櫃現金
     var props = PropertiesService.getScriptProperties();
     props.deleteProperty('openingCash_' + branch);
 
     return { success: true, message: branch + ' 關帳與結算紀錄成功' };
   } catch(error) {
     return { success: false, message: '關帳異常: ' + error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -444,6 +458,13 @@ function apiGetDailySales(branch) {
 
 // ── 8. 刪除當日單筆銷售 API ─────────────────────────────────
 function apiDeleteDailySales(branch, checkoutUID) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch(e) {
+    return { success: false, message: '系統忙碌中，請稍後再試作廢' };
+  }
+
   try {
     var tempApp = SpreadsheetApp.openById(appBackground);
     var targetSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
@@ -487,7 +508,10 @@ function apiDeleteDailySales(branch, checkoutUID) {
     }
     for (var r = 0; r < rowsToDelete.length; r++) sheet.deleteRow(rowsToDelete[r]);
     return { success: true, message: '已作廢且點數已退回' };
-  } catch(error) { return { success: false, message: error.toString() }; }
+  } catch(error) { return { success: false, message: error.toString() };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ── 8. 取得商品資料庫 API ─────────────────────────────────

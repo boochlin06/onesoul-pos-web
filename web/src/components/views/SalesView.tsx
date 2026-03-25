@@ -183,7 +183,7 @@ export function SalesView({ records, isLoading, onRefresh, onClearCache, lastCac
         })}
       </div>
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} totalItems={records.length} />
     </div>
   );
 }

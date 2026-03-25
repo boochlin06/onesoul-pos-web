@@ -1,4 +1,4 @@
-import { GAS_URL } from '../constants';
+import { GAS_URL, API_KEY } from '../constants';
 import type {
   MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry,
   SalesEntry, Branch,
@@ -8,7 +8,7 @@ import type {
 export async function gasPost(action: string, payload?: object) {
   const res = await fetch(GAS_URL, {
     method: 'POST',
-    body: JSON.stringify({ action, payload: payload ?? {} }),
+    body: JSON.stringify({ action, payload: payload ?? {}, apiKey: API_KEY }),
   });
   return res.json();
 }
