@@ -1,7 +1,9 @@
-import { Search, Users, Receipt, BookOpen, Plus, Trash2, Archive, ShoppingCart } from 'lucide-react';
+import { Search, Users, Receipt, BookOpen, Plus, Trash2, Archive, ShoppingCart, LayoutGrid, Table2 } from 'lucide-react';
 import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../../types';
 import { branchBadge, branchGradient } from '../../constants';
 import { useCheckout } from '../../hooks/useCheckout';
+import { useStickyState } from '../../hooks/useStickyState';
+import { CardCheckoutView } from './CardCheckoutView';
 import type { BannerState } from '../../hooks/useBanner';
 
 // ── Shared input styles ──
@@ -38,8 +40,53 @@ export function CheckoutView({
     handleResetCheckout, handleCheckout,
   } = useCheckout({ branch, prizes, stocks, blindBoxes, members, setMembers, fetchMembers, showBanner });
 
+  const [viewMode, setViewMode] = useStickyState<'classic' | 'card'>('classic', 'os_checkout_viewmode');
+
+  // ── Card mode ──
+  if (viewMode === 'card') {
+    return (
+      <div>
+        <div className="flex justify-end mb-4">
+          <div className="flex bg-slate-100 rounded-lg p-1 shadow-sm">
+            <button onClick={() => setViewMode('classic')} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md text-slate-500 hover:text-slate-700 transition-all">
+              <Table2 className="w-3.5 h-3.5" /> 經典
+            </button>
+            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-white shadow-sm text-slate-700">
+              <LayoutGrid className="w-3.5 h-3.5" /> 卡片
+            </button>
+          </div>
+        </div>
+        <CardCheckoutView
+          branch={branch}
+          customer={customer} setCustomer={setCustomer}
+          showMemberDropdown={showMemberDropdown} setShowMemberDropdown={setShowMemberDropdown}
+          filteredCacheMembers={filteredCacheMembers} selectCacheMember={selectCacheMember}
+          handlePhoneKeyDown={handlePhoneKeyDown}
+          payment={payment} setPayment={setPayment}
+          lotteries={lotteries} addLotteryRow={addLotteryRow} removeLotteryRow={removeLotteryRow} updateLottery={updateLottery}
+          merchandises={merchandises} addMerchRow={addMerchRow} removeMerchRow={removeMerchRow} updateMerch={updateMerch}
+          summary={summary} orderNote={orderNote} setOrderNote={setOrderNote}
+          handleResetCheckout={handleResetCheckout} handleCheckout={handleCheckout}
+          setActiveTab={setActiveTab}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full mx-auto flex flex-col gap-6 pb-32">
+
+      {/* View toggle */}
+      <div className="flex justify-end">
+        <div className="flex bg-slate-100 rounded-lg p-1 shadow-sm">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-white shadow-sm text-slate-700">
+            <Table2 className="w-3.5 h-3.5" /> 經典
+          </button>
+          <button onClick={() => setViewMode('card')} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md text-slate-500 hover:text-slate-700 transition-all">
+            <LayoutGrid className="w-3.5 h-3.5" /> 卡片
+          </button>
+        </div>
+      </div>
 
       {/* Top row: Customer & Payment */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -151,9 +198,9 @@ export function CheckoutView({
           </div>
         </div>
         <div className="overflow-x-auto overflow-y-visible">
-          <table className="w-full text-sm min-w-[900px]">
+          <table className="w-full text-sm min-w-[780px]">
             <thead><tr className="bg-amber-100/50 text-amber-900 border-b border-amber-100 text-[13px]">
-              {['單號', '獎項', '抽數', '帶走/點數', '套名', '單抽價', '獎編', '名稱', '單抽點', '點數', '金額', '備註', ''].map(h => (
+              {['單號', '獎項', '抽數', '帶走/點數', '套名', '單抽價', '名稱', '單抽點', '點數', '金額', '備註', ''].map(h => (
                 <th key={h} className="px-2 py-3 font-bold text-left whitespace-nowrap">{h}</th>
               ))}
             </tr></thead>
@@ -170,8 +217,7 @@ export function CheckoutView({
                   </td>
                   <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[200px]'} placeholder="大套名稱" value={item.setName} disabled readOnly /></td>
                   <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-[11px] text-slate-400 font-mono !w-12 !min-w-[3rem] !px-1'} value={item.unitPrice} disabled readOnly /></td>
-                  <td className="px-1 py-2"><input type="text" className={inp + ' text-[11px] text-slate-400 font-mono !w-10 !min-w-[2.5rem] !px-1 text-center'} placeholder="獎編" value={item.prizeId} disabled readOnly /></td>
-                  <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[200px]'} placeholder="輸入名稱" value={item.prizeName} disabled readOnly /></td>
+                  <td className="px-1 py-2"><input type="text" className={inp + ' font-bold text-slate-800 tracking-wide !text-base min-w-[160px]'} placeholder="獎品名稱" value={item.prizeName} disabled readOnly /></td>
                   <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-[11px] text-indigo-300 font-mono !w-10 !min-w-[2.5rem] !px-1'} value={item.unitPoints} disabled readOnly /></td>
                   <td className="px-2 py-2 text-right">
                     <span className={`px-2 py-1 rounded flex w-min ml-auto ${item.totalPoints > 0 ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-400'}`}>{item.totalPoints > 0 ? `+${item.totalPoints}` : '0'}</span>
@@ -183,7 +229,7 @@ export function CheckoutView({
                   <td className="px-1 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => removeLotteryRow(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded p-1.5 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
                 </tr>
               ))}
-              {lotteries.length === 0 && <tr><td colSpan={13} className="text-center py-10 bg-slate-50/50 text-slate-400 text-sm font-medium border-t border-slate-100"><Archive className="w-8 h-8 mx-auto mb-2 opacity-20" />請點擊右上方新增列開始輸入</td></tr>}
+              {lotteries.length === 0 && <tr><td colSpan={12} className="text-center py-10 bg-slate-50/50 text-slate-400 text-sm font-medium border-t border-slate-100"><Archive className="w-8 h-8 mx-auto mb-2 opacity-20" />請點擊右上方新增列開始輸入</td></tr>}
             </tbody>
           </table>
         </div>

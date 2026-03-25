@@ -58,12 +58,12 @@ export default function App() {
   }, [branch]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans overflow-x-hidden">
       {banner && <StatusBanner msg={banner.msg} type={banner.type} onClose={clearBanner} />}
 
       {/* ── Top Bar ── */}
       <header className={`bg-gradient-to-r ${branchGradient[branch]} shadow-lg`}>
-        <div className="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 rounded-xl p-2">
               <Store className="w-6 h-6 text-white" />
@@ -86,8 +86,8 @@ export default function App() {
             )}
           </div>
         </div>
-        <div className="max-w-screen-2xl mx-auto px-6">
-          <div className="flex gap-1">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {TABS.map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key as Tab)}
                 className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-t-lg transition-all border-b-2 ${activeTab === t.key ? 'bg-slate-50 text-slate-700 border-transparent shadow-inner' : 'text-white/70 border-transparent hover:text-white hover:bg-white/10'}`}>
@@ -99,7 +99,7 @@ export default function App() {
       </header>
 
       {/* ── Content ── */}
-      <main className="max-w-screen-2xl mx-auto px-6 py-6">
+      <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 overflow-x-hidden">
         {activeTab === 'checkout' && (
           <CheckoutView
             branch={branch}
