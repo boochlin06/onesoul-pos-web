@@ -41,12 +41,19 @@ export function applyLotteryUpdate(
   }
   if (field === 'prize') {
     const prizeEntry = prizes.find(p => p.setId === updated.id && p.prize === String(value));
-    if (prizeEntry) { updated.prizeId = prizeEntry.prizeId; updated.prizeName = prizeEntry.prizeName; updated.unitPoints = prizeEntry.points; updated.draws = prizeEntry.draws; }
+    if (prizeEntry) { updated.prizeId = prizeEntry.prizeId; updated.prizeName = prizeEntry.prizeName; updated.unitPoints = prizeEntry.points; }
     else { updated.prizeId = ''; updated.prizeName = ''; updated.unitPoints = 0; updated.draws = 0; updated.amount = 0; updated.totalPoints = 0; }
     if (value === '88888') updated.remark = '送1點';
     else if (value === '99999') updated.remark = '扣1點';
     else if (value === 'x') updated.remark = '盲盒';
     else if (value === 'z' || value === 'Z') { updated.remark = ''; updated.prizeName = '非GK'; updated.unitPoints = 1; }
+  }
+  // 抽數防呆：不可超過該獎項的總抽數
+  if (field === 'draws') {
+    const prizeEntry = prizes.find(p => p.setId === updated.id && p.prize === updated.prize);
+    if (prizeEntry && Number(value) > prizeEntry.draws) {
+      updated.draws = prizeEntry.draws;
+    }
   }
   if (field !== 'amount' && field !== 'remark') {
     if (field !== 'type') updated.amount = updated.draws * (updated.unitPrice || 0);

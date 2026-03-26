@@ -32,6 +32,12 @@ export function usePrizes({ branch, showBanner }: UsePrizesDeps) {
 
   const executeVoidPrize = useCallback(() => {
     if (!voidConfirmPrize || !voidConfirmPrize.length) return;
+    const prizeBranch = voidConfirmPrize[0].branch;
+    if (prizeBranch && prizeBranch !== branch) {
+      showBanner(`無法作廢其他門市（${prizeBranch}）的套組`, 'err');
+      setVoidConfirmPrize(null);
+      return;
+    }
     const { setId } = voidConfirmPrize[0];
     setVoidingPrizeLoading(true);
     showBanner('執行整套作廢中...', 'loading', false);

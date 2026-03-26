@@ -11,11 +11,12 @@ interface PrizeLibraryViewProps {
   isLoading: boolean;
   onDeletePrize: (entries: PrizeEntry[]) => void;
   onCreateSetSuccess: () => void;
+  showBanner: (msg: string, type: 'ok' | 'err' | 'loading', autoDismiss?: boolean) => void;
 }
 
 const { drawOptions: DRAW_OPTIONS, priceMultiplier, minPriceRatio, maxPriceRatio } = CREATE_SET_CONFIG;
 
-export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onCreateSetSuccess }: PrizeLibraryViewProps) {
+export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onCreateSetSuccess, showBanner }: PrizeLibraryViewProps) {
   const [search, setSearch] = useState('');
   const [filterBranch, setFilterBranch] = useState<'all' | Branch>('all');
 
@@ -167,7 +168,14 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
                   <span className="text-xs text-slate-400">{entries[0].date}</span>
                 </div>
                 <button 
-                  onClick={() => onDeletePrize(entries)}
+                  onClick={() => {
+                    const prizeBranch = entries[0].branch;
+                    if (prizeBranch && prizeBranch !== branch) {
+                      showBanner(`⚠️ 無法作廢「${prizeBranch}」門市的套組，請先切換門市`, 'err');
+                      return;
+                    }
+                    onDeletePrize(entries);
+                  }}
                   className="flex items-center gap-1 text-xs font-bold text-rose-500 hover:text-white hover:bg-rose-500 border border-rose-200 px-3 py-1.5 rounded-lg transition-all shadow-sm"
                   title="作廢整套福袋"
                 >

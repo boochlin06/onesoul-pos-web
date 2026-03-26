@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { StockEntry, BlindBoxEntry, Branch } from '../types';
 import { gasPost } from '../services/api';
 
@@ -13,6 +13,9 @@ export function useStocks(branch: Branch) {
       .catch(e => console.error('[useStocks] fetch failed:', e))
       .finally(() => setLoadingStocks(false));
   }, [branch]);
+
+  // 切換門市時自動重新載入
+  useEffect(() => { fetchStocks(); }, [fetchStocks]);
 
   return { stocks, loadingStocks, fetchStocks };
 }

@@ -170,7 +170,7 @@ function PosApp() {
         {activeTab === 'daily' && <DailySalesView branch={branch} records={daily.dailySales} isLoading={daily.loadingDaily} onDelete={daily.handleDeleteDaily} openingCash={daily.openingCash} onSetOpeningCash={daily.handleSetOpeningCash} readOnly={!canEditBranch} />}
         {activeTab === 'members' && <MembersView members={members} isLoading={loadingMembers} onRefresh={fetchMembers} />}
         {activeTab === 'sales' && <SalesView records={sales.salesRecords} isLoading={sales.loadingSales} onRefresh={() => sales.fetchSalesRecords(true)} onClearCache={sales.clearSalesCache} lastCacheTime={sales.lastCacheTime} />}
-        {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes.prizes} isLoading={prizes.loadingLibrary || prizes.voidingPrizeLoading} onDeletePrize={prizes.handleDeletePrize} onCreateSetSuccess={prizes.fetchLibrary} />}
+        {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes.prizes} isLoading={prizes.loadingLibrary || prizes.voidingPrizeLoading} onDeletePrize={prizes.handleDeletePrize} onCreateSetSuccess={prizes.fetchLibrary} showBanner={showBanner} />}
         {activeTab === 'stock' && <StockView branch={branch} records={stocks} isLoading={loadingStocks} onRefresh={fetchStocks} setBranch={setBranch} />}
         {activeTab === 'blindbox' && <BlindBoxView records={blindBoxes} isLoading={loadingBlindBox} onRefresh={fetchBlindBoxes} />}
         {activeTab === 'member_history' && (
