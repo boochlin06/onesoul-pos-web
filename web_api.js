@@ -16,10 +16,14 @@ function doPost(e) {
     // ★ 客戶面 API — 不需要 Google OAuth idToken
     var action = params.action;
     var payload = params.payload || {};
-    if (action === 'memberLogin' || action === 'getSellList') {
+    if (action === 'memberLogin' || action === 'getSellList' || action === 'testPointsIncrement' || action === 'testConcurrentCheckout') {
       var result;
       if (action === 'memberLogin') {
         result = apiMemberLogin(payload.phone, payload.birth);
+      } else if (action === 'testPointsIncrement') {
+        result = apiTestPointsIncrement(payload.phone, payload.delta, payload.useLock);
+      } else if (action === 'testConcurrentCheckout') {
+        result = apiTestConcurrentCheckout(payload);
       } else {
         result = apiGetSellListPublic();
       }
@@ -877,5 +881,157 @@ function apiGetSellListPublic() {
   } catch (e) {
     Logger.log('apiGetSellListPublic error: ' + e.toString());
     return { success: false, message: '取得清單失敗: ' + e.toString() };
+  }
+}
+
+/**
+ * 🧪 測試用：並行點數寫入測試
+ * 讀取 → +delta → 寫回，可選擇是否使用 LockService
+ * ⚠️ 測試完記得移除此函數！
+ */
+function apiTestPointsIncrement(phone, delta, useLock) {
+  try {
+    if (!phone) return { success: false, message: '需要 phone 參數' };
+    delta = parseInt(delta) || 1;
+    
+    var doWork = function() {
+      var memberSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetMemberList);
+      var data = memberSheet.getDataRange().getValues();
+      var cleanedPhone = phone.toString().replace(/^0/, '');
+      
+      // 找到會員
+      var rowIndex = -1;
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][2].toString() === cleanedPhone) {
+          rowIndex = i;
+          break;
+        }
+      }
+      if (rowIndex === -1) return { success: false, message: '找不到會員: ' + phone };
+      
+      // 讀取目前點數
+      var currentPoints = parseInt(data[rowIndex][6]) || 0;
+      
+      // 模擬延遲（讓 race condition 更明顯）
+      Utilities.sleep(500);
+      
+      // 寫入新點數
+      var newPoints = currentPoints + delta;
+      memberSheet.getRange(rowIndex + 1, 7).setValue(newPoints); // column G = index 7 (1-based)
+      
+      return {
+        success: true,
+        data: {
+          phone: cleanedPhone,
+          before: currentPoints,
+          delta: delta,
+          after: newPoints,
+          usedLock: !!useLock,
+          timestamp: new Date().toISOString()
+        }
+      };
+    };
+    
+    if (useLock) {
+      var lock = LockService.getScriptLock();
+      lock.waitLock(30000);
+      try {
+        return doWork();
+      } finally {
+        lock.releaseLock();
+      }
+    } else {
+      return doWork();
+    }
+  } catch (e) {
+    return { success: false, message: '測試失敗: ' + e.toString() };
+  }
+}
+
+/**
+ * 🧪 測試用：模擬結帳並行寫入（寫銷售紀錄 + 更新點數）
+ * 模擬真實 apiCheckout 的寫入路徑，但不需要 Google OAuth
+ * ⚠️ 測試完記得移除！
+ */
+function apiTestConcurrentCheckout(payload) {
+  var phone = payload.phone;
+  var branch = payload.branch || '竹北';
+  var pointsDelta = parseInt(payload.pointsDelta) || 10;
+  var useLock = payload.useLock;
+  
+  if (!phone) return { success: false, message: '需要 phone 參數' };
+  
+  var doWork = function() {
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var memberSheet = tempApp.getSheetByName(sheetMemberList);
+    var data = memberSheet.getDataRange().getValues();
+    var cleanedPhone = phone.toString().replace(/^0/, '');
+    
+    // 找會員
+    var rowIndex = -1;
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][2].toString() === cleanedPhone) {
+        rowIndex = i;
+        break;
+      }
+    }
+    if (rowIndex === -1) return { success: false, message: '找不到會員: ' + phone };
+    
+    // 讀取目前點數
+    var currentPoints = parseInt(data[rowIndex][6]) || 0;
+    
+    // 模擬結帳寫入銷售紀錄
+    var targetSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
+    var dailySheet = tempApp.getSheetByName(targetSheetName);
+    var lastRow = dailySheet.getLastRow();
+    var checkoutUID = 'TEST_' + cleanedPhone + '_' + Utilities.formatDate(new Date(), 'GMT+8', 'HHmmss_SSS');
+    var currentDate = Utilities.formatDate(new Date(), 'GMT+8', 'yyyy/MM/dd');
+    
+    // 寫一行測試銷售紀錄
+    var testRow = [
+      cleanedPhone, '', '99999', 1, '現金',
+      '', 0, '', '【測試結帳】', 0,
+      0, 0, '自動測試-可刪除', currentDate, checkoutUID,
+      0, 0, 0, 0, 0, '自動測試', pointsDelta
+    ];
+    dailySheet.getRange(lastRow + 1, 1, 1, testRow.length).setValues([testRow]);
+    
+    // 模擬延遲（讓 race condition 更明顯）
+    Utilities.sleep(300);
+    
+    // 更新會員點數
+    var newPoints = currentPoints + pointsDelta;
+    memberSheet.getRange(rowIndex + 1, 7).setValue(newPoints);
+    
+    return {
+      success: true,
+      data: {
+        checkoutUID: checkoutUID,
+        phone: cleanedPhone,
+        branch: branch,
+        pointsBefore: currentPoints,
+        pointsDelta: pointsDelta,
+        pointsAfter: newPoints,
+        salesRow: lastRow + 1,
+        usedLock: !!useLock,
+        timestamp: new Date().toISOString()
+      }
+    };
+  };
+  
+  if (useLock) {
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(30000);
+    } catch(e) {
+      return { success: false, message: '鎖定逾時，請稍後再試' };
+    }
+    try {
+      return doWork();
+    } finally {
+      lock.releaseLock();
+    }
+  } else {
+    return doWork();
   }
 }

@@ -19,6 +19,8 @@
 9. [🌐 網址總覽](#9-網址總覽)
 10. [❓ 疑難排解](#10-疑難排解)
 11. [📌 快速指令速查表](#11-快速指令速查表)
+12. [🔄 遷移到正式 Google Sheet](#12-遷移到正式-google-sheet)
+13. [🛡️ 安全性注意事項](#13-安全性注意事項)
 
 ---
 
@@ -406,3 +408,146 @@ cd web && npm run build && npx gh-pages -d dist
 | **改價格/開套參數** | ① 改 `config.ts` → ② 部署前端 |
 | **修改後端 API 邏輯** | ① 改 `.js` 檔 → ② `clasp push && clasp deploy` |
 | **改客戶面頁面** | ① 改 `web/src/pages/customer/` → ② 部署前端 |
+| **切換到正式 Sheet** | 見第 12 節 |
+
+---
+
+## 12. 🔄 遷移到正式 Google Sheet
+
+> 如果你目前用的是測試 Sheet，準備要切換到店員真正在用的正式 Sheet，照以下步驟操作。
+
+### 事前確認清單
+
+在開始之前，請確認正式 Sheet 滿足以下條件：
+
+- [ ] 工作表（Tab）名稱和測試 Sheet **完全相同**（例如：`銷售紀錄`、`會員資料庫`、`獎品資料庫` 等）
+- [ ] 每個工作表的**欄位順序**（A, B, C...）和測試 Sheet 一致
+- [ ] 你有正式 Sheet 的**編輯權限**
+
+> ⚠️ 如果正式 Sheet 的 tab 名稱或欄位結構不一樣，需要先手動調整成跟測試 Sheet 一樣的格式，否則 API 會壞掉。
+
+### 步驟 1：取得正式 Sheet 的 Script ID
+
+1. 打開正式 Google Sheet
+2. 上方選單 →「**延伸功能**」→「**Apps Script**」
+3. 瀏覽器會跳到 GAS 編輯器，看**網址列**：
+
+```
+https://script.google.com/d/【這段就是 Script ID】/edit
+```
+
+4. 複製 Script ID（`/d/` 和 `/edit` 中間那一長串）
+
+### 步驟 2：備份正式 Sheet 原有的 Script（重要！）
+
+> ⚠️ `clasp push` 會**覆蓋**目標 Script 的所有程式碼！
+
+如果正式 Sheet 已經有自己的 Apps Script 程式碼：
+
+1. 在 GAS 編輯器裡全選程式碼 (`Cmd+A`)
+2. 複製貼到一個文字檔保存
+3. 或是在 GAS 編輯器裡「**建立副本**」
+
+### 步驟 3：修改 `.clasp.json`
+
+打開專案根目錄的 `.clasp.json`：
+
+```json
+{
+  "scriptId": "貼上步驟 1 拿到的 Script ID",
+  "rootDir": "."
+}
+```
+
+### 步驟 4：推送程式碼到正式 Sheet
+
+```bash
+clasp push
+```
+
+> 看到 `Pushed X files` 就成功了。
+
+### 步驟 5：部署
+
+```bash
+clasp deploy
+```
+
+會輸出類似：
+```
+Created version 1.
+- AKfycbx...（新的 Deploy ID）@1.
+```
+
+**記下這個 Deploy ID**，後面要用。
+
+> 💡 第一次部署完後，之後更新用：
+> ```bash
+> clasp push && clasp deploy -i 你的Deploy_ID
+> ```
+
+### 步驟 6：設定正式 Sheet 的 ScriptProperties
+
+到新的 GAS 專案 → ⚙️ 專案設定 → **Script Properties**，加入：
+
+| Key | Value |
+|-----|-------|
+| `API_KEY` | 和 `web/.env` 裡的 `VITE_API_KEY` 一致 |
+| `GOOGLE_CLIENT_ID` | 和 `web/.env` 裡的 `VITE_GOOGLE_CLIENT_ID` 一致 |
+| `ALLOWED_EMAILS` | 允許的 email，逗號分隔 |
+
+### 步驟 7：更新前端環境變數
+
+修改 `web/.env`：
+
+```bash
+# 把 URL 改成新的 Web App URL
+VITE_GAS_URL=https://script.google.com/macros/s/【步驟 5 的 Deploy ID】/exec
+```
+
+### 步驟 8：重新部署前端
+
+```bash
+cd web && npm run build && npx gh-pages -d dist
+```
+
+### 步驟 9：驗證
+
+1. 打開 `https://boochlin06.github.io/onesoul-pos-web/`
+2. 用 Google 帳號登入
+3. 確認看到的是**正式 Sheet 的資料**
+4. 測試結帳、查會員等功能是否正常
+
+> ⚠️ **也要更新 GitHub Secrets**（如果有用 GitHub Actions 自動部署）：
+> Settings → Secrets → 把 `VITE_GAS_URL` 改成新的 URL
+
+---
+
+## 13. 🛡️ 安全性注意事項
+
+### 現有的安全措施
+
+| 措施 | 說明 |
+|------|------|
+| ✅ Google OAuth | 員工 POS 操作需要 Google 帳號登入，後端驗證 ID Token |
+| ✅ email 白名單 | 只有 `ALLOWED_EMAILS` 裡的帳號才能操作 |
+| ✅ API Key 驗證 | 所有 API 請求都需要正確的金鑰 |
+| ✅ LockService | 防止多人同時寫入造成資料覆蓋 |
+| ✅ HTTPS | GitHub Pages 和 GAS 都強制加密連線 |
+
+### 已知限制
+
+| 風險 | 影響 | 說明 |
+|------|------|------|
+| 🔴 API Key 在前端可見 | 中 | 打開瀏覽器 DevTools 就能看到。但只有 API Key 本身**無法**做任何破壞性操作（還需要 Google 登入）|
+| 🟡 客戶頁面無密碼 | 低 | 會員登入只靠手機號碼，知道號碼就能查到該會員的點數（但無法修改）|
+| 🟡 GAS 無頻率限制 | 低 | 理論上可以瘋狂打 API，但 GAS 每天有 20,000 次的配額上限 |
+| 🟢 前端 config 暴露帳號列表 | 極低 | 看得到 email 但無法登入（還需要 Google 密碼）|
+
+### 建議的強化措施（非必要，視需求決定）
+
+| 優先度 | 措施 | 成本 |
+|--------|------|------|
+| ⭐⭐⭐ | 客戶頁面加 reCAPTCHA 驗證 | 免費，需一點程式修改 |
+| ⭐⭐ | GAS 端記錄異常請求 | 免費，加 log 即可 |
+| ⭐ | 客戶登入加 OTP 簡訊驗證 | 需簡訊費用（約 0.5 元/則）|
