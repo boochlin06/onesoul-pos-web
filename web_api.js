@@ -513,6 +513,7 @@ function apiDeleteDailySales(branch, checkoutUID) {
     var rowsToDelete = [];
     var phoneToUpdate = '';
     var totalPointsImpact = 0;
+    var kColumnSum = 0;
     
     // 從最後一行往上找，避開 1-5 列標題 (index 0-4)
     for (var i = data.length - 1; i >= 5; i--) {
@@ -521,11 +522,20 @@ function apiDeleteDailySales(branch, checkoutUID) {
         if (!phoneToUpdate && data[i][0]) { 
           phoneToUpdate = data[i][0].toString().trim(); 
         }
-        // 指摘 Column V (Index 21: 點數異動)，只有第一筆項目列會寫入此值，其他通常是空白。
+        // V 欄 (Index 21: 點數異動)
         if (data[i][21] !== '' && data[i][21] !== undefined) {
           totalPointsImpact += Number(data[i][21]);
         }
+        // K 欄 (Index 10: 單行點數) 作為 fallback
+        if (data[i][10] !== '' && data[i][10] !== undefined) {
+          kColumnSum += Number(data[i][10]);
+        }
       }
+    }
+    
+    // V 欄為 0 時 fallback 到 K 欄加總（點數套舊資料 V 欄可能未寫入）
+    if (totalPointsImpact === 0 && kColumnSum !== 0) {
+      totalPointsImpact = kColumnSum;
     }
     
     if (rowsToDelete.length === 0) return { success: false, message: '找不到訂單' };

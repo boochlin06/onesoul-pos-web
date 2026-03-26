@@ -38,7 +38,10 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
       cash += Number(pay.cash) || 0;
       remit += Number(pay.remittance) || 0;
       credit += Number(pay.creditCard) || 0;
-      pts += Number(pay.pointDelta) || 0;
+      // V 欄 pointDelta 優先，為 0 時 fallback 到 K 欄逐行加總
+      const vDelta = Number(pay.pointDelta) || 0;
+      const kSum = items.reduce((s, r) => s + (Number(r.points) || 0), 0);
+      pts += vDelta || kSum;
     });
     return { rev, cash, remit, credit, pts };
   }, [allGroups]);
@@ -158,6 +161,10 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
         {currentVisibleGroups.map(({ uid, items }) => {
           const first = items[0];
           const pay = items.find(r => r.receivedAmount || r.creditCard || r.cash || r.remittance) || first;
+          // V 欄 pointDelta 優先，舊資料可能為 0 → fallback 用 K 欄加總
+          const effectivePointDelta = (pay.pointDelta != null && pay.pointDelta !== 0)
+            ? pay.pointDelta
+            : items.reduce((s, r) => s + (Number(r.points) || 0), 0);
 
           return (
             <div key={uid} className="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative group">
@@ -272,8 +279,9 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
                   {pay.creditCard ? <span className="text-slate-500">信用卡 <strong className="text-slate-700 font-mono">${pay.creditCard.toLocaleString()}</strong></span> : null}
                   {pay.remittance ? <span className="text-slate-500">匯款 <strong className="text-slate-700 font-mono">${pay.remittance.toLocaleString()}</strong></span> : null}
                   {pay.pointsUsed ? <span className="text-slate-500">點數扣 <strong className="text-rose-500 font-mono">-{pay.pointsUsed}</strong></span> : null}
+                  {!pay.receivedAmount && !pay.cash && !pay.creditCard && !pay.remittance && <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-violet-50 text-violet-600 border border-violet-100">純點數交易</span>}
                   {pay.channel ? <div className="text-slate-500 text-xs flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-md border border-amber-100 max-w-sm shadow-sm ml-2" title={pay.channel}><MessageSquare className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /><span className="truncate flex-1 font-medium">{pay.channel}</span></div> : null}
-                  {pay.pointDelta ? <span className="text-slate-500 font-medium bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-sm ml-2">點數異動 <strong className={`font-mono text-[15px] ${pay.pointDelta > 0 ? 'text-indigo-600' : 'text-slate-600'}`}>{pay.pointDelta > 0 ? `+${pay.pointDelta}` : pay.pointDelta}</strong></span> : null}
+                  {effectivePointDelta !== 0 ? <span className="text-slate-500 font-medium bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-sm ml-2">點數異動 <strong className={`font-mono text-[15px] ${effectivePointDelta > 0 ? 'text-indigo-600' : 'text-rose-600'}`}>{effectivePointDelta > 0 ? `+${effectivePointDelta}` : effectivePointDelta}</strong></span> : null}
                 </div>
                 {!readOnly && (
                 <div>
@@ -328,6 +336,19 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">商品數</span>
                   <span className="font-bold text-slate-700">{voidGroup?.items.length || 0} 項</span>
                 </div>
+                {(() => {
+                  const voidEffective = (voidPay?.pointDelta != null && voidPay.pointDelta !== 0)
+                    ? voidPay.pointDelta
+                    : (voidGroup?.items.reduce((s, r) => s + (Number(r.points) || 0), 0) || 0);
+                  return voidEffective !== 0 ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">點數異動</span>
+                    <span className={`font-mono font-bold ${voidEffective > 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+                      {voidEffective > 0 ? `+${voidEffective}` : voidEffective}（作廢後將退回）
+                    </span>
+                  </div>
+                  ) : null;
+                })()}
               </div>
 
               <p className="text-slate-500 text-sm mb-5 leading-relaxed">
