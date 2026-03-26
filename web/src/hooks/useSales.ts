@@ -55,7 +55,7 @@ export function useDailySales({ branch, showBanner, fetchMembers }: UseDailySale
 
   useEffect(() => {
     gasPost('getOpeningCash', { branch })
-      .then(res => { if (res.success && res.data) setOpeningCash(res.data.amount); })
+      .then(res => { if (res.success && res.amount != null) setOpeningCash(res.amount); else setOpeningCash(null); })
       .catch(e => console.error('[useDailySales] getOpeningCash failed:', e));
   }, [branch]);
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, ClipboardList, Receipt, Loader2, Trash2, Archive, MessageSquare, AlertCircle } from 'lucide-react';
 import { useStickyState } from '../../hooks/useStickyState';
 import { Pagination } from '../ui/Pagination';
@@ -18,6 +18,24 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
   const [search, setSearch] = useState('');
   const [uiMode, setUiMode] = useStickyState<'classic' | 'audit'>('audit', 'pos_daily_ui_mode');
   const [voidConfirmUid, setVoidConfirmUid] = useState<string | null>(null);
+
+  // 開櫃準備金 local state：避免每打一字就 API call
+  const [localCash, setLocalCash] = useState<string>(openingCash != null ? String(openingCash) : '');
+  const prevBranchRef = useRef(branch);
+  useEffect(() => {
+    // 外部值變更或切門市時同步
+    if (branch !== prevBranchRef.current) {
+      prevBranchRef.current = branch;
+    }
+    setLocalCash(openingCash != null ? String(openingCash) : '');
+  }, [openingCash, branch]);
+
+  const commitOpeningCash = () => {
+    const val = Number(localCash) || 0;
+    if (val !== (openingCash ?? 0)) {
+      onSetOpeningCash(val);
+    }
+  };
 
   const allGroups = useMemo(() => {
     const map = new Map<string, DailySalesEntry[]>();
@@ -117,13 +135,14 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
           <p className="text-xs text-indigo-500 font-bold mb-2 tracking-widest uppercase flex items-center gap-1"><Archive className="w-3 h-3"/> 開櫃準備金</p>
           <div className="flex items-center gap-2">
             <span className="text-sm text-indigo-400 font-bold">NT$</span>
-            <input 
-              type="number" 
-              className="w-full bg-transparent outline-none font-bold text-xl text-indigo-700 tracking-tight"
-              value={openingCash ?? ''} 
-              placeholder="0"
-              onChange={(e) => onSetOpeningCash(Number(e.target.value))}
-              onBlur={(e) => { if(e.target.value==='') onSetOpeningCash(0); }}
+            <input
+              type="number"
+            className="w-full bg-transparent outline-none font-bold text-xl text-indigo-700 tracking-tight"
+            value={localCash}
+            placeholder="0"
+            onChange={(e) => setLocalCash(e.target.value)}
+            onBlur={commitOpeningCash}
+            onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
             />
           </div>
         </div>
