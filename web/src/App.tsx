@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Archive, LogOut } from 'lucide-react';
 import type { Branch, Tab } from './types';
-import { useState } from 'react';
 import { TABS, branchGradient, CROSS_BRANCH_DAILY_VIEW } from './constants';
 import { useAuth } from './hooks/useAuth';
 import { LoginScreen } from './components/LoginScreen';
@@ -21,8 +20,29 @@ import { PrizeLibraryView } from './components/views/PrizeLibraryView';
 import { StockView } from './components/views/StockView';
 import { BlindBoxView } from './components/views/BlindBoxView';
 import { MemberHistoryView } from './components/views/MemberHistoryView';
+import CustomerApp from './pages/customer/CustomerApp';
+
+/** 判斷是否為客戶面路由 */
+function isCustomerRoute(): boolean {
+  const hash = window.location.hash;
+  return hash.startsWith('#/member') || hash.startsWith('#/stocklist') || hash.startsWith('#/about');
+}
 
 export default function App() {
+  const [isCustomer, setIsCustomer] = useState(isCustomerRoute);
+
+  useEffect(() => {
+    const handleHashChange = () => setIsCustomer(isCustomerRoute());
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  if (isCustomer) return <CustomerApp />;
+
+  return <PosApp />;
+}
+
+function PosApp() {
   const auth = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('checkout');
   const [branch, setBranch] = useState<Branch>('竹北');

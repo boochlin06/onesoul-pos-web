@@ -13,7 +13,21 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // ★ Google ID Token 驗證 — 擋掉非白名單帳號
+    // ★ 客戶面 API — 不需要 Google OAuth idToken
+    var action = params.action;
+    var payload = params.payload || {};
+    if (action === 'memberLogin' || action === 'getSellList') {
+      var result;
+      if (action === 'memberLogin') {
+        result = apiMemberLogin(payload.phone, payload.birth);
+      } else {
+        result = apiGetSellListPublic();
+      }
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ★ Google ID Token 驗證 — 擋掉非白名單帳號（POS 專用 API）
     var idToken = params.idToken;
     if (idToken) {
       var tokenEmail = verifyGoogleIdToken_(idToken);
@@ -29,9 +43,6 @@ function doPost(e) {
       }
     }
 
-    var action = params.action;
-    var payload = params.payload || {};
-    
     var result;
     switch (action) {
       case "checkout":
@@ -798,3 +809,73 @@ function verifyGoogleIdToken_(idToken) {
   }
 }
 
+// ── 客戶面 API ──────────────────────────────
+
+/**
+ * 客戶登入 — 電話+生日驗證，回傳會員資訊
+ * @param {string} phone - 會員電話
+ * @param {string} birth - 生日 (yyyyMMdd)
+ * @returns {Object} { success, data: { name, points, info } }
+ */
+function apiMemberLogin(phone, birth) {
+  try {
+    if (!phone || !birth) {
+      return { success: false, message: '電話和生日為必填' };
+    }
+
+    var memberSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetMemberList);
+    var memberData = memberSheet.getDataRange().getValues();
+
+    // 去除前導 0
+    var cleanedPhone = phone.toString().replace(/^0/, '');
+
+    var member = null;
+    for (var i = 1; i < memberData.length; i++) {
+      var storedPhone = memberData[i][2].toString();
+      var storedBirthDate = new Date(memberData[i][4]);
+      var formattedStoredBirth = Utilities.formatDate(storedBirthDate, 'Asia/Taipei', 'yyyyMMdd');
+
+      if (storedPhone === cleanedPhone && formattedStoredBirth === birth) {
+        member = memberData[i];
+        break;
+      }
+    }
+
+    if (!member) {
+      return { success: false, message: '無效的電話或生日' };
+    }
+
+    // 名字遮罩
+    var name = member[1].toString();
+    var maskedName = name.length > 2
+      ? name[0] + 'x'.repeat(name.length - 2) + name[name.length - 1]
+      : name[0] + 'x';
+
+    return {
+      success: true,
+      data: {
+        name: maskedName,
+        points: parseInt(member[6]) || 0,
+        info: member[7] ? member[7].toString() : '',
+      }
+    };
+  } catch (e) {
+    Logger.log('apiMemberLogin error: ' + e.toString());
+    return { success: false, message: '登入失敗: ' + e.toString() };
+  }
+}
+
+/**
+ * 取得對外銷售清單（點數兌換 GK 清單）
+ * @returns {Object} { success, data: [ [編號, 名稱, 點數, 地點], ... ] }
+ */
+function apiGetSellListPublic() {
+  try {
+    var sellList = SpreadsheetApp.openById(appBackground).getSheetByName('對外銷售清單');
+    var data = sellList.getDataRange().getValues();
+    return { success: true, data: data };
+  } catch (e) {
+    Logger.log('apiGetSellListPublic error: ' + e.toString());
+    return { success: false, message: '取得清單失敗: ' + e.toString() };
+  }
+}

@@ -1,69 +1,84 @@
+/**
+ * prog_index.js — 前端頁面處理 + 會員登入/查詢
+ * 處理 doGet 路由對應的頁面渲染及會員 API
+ */
+
+/**
+ * 首頁（會員登入頁面）
+ */
 function index(e, menu) {
-  let title = '會員登入'
-  // let content = `<h2 class='mt-3'>${title}</h2>`;
-  let content = render('member_detail.html',{});
-  return render('tmp.html',{content: content, menu: menu }, title);
+  var title = '會員登入';
+  var content = render('member_detail.html', {});
+  return render('tmp.html', { content: content, menu: menu }, title);
 }
 
-function stocklist(e, menu){
-  let title = '點數兌換清單';
-  let content = `<h2 class='mt-3'>${title}</h2>`;
-  content += render('stock_list.html',{rows:getSellList()});
-  return render('tmp.html', {content: content, menu: menu}, title); 
+/**
+ * 點數兌換清單頁面
+ */
+function stocklist(e, menu) {
+  var title = '點數兌換清單';
+  var content = "<h2 class='mt-3'>" + title + "</h2>";
+  content += render('stock_list.html', { rows: getSellList() });
+  return render('tmp.html', { content: content, menu: menu }, title);
 }
 
-function about(e, menu){
-  let title = '相關連結';
-  console.log(title);
-  let content = render('about.html',{data:title});
-  console.log('about');
-  return render('tmp.html', {content: content, menu: menu}, title); 
+/**
+ * 相關連結頁面
+ */
+function about(e, menu) {
+  var title = '相關連結';
+  var content = render('about.html', { data: title });
+  return render('tmp.html', { content: content, menu: menu }, title);
 }
 
-
+/**
+ * 取得對外銷售清單資料
+ * @returns {Array[]} 銷售清單二維陣列
+ */
 function getSellList() {
-  
-  let sellList = SpreadsheetApp.openById(appBackground).getSheetByName('對外銷售清單');
-  var sellData = sellList.getDataRange().getValues();
-  
-  return sellData;
+  var sellList = SpreadsheetApp.openById(appBackground).getSheetByName('對外銷售清單');
+  return sellList.getDataRange().getValues();
 }
 
-
+/**
+ * 會員登入 — 以電話 + 生日驗證身份，建立 session
+ * @param {string} phone - 會員電話（含前導 0）
+ * @param {string} birth - 生日（yyyyMMdd 格式）
+ * @returns {string} JSON 字串含 sessionId、memberInfo 或錯誤訊息
+ */
 function login(phone, birth) {
   try {
     if (!phone || typeof phone !== 'string' || !birth || typeof birth !== 'string') {
       throw new Error('電話或是生日錯誤');
     }
-    let memberSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetMemberList);
+
+    var memberSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetMemberList);
     var memberData = memberSheet.getDataRange().getValues();
-    
-    // Remove the first character from the phone number
+
+    // 去除前導 0
     phone = phone.substring(1);
-    // Format the input birth date (already in 'yyyyMMdd' format)
-    const formattedInputBirth = birth;
-    // Skip the header row and find the matching member
-    const member = memberData.slice(1).find(row => {
-      const storedPhone = row[2].toString();
-      const storedBirthDate = new Date(row[4]);
-      const formattedStoredBirth = Utilities.formatDate(storedBirthDate, 'Asia/Taipei', 'yyyyMMdd');
-      
+    var formattedInputBirth = birth;
+
+    var member = memberData.slice(1).find(function(row) {
+      var storedPhone = row[2].toString();
+      var storedBirthDate = new Date(row[4]);
+      var formattedStoredBirth = Utilities.formatDate(storedBirthDate, 'Asia/Taipei', 'yyyyMMdd');
       return storedPhone === phone && formattedStoredBirth === formattedInputBirth;
     });
+
     if (member) {
-      const memberInfo = {
+      var memberInfo = {
         points: parseInt(member[6]),
         name: member[1].toString(),
         birth: formattedInputBirth,
         phone: phone
       };
-      
-      // 將會員信息寫入 cache，作為 session，設置為三天後過期
-      const cache = CacheService.getUserCache();
-      const sessionId = Utilities.getUuid();
-      const threeDaysInSeconds = 3 * 24 * 60 * 60; // 3天的秒數
+
+      var cache = CacheService.getUserCache();
+      var sessionId = Utilities.getUuid();
+      var threeDaysInSeconds = 3 * 24 * 60 * 60;
       cache.put(sessionId, JSON.stringify(memberInfo), threeDaysInSeconds);
-      
+
       return JSON.stringify({
         sessionId: sessionId,
         memberInfo: memberInfo,
@@ -78,23 +93,28 @@ function login(phone, birth) {
   }
 }
 
+/**
+ * 檢查登入狀態 — 透過 sessionId 驗證 cache 中的會員資訊
+ * @param {string} sessionId - 登入時取得的 session ID
+ * @returns {string} JSON 字串含會員資訊或錯誤訊息
+ */
 function checkLoginStatus(sessionId) {
   try {
     if (!sessionId) {
       return JSON.stringify({ points: -1, message: 'No session ID provided' });
     }
 
-    const cache = CacheService.getUserCache();
-    const memberInfoString = cache.get(sessionId);
+    var cache = CacheService.getUserCache();
+    var memberInfoString = cache.get(sessionId);
 
     if (memberInfoString) {
-      const memberInfo = JSON.parse(memberInfoString);
-      return JSON.stringify({ 
+      var memberInfo = JSON.parse(memberInfoString);
+      return JSON.stringify({
         points: memberInfo.points,
         name: memberInfo.name,
         birth: memberInfo.birth,
         phone: memberInfo.phone,
-        info: memberInfo.info || '', // 添加 info 字段，如果存在的話
+        info: memberInfo.info || '',
         message: 'User is logged in'
       });
     } else {
@@ -106,28 +126,22 @@ function checkLoginStatus(sessionId) {
   }
 }
 
-function logintest() {
-  console.log(login("0955881093","19880401"));
-}
-
+/**
+ * 查詢會員詳細資料
+ * @param {string} phone - 會員電話
+ * @returns {string} JSON 字串含 points、name、info
+ */
 function queryMemberDetail(phone) {
-  let memberSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetMemberList);
-  
-  // 獲取需要的列：名字（第2列）、電話（第3列）和點數（第7列）
-  const dataRange = memberSheet.getRange(2, 2, memberSheet.getLastRow() - 1, 7);
-  const memberData = dataRange.getValues();
-  
-  // 移除電話號碼開頭的 '0'（如果存在）
-  const cleanPhone = phone.replace(/^0/, '');
-  
-  // 使用 find 方法來查找匹配的會員
-  const member = memberData.find(row => row[1].toString() === cleanPhone);
-  
-  const result = {
+  var memberSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetMemberList);
+  var dataRange = memberSheet.getRange(2, 2, memberSheet.getLastRow() - 1, 7);
+  var memberData = dataRange.getValues();
+
+  var memberPhone = phone.replace(/^0/, '');
+  var member = memberData.find(function(row) { return row[1].toString() === memberPhone; });
+
+  return JSON.stringify({
     points: member ? (parseInt(member[5], 10) || 0) : -1,
     name: member ? member[0].toString() : "",
-    info: member? member[6].toString():""
-  };
-  
-  return JSON.stringify(result);
+    info: member ? member[6].toString() : ""
+  });
 }

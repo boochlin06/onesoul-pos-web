@@ -100,7 +100,7 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
           </div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between gap-6">
             <div>
-              <div className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-1">查無此人的會員專屬資料</div>
+              <div className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-1">會員資料</div>
               <h2 className="text-3xl font-black mb-2 flex items-center gap-3">
                 {member.name}
                 <span className="text-sm font-bold px-3 py-1 bg-white/20 rounded-full">{member.gender || '無性別資訊'}</span>

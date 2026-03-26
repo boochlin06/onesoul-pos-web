@@ -1,130 +1,82 @@
+/**
+ * backup.js — 自動備份
+ * 每日觸發器呼叫，備份會員點數與當日銷售紀錄
+ */
+
+/**
+ * 每日會員點數備份
+ * 綁定：時間觸發器
+ */
 function dailyMemberPointBackup() {
-  // 获取源工作簿和目标工作簿
-  var sourceWorkbook = SpreadsheetApp.openById(appBackground);
-  var destinationWorkbook = SpreadsheetApp.openById("1fHwrgnjcgH461M9y1Yxojq-LnQtaLUGGpLCyy7AvjkE");
-  
-  // 获取源工作表
-  var sourceSheet = sourceWorkbook.getSheetByName(sheetMemberList);
+  _backupSheetToWorkbook(
+    SpreadsheetApp.openById(appBackground).getSheetByName(sheetMemberList),
+    SpreadsheetApp.openById(BACKUP_IDS.memberPoint),
+    ""
+  );
+}
 
-  // 获取今天的日期
+/**
+ * 竹北當日銷售紀錄備份
+ * 綁定：時間觸發器
+ */
+function dailyTodaySaleRecordBackupChupei() {
+  _backupSheetToWorkbook(
+    SpreadsheetApp.openById(appChupei).getSheetByName(sheetTodaySalesRecord),
+    SpreadsheetApp.openById(BACKUP_IDS.dailySales),
+    "-竹北"
+  );
+}
+
+/**
+ * 金山當日銷售紀錄備份
+ * 綁定：時間觸發器
+ */
+function dailyTodaySaleRecordBackupJinsang() {
+  _backupSheetToWorkbook(
+    SpreadsheetApp.openById(appJinshan).getSheetByName(sheetTodaySalesRecord),
+    SpreadsheetApp.openById(BACKUP_IDS.dailySales),
+    "-金山"
+  );
+}
+
+/**
+ * 通用備份函數 — 將來源工作表複製到備份工作簿（以日期命名）
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sourceSheet - 來源工作表
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} destWorkbook - 備份工作簿
+ * @param {string} suffix - 分頁名稱後綴（如 "-竹北"）
+ * @private
+ */
+function _backupSheetToWorkbook(sourceSheet, destWorkbook, suffix) {
   var today = new Date();
-  var formattedDate = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy/MM/dd");
+  var formattedDate = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy/MM/dd") + suffix;
 
-  // 检查目标工作簿是否已存在今天的备份工作表，如果存在，则返回
-  if (destinationWorkbook.getSheetByName(formattedDate)) {
-    Logger.log("今天的备份工作表已存在，无需创建。");
+  // 處理同日重複備份：自動加序號
+  var sheetName = formattedDate;
+  var existing = destWorkbook.getSheetByName(sheetName);
+  var count = 1;
+  while (existing) {
+    if (count === 1) {
+      sheetName = formattedDate + " -1";
+    } else {
+      sheetName = formattedDate + " -" + count;
+    }
+    existing = destWorkbook.getSheetByName(sheetName);
+    count++;
+  }
+
+  // 如果是會員備份（無後綴），同日不重複則跳過
+  if (suffix === "" && destWorkbook.getSheetByName(formattedDate)) {
+    Logger.log("今天的備份已存在，無需重複建立。");
     return;
   }
 
-  // 创建今天的备份工作表
-  var destinationSheet = destinationWorkbook.insertSheet(formattedDate);
+  var destSheet = destWorkbook.insertSheet(sheetName);
+  destSheet.clearContents();
 
-  // 清空目标工作表的内容
-  destinationSheet.clearContents();
-
-  // 获取源工作表的内容范围
-  var rangeToCopy = sourceSheet.getDataRange();
-  var valuesToCopy = rangeToCopy.getValues();
-  
-  // 获取目标工作表的数据范围
-  var numRows = valuesToCopy.length;
-  var numColumns = valuesToCopy[0].length;
-  var destinationRange = destinationSheet.getRange(1, 1, numRows, numColumns);
-
-  // 将源工作表的内容一次性复制到目标工作表
-  destinationRange.setValues(valuesToCopy);
-
-  Logger.log("成功复制工作表到备份文件中的指定工作表中。");
-}
-
-
-function dailyTodaySaleRecordBackupChupei() {
-  // 获取源工作簿和目标工作簿
-  var sourceWorkbook = SpreadsheetApp.openById(appChupei);
-  var destinationWorkbook = SpreadsheetApp.openById("14aN2rPIaILYPNdzMZACbj17GAetVxXEl38037a8nmBc");
-  
-  // 获取源工作表
-  var sourceSheet = sourceWorkbook.getSheetByName(sheetTodaySalesRecord);
-
-  // 获取今天的日期
-  var today = new Date();
-  var formattedDate = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy/MM/dd-竹北");
-
-  var backupSheet = destinationWorkbook.getSheetByName(formattedDate);
-  var count = 1;
-  while (backupSheet) {
-    if (count === 1) {
-      formattedDate += " -1";
-    } else {
-      formattedDate = formattedDate.slice(0, -3) + " -" + count;
-    }
-    backupSheet = destinationWorkbook.getSheetByName(formattedDate);
-    count++;
+  var valuesToCopy = sourceSheet.getDataRange().getValues();
+  if (valuesToCopy.length > 0) {
+    destSheet.getRange(1, 1, valuesToCopy.length, valuesToCopy[0].length).setValues(valuesToCopy);
   }
 
-  // 创建今天的备份工作表
-  var destinationSheet = destinationWorkbook.insertSheet(formattedDate);
-
-  // 清空目标工作表的内容
-  destinationSheet.clearContents();
-
-  // 获取源工作表的内容范围
-  var rangeToCopy = sourceSheet.getDataRange();
-  var valuesToCopy = rangeToCopy.getValues();
-  
-  // 获取目标工作表的数据范围
-  var numRows = valuesToCopy.length;
-  var numColumns = valuesToCopy[0].length;
-  var destinationRange = destinationSheet.getRange(1, 1, numRows, numColumns);
-
-  // 将源工作表的内容一次性复制到目标工作表
-  destinationRange.setValues(valuesToCopy);
-
-  Logger.log("成功复制工作表到备份文件中的指定工作表中。");
-}
-
-
-function dailyTodaySaleRecordBackupJinsang() {
-  // 获取源工作簿和目标工作簿
-  var sourceWorkbook = SpreadsheetApp.openById(appJinshan);
-  var destinationWorkbook = SpreadsheetApp.openById("14aN2rPIaILYPNdzMZACbj17GAetVxXEl38037a8nmBc");
-  
-  // 获取源工作表
-  var sourceSheet = sourceWorkbook.getSheetByName(sheetTodaySalesRecord);
-
-  // 获取今天的日期
-  var today = new Date();
-  var formattedDate = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy/MM/dd-金山");
-
-  var backupSheet = destinationWorkbook.getSheetByName(formattedDate);
-  var count = 1;
-  while (backupSheet) {
-    if (count === 1) {
-      formattedDate += " -1";
-    } else {
-      formattedDate = formattedDate.slice(0, -3) + " -" + count;
-    }
-    backupSheet = destinationWorkbook.getSheetByName(formattedDate);
-    count++;
-  }
-
-  // 创建今天的备份工作表
-  var destinationSheet = destinationWorkbook.insertSheet(formattedDate);
-
-  // 清空目标工作表的内容
-  destinationSheet.clearContents();
-
-  // 获取源工作表的内容范围
-  var rangeToCopy = sourceSheet.getDataRange();
-  var valuesToCopy = rangeToCopy.getValues();
-  
-  // 获取目标工作表的数据范围
-  var numRows = valuesToCopy.length;
-  var numColumns = valuesToCopy[0].length;
-  var destinationRange = destinationSheet.getRange(1, 1, numRows, numColumns);
-
-  // 将源工作表的内容一次性复制到目标工作表
-  destinationRange.setValues(valuesToCopy);
-
-  Logger.log("成功复制工作表到备份文件中的指定工作表中。");
+  Logger.log("✅ 備份完成：" + sheetName);
 }

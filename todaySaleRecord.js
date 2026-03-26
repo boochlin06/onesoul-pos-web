@@ -1,47 +1,51 @@
+/**
+ * todaySaleRecord.js — 當日銷售紀錄操作
+ * 包含：刪除錯單、關帳
+ */
+
+/**
+ * 刪除錯單 — 從竹北當日結帳紀錄中標記刪除並退回點數
+ * 綁定：Google Sheets 選單 > 當日操作 > 刪除錯單
+ */
 function deleteTodaySaleRecord() {
   var sourceSheet = SpreadsheetApp.openById(appChupei).getSheetByName(sheetTodaySalesRecordChupei);
   var sourceBackSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetTodaySalesRecordChupei);
-  var deleteId = sourceSheet.getRange("F1").getValue(); // 获取要删除的 ID
+  var deleteId = sourceSheet.getRange("F1").getValue();
   var lastRow = sourceSheet.getLastRow();
-  var saleItems = sourceSheet.getRange("A6:X" + lastRow).getValues(); // 获取销售记录的数据范围
-  var deletedRows = {}; // 用于存储要删除的行索引
-  var pointDeltas = {}; // 用于存储需要修改的点数差值
-  var idIndex = 14;
-  var deleteIndex = 22;
-  var pointIndex = 10;
-  var phoneIndex = 0;
+  var saleItems = sourceSheet.getRange("A6:X" + lastRow).getValues();
+  var deletedRows = {};
+  var pointDeltas = {};
 
   if (deleteId === '') {
     showErrorMessage("刪除 ID 為空");
     return;
   }
 
-  // 遍历销售记录，收集要删除的行索引及需要修改的电话号码和点数差值
+  // 收集要刪除的行索引及點數差值
   saleItems.forEach(function(row, index) {
-    var id = row[idIndex]; // 获取每一行的 ID（假设 ID 在第 15 列）
-    var deleted = row[deleteIndex]; // 假设“Y”表示已删除
-    console.log(id+"-"+deleted);
+    var id = row[DAILY_SALE_COL.ID];
+    var deleted = row[DAILY_SALE_COL.DELETE_FLAG];
     if (id === deleteId && deleted !== "Y") {
-      var phoneNumber = row[phoneIndex]; // 获取电话号码
-      var point = row[pointIndex]; // 获取点数
+      var phoneNumber = row[DAILY_SALE_COL.PHONE];
+      var point = row[DAILY_SALE_COL.POINT];
       if (!isNaN(point)) {
-        deletedRows[index + 6] = true; // 将要删除的行索引添加到对象中，索引从 0 开始，但实际行号从 6 开始
+        deletedRows[index + 6] = true;
         pointDeltas[phoneNumber] = (pointDeltas[phoneNumber] || 0) + point;
       } else {
-        showErrorMessage("行 " + (index + 6) + " 的点数不是数字，无法处理。");
+        showErrorMessage("行 " + (index + 6) + " 的點數不是數字，無法處理。");
       }
     }
   });
 
   try {
-    // 删除收集到的行
+    // 標記刪除（紅底刪除線）
     for (var row in deletedRows) {
-      sourceBackSheet.getRange(row, deleteIndex+1).setValue("Y"); // 标记为已删除
-      var range = sourceBackSheet.getRange(row, 1, 1, deleteIndex+2); // 获取要删除的行的范围
-      range.setFontLine("line-through").setBackground("red"); // 将要删除的行标记为删除状态
+      sourceBackSheet.getRange(row, DAILY_SALE_COL.DELETE_FLAG + 1).setValue("Y");
+      var range = sourceBackSheet.getRange(row, 1, 1, DAILY_SALE_COL.DELETE_FLAG + 2);
+      range.setFontLine("line-through").setBackground("red");
     }
 
-    // 修改点数
+    // 退回點數
     for (var phoneNumber in pointDeltas) {
       var delta = pointDeltas[phoneNumber];
       var currentPoint = addMemberPointsByPhone(phoneNumber, -delta);
@@ -54,52 +58,28 @@ function deleteTodaySaleRecord() {
       }
     }
 
-    // 清除 F1 单元格的值
     sourceSheet.getRange("F1").setValue("");
   } catch (error) {
     console.error(error);
-    showErrorMessage('刪除销售记录时发生异常');
+    showErrorMessage('刪除銷售紀錄時發生異常');
 
-    // 恢复表格状态
+    // 回復刪除標記
     for (var row in deletedRows) {
-      sourceBackSheet.getRange(row, deleteIndex+1).setValue(""); // 清除删除标记
+      sourceBackSheet.getRange(row, DAILY_SALE_COL.DELETE_FLAG + 1).setValue("");
     }
   }
 }
 
-function copyToSaleRecord() {
-  var sourceSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetTodaySalesRecordChupei);
-  var destSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetSalesRecord);
-  var lastRow = sourceSheet.getLastRow();
-  var saleItems = sourceSheet.getRange("A6:X" + lastRow).getValues(); // 获取销售记录的数据范围
-
-  var deleteIndex = 22;
-  var idIndex = 0; // 假设 ID 在第一列
-
-  // 複製當日結帳紀錄
-  // 遍历销售记录，删除的行不複製到新的銷售紀錄sheetSalesRecord，其他就不複製
-  for (var i = 0; i < saleItems.length; i++) {
-    var id = saleItems[i][idIndex]; // 获取每一行的 ID
-    var deleted = saleItems[i][deleteIndex]; // 假设“Y”表示已删除
-    console.log(id+"-"+deleted);
-    if (deleted !== "Y") {
-      // 将未删除的行複製到新的銷售紀錄sheetSalesRecord
-      destSheet.appendRow(saleItems[i]);
-    }
-  }
-  sourceSheet.getRange("A6:X" + lastRow).clearContent();
-
-}
-
+/**
+ * 關帳 — 驗證金額後將當日銷售紀錄寫入歷史銷售紀錄
+ * 綁定：Google Sheets 選單 > 當日操作 > 關帳
+ */
 function closeAccountBox() {
-  // 變數初始化與資料讀取 (保持不變)
   var sourceSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetTodaySalesRecordChupei);
   var destSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetSalesRecord);
   var lastRow = sourceSheet.getLastRow();
-  if (lastRow <= 6) {
-    lastRow = 6;
-  }
-  var saleItems = sourceSheet.getRange("A6:X" + lastRow).getValues(); 
+  if (lastRow <= 6) lastRow = 6;
+  var saleItems = sourceSheet.getRange("A6:X" + lastRow).getValues();
 
   var frontData = SpreadsheetApp.openById(appChupei).getSheetByName(sheetTodaySalesRecordChupei);
   var openCash = frontData.getRange("K2").getValue();
@@ -109,10 +89,9 @@ function closeAccountBox() {
   var todayTransfer = frontData.getRange("Q4").getValue();
   var closeCredit = frontData.getRange("N2").getValue();
   var todayCredit = frontData.getRange("R4").getValue();
-  var cloaseRevenue = frontData.getRange("L4").getValue();
+  var closeRevenue = frontData.getRange("L4").getValue();
 
-
-  // 檢查現金 (略... 保持不變)
+  // 驗證金額
   if (typeof openCash !== 'number' || isNaN(openCash) || openCash === null ||
       typeof closeCash !== 'number' || isNaN(closeCash) || closeCash === null ||
       typeof todayCash !== 'number' || isNaN(todayCash) || todayCash === null) {
@@ -123,125 +102,85 @@ function closeAccountBox() {
     showErrorMessage('結帳現金與關櫃現金不匹配。');
     return;
   }
-  // 檢查轉帳 (略... 保持不變)
   if (closeTransfer !== todayTransfer) {
     showErrorMessage('結帳金額的關櫃轉帳金額不匹配。');
     return;
   }
-  //檢查信用卡 (略... 保持不變)
   if (closeCredit !== todayCredit) {
     showErrorMessage('結帳信用卡金額與關櫃信用卡金額不匹配。');
     return;
   }
-  if (closeCredit + closeTransfer + closeCash - openCash !== cloaseRevenue) {
-    showErrorMessage('關櫃金額與今日營業額不同，請確認是否多收或是少收。');
+  if (closeCredit + closeTransfer + closeCash - openCash !== closeRevenue) {
+    showErrorMessage('關櫃金額與今日營業額不同，請確認是否多收或少收。');
     return;
   }
 
-  // 變數設定與第一階段資料處理 (略... 保持不變)
-  var deleteIndex = 22;
-  var idIndex = 0;
-  var prizeIdIndex = 7;
-  var pickMethodIndex= 4;
-  var lotteryNumberIndex = 1;
-  var lotteryPrizeNameIndex = 8;
-  const pickMethodTake = "帶走";
-  const pickMethodPoint = "點數";
+  // 分析 GK 出貨資訊
   var lotteryTakeoutItem = [];
   var lotteryPointItem = [];
   var pointToItem = [];
-  
-  for (var i = 0; i < saleItems.length; i++) {
-    var id = saleItems[i][idIndex]; 
-    var deleted = saleItems[i][deleteIndex]; 
-    console.log(id+"-"+deleted);
 
-    if (deleted === "Y") {
-      continue;
-    }
-    var lotteryNumber = saleItems[i][lotteryNumberIndex];
-    var prizeId = saleItems[i][prizeIdIndex];
-    var lotteryPrizeName = saleItems[i][lotteryPrizeNameIndex];
-    var pickMethod = saleItems[i][pickMethodIndex];
-    
+  for (var i = 0; i < saleItems.length; i++) {
+    var deleted = saleItems[i][DAILY_SALE_COL.DELETE_FLAG];
+    if (deleted === "Y") continue;
+
+    var lotteryNumber = saleItems[i][DAILY_SALE_COL.LOTTERY_NUM];
+    var prizeId = saleItems[i][DAILY_SALE_COL.PRIZE_ID];
+    var lotteryPrizeName = saleItems[i][DAILY_SALE_COL.PRIZE_NAME];
+    var pickMethod = saleItems[i][DAILY_SALE_COL.PICK_METHOD];
+
     if (lotteryNumber !== "") {
       if (prizeId !== "") {
-        if (pickMethod === pickMethodTake) {
+        if (pickMethod === PICK_METHOD.TAKE) {
           lotteryTakeoutItem.push(lotteryPrizeName);
-          console.log(lotteryTakeoutItem+"-"+lotteryPrizeName);
-          
-        } else if (pickMethod === pickMethodPoint) {
-          lotteryPointItem.push(lotteryPrizeName)
-          console.log(lotteryPointItem+"-"+lotteryPrizeName);
+        } else if (pickMethod === PICK_METHOD.POINT) {
+          lotteryPointItem.push(lotteryPrizeName);
         }
       }
     } else {
-      var itemId = saleItems[i][2];
-      if (pickMethod === pickMethodPoint && itemId !== "" && itemId < 100000) {
+      var itemId = saleItems[i][DAILY_SALE_COL.ITEM_CODE];
+      if (pickMethod === PICK_METHOD.POINT && itemId !== "" && itemId < 100000) {
         pointToItem.push(lotteryPrizeName);
-          console.log(pointToItem+"-"+lotteryPrizeName);
       }
     }
   }
-  
-  // 訊息建構 (保持不變)
-  var message = "抽中GK帶走:\n";
-  message += lotteryTakeoutItem.join("\n");
-  message += "\n\n抽中GK換成點數:\n";
-  message += lotteryPointItem.join("\n");
-  message += "\n\n點數換GK:\n";
-  message += pointToItem.join("\n");
-  message += "\n\n正確請複製資訊貼到群組，並按  確定:\n錯誤請按 取消，修改後再關帳";
-  
 
-  var result = SpreadsheetApp.getUi().alert("關帳出貨資訊",message,SpreadsheetApp.getUi().ButtonSet.OK_CANCEL);
-  
-  if(result === SpreadsheetApp.getUi().Button.OK) {
-    
-    // === 核心修改：導入 LockService，只鎖定最關鍵的寫入操作 ===
+  // 建構確認訊息
+  var message = "抽中GK帶走:\n" + lotteryTakeoutItem.join("\n");
+  message += "\n\n抽中GK換成點數:\n" + lotteryPointItem.join("\n");
+  message += "\n\n點數換GK:\n" + pointToItem.join("\n");
+  message += "\n\n正確請複製資訊貼到群組，並按  確定:\n錯誤請按 取消，修改後再關帳";
+
+  var result = SpreadsheetApp.getUi().alert("關帳出貨資訊", message, SpreadsheetApp.getUi().ButtonSet.OK_CANCEL);
+
+  if (result === SpreadsheetApp.getUi().Button.OK) {
     var lock = LockService.getDocumentLock();
-    // 嘗試在 30 秒 (30000 毫秒) 內取得鎖定
-    if (lock.tryLock(30000)) { 
+    if (lock.tryLock(30000)) {
       try {
-        // 🔑 鎖定區塊開始：只有一個腳本能進入
-        
-        // 複製當日結帳紀錄
+        // 寫入歷史銷售紀錄
         for (var i = 0; i < saleItems.length; i++) {
-          var id = saleItems[i][idIndex]; 
-          var deleted = saleItems[i][deleteIndex]; 
-          console.log(id+"-"+deleted);
+          var deleted = saleItems[i][DAILY_SALE_COL.DELETE_FLAG];
           if (deleted !== "Y") {
-            // 將未刪除的行複製到新的銷售紀錄sheetSalesRecord
             saleItems[i].push("竹北");
-            destSheet.appendRow(saleItems[i]); // <--- 關鍵寫入
+            destSheet.appendRow(saleItems[i]);
           }
         }
 
-        //備份資料
-        //dailyTodaySaleRecordBackupChupei();
-        
-        // 清空当天销售记录
-        sourceSheet.getRange("A6:X" + lastRow).clear(); // <--- 關鍵清空
-        frontData.getRange("K2:N2").clearContent();     // <--- 關鍵清空
-        
+        // 清空當日銷售紀錄
+        sourceSheet.getRange("A6:X" + lastRow).clear();
+        frontData.getRange("K2:N2").clearContent();
+
         SpreadsheetApp.getActive().toast("關帳完畢");
-        
-        // 🔑 鎖定區塊結束
       } catch (e) {
-        // 捕獲在鎖定區塊內發生的錯誤
         SpreadsheetApp.getActive().toast("關帳失敗，寫入錯誤: " + e.message);
         console.error("關帳寫入錯誤: ", e);
       } finally {
-        // 無論成功或失敗，務必釋放鎖定，避免其他腳本被永久阻塞
         lock.releaseLock();
       }
     } else {
-      // 未能在 30 秒內取得鎖定，表示系統正忙
       SpreadsheetApp.getActive().toast("系統繁忙，無法取得檔案鎖定，請稍後再試！");
-      return; 
+      return;
     }
-    // === LockService 區塊結束 ===
-
   } else if (result === SpreadsheetApp.getUi().Button.CANCEL) {
     SpreadsheetApp.getActive().toast("關帳失敗，請修改本日銷貨資訊");
     return;

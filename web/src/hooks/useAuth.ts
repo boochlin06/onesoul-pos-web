@@ -104,18 +104,40 @@ export function useAuth(): UseAuthReturn {
     initGoogle();
   }, [handleCredentialResponse]);
 
-  // Check existing session token validity
+  // Token 自動刷新 — 到期前 5 分鐘靜默取得新 credential
   useEffect(() => {
-    if (user) {
-      const payload = decodeJwtPayload(user.idToken);
-      if (payload?.exp && payload.exp * 1000 < Date.now()) {
-        // Token expired → logout
-        sessionStorage.removeItem('os_auth_user');
-        setUser(null);
-      }
+    if (!user) return;
+
+    const payload = decodeJwtPayload(user.idToken);
+    if (!payload?.exp) {
       setIsLoading(false);
+      return;
     }
-  }, []);
+
+    const expMs = payload.exp * 1000;
+    const now = Date.now();
+
+    // 已過期 → 直接清除，等待重新登入
+    if (expMs < now) {
+      sessionStorage.removeItem('os_auth_user');
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(false);
+
+    // 提前 5 分鐘刷新（最少 10 秒後）
+    const refreshIn = Math.max(expMs - now - 5 * 60 * 1000, 10_000);
+    const timer = setTimeout(() => {
+      if (window.google?.accounts?.id) {
+        // prompt() 會靜默觸發 auto_select 自動回呼 handleCredentialResponse
+        window.google.accounts.id.prompt();
+      }
+    }, refreshIn);
+
+    return () => clearTimeout(timer);
+  }, [user]);
 
   const renderGoogleButton = useCallback((el: HTMLElement | null) => {
     if (!el || !window.google?.accounts?.id) return;
