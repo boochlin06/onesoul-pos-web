@@ -541,7 +541,12 @@ function apiDeleteDailySales(branch, checkoutUID) {
       for (var m = 1; m < mData.length; m++) {
         var rawPhone = mData[m][2];
         if (rawPhone && String(rawPhone).trim() === String(phoneToUpdate).trim()) {
-          memberSheet.getRange(m + 1, 7).setValue((Number(mData[m][6])||0) - totalPointsImpact);
+          var currentPoints = Number(mData[m][6]) || 0;
+          var newPoints = currentPoints - totalPointsImpact;
+          if (newPoints < 0) {
+            return { success: false, message: '作廢失敗：退點後客戶點數將變為 ' + newPoints + '（目前 ' + currentPoints + '，需退 ' + totalPointsImpact + '），請先處理客戶點數' };
+          }
+          memberSheet.getRange(m + 1, 7).setValue(newPoints);
           SpreadsheetApp.flush();
           break;
         }
