@@ -3,6 +3,7 @@ import type { Branch, SalesEntry, DailySalesEntry, SalesRecordEntry } from '../t
 import { gasPost } from '../services/api';
 import { SALES_RECORDS_LIMIT } from '../config';
 import type { BannerState } from './useBanner';
+import { MSG } from '../constants/messages';
 
 interface UseDailySalesDeps {
   branch: Branch;
@@ -26,26 +27,26 @@ export function useDailySales({ branch, showBanner, fetchMembers }: UseDailySale
           });
           setDailySales(cleaned);
         } else {
-          showBanner(res.message || '讀取當日銷售失敗', 'err');
+          showBanner(MSG.sales.fetchFail(res.message), 'err');
         }
       })
-      .catch(e => { console.error('[useDailySales] fetch failed:', e); showBanner('當日銷售網路請求失敗', 'err'); })
+      .catch(e => { console.error('[useDailySales] fetch failed:', e); showBanner(MSG.sales.fetchNetworkFail, 'err'); })
       .finally(() => setLoadingDaily(false));
   }, [branch, showBanner]);
 
   const handleDeleteDaily = useCallback((checkoutUID: string) => {
-    showBanner('正在作廢訂單...', 'loading', false);
+    showBanner(MSG.sales.voiding, 'loading', false);
     gasPost('deleteDailySales', { branch, checkoutUID })
       .then(res => {
         if (res.success) {
-          showBanner(res.message || '作廢成功', 'ok');
+          showBanner(MSG.sales.voidSuccess(res.message), 'ok');
           fetchDailySales();
           fetchMembers();
         } else {
-          showBanner(`作廢失敗: ${res.message}`, 'err');
+          showBanner(MSG.sales.voidFail(res.message), 'err');
         }
       })
-      .catch(e => { console.error('[useDailySales] delete failed:', e); showBanner('網路異常，無法作廢', 'err'); });
+      .catch(e => { console.error('[useDailySales] delete failed:', e); showBanner(MSG.sales.voidNetworkFail, 'err'); });
   }, [branch, showBanner, fetchDailySales, fetchMembers]);
 
   // ── Opening Cash ──
@@ -59,10 +60,10 @@ export function useDailySales({ branch, showBanner, fetchMembers }: UseDailySale
   }, [branch]);
 
   const handleSetOpeningCash = useCallback(async (amt: number) => {
-    showBanner('設定開櫃現金中…', 'loading', false);
+    showBanner(MSG.sales.openingCashSetting, 'loading', false);
     const res = await gasPost('setOpeningCash', { branch, amount: amt }).catch(() => null);
-    if (res?.success) { setOpeningCash(amt); showBanner('✓ 開櫃現金設定成功', 'ok'); }
-    else showBanner('✗ 設定失敗', 'err');
+    if (res?.success) { setOpeningCash(amt); showBanner(MSG.sales.openingCashSuccess, 'ok'); }
+    else showBanner(MSG.sales.openingCashFail, 'err');
   }, [branch, showBanner]);
 
   const handleConfirmCloseDay = useCallback(async (data: {
@@ -71,15 +72,15 @@ export function useDailySales({ branch, showBanner, fetchMembers }: UseDailySale
     const expectedCash = (openingCash || 0) + dailySales.reduce((sum, r) => sum + r.cash, 0);
     const diffCash = data.actualCash - expectedCash;
     setIsClosingModalOpen(false);
-    showBanner('系統關帳與結算中…', 'loading', false);
+    showBanner(MSG.sales.closingDay, 'loading', false);
     try {
       const res = await gasPost('closeDay', {
         branch, openingCash: openingCash || 0, expectedCash,
         actualCash: data.actualCash, discrepancy: diffCash, note: data.note,
       });
       if (res.success) { showBanner(`✓ ${res.message}`, 'ok'); setOpeningCash(null); fetchDailySales(); }
-      else { showBanner(`✗ 關帳失敗: ${res.message}`, 'err'); }
-    } catch (e) { console.error('[useDailySales] closeDay failed:', e); showBanner('✗ 網路錯誤', 'err'); }
+      else { showBanner(MSG.sales.closeDayFail(res.message), 'err'); }
+    } catch (e) { console.error('[useDailySales] closeDay failed:', e); showBanner(MSG.checkout.networkErrorShort, 'err'); }
   }, [branch, openingCash, dailySales, showBanner, fetchDailySales]);
 
   return {
@@ -110,13 +111,13 @@ export function useSalesRecords({ showBanner }: UseSalesRecordsDeps) {
         setSalesRecords(JSON.parse(cached));
         setLastCacheTime(cachedTime);
         setLoadingSales(false);
-        showBanner('已從快取讀取銷售紀錄', 'ok');
+        showBanner(MSG.salesRecords.cached, 'ok');
         return;
       }
     }
 
     try {
-      showBanner('從伺服器取得最新紀錄...', 'loading', false);
+      showBanner(MSG.salesRecords.fetching, 'loading', false);
       const res = await gasPost('getSalesRecords', { limit: SALES_RECORDS_LIMIT, offset: 0 });
       if (res.success && res.data) {
         setSalesRecords(res.data);
@@ -124,13 +125,13 @@ export function useSalesRecords({ showBanner }: UseSalesRecordsDeps) {
         setLastCacheTime(timeStr);
         localStorage.setItem(CACHE_KEY, JSON.stringify(res.data));
         localStorage.setItem(CACHE_TIME_KEY, timeStr);
-        showBanner('銷售紀錄已更新並儲存快取', 'ok');
+        showBanner(MSG.salesRecords.updated, 'ok');
       } else {
-        showBanner(res.message || '讀取銷售紀錄失敗 (API回傳錯誤)', 'err');
+        showBanner(MSG.salesRecords.fetchFail(res.message), 'err');
       }
     } catch (e) {
       console.error('[useSalesRecords] fetch failed:', e);
-      showBanner('讀取銷售紀錄失敗 (網路錯誤)', 'err');
+      showBanner(MSG.salesRecords.fetchNetworkFail, 'err');
     } finally {
       setLoadingSales(false);
     }
@@ -141,7 +142,7 @@ export function useSalesRecords({ showBanner }: UseSalesRecordsDeps) {
     localStorage.removeItem('salesRecordsCacheTime_v2');
     setSalesRecords([]);
     setLastCacheTime('');
-    showBanner('快取已清除', 'ok');
+    showBanner(MSG.salesRecords.cacheCleared, 'ok');
   }, [showBanner]);
 
   const resetSalesRecords = useCallback(() => setSalesRecords([]), []);

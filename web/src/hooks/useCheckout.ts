@@ -3,6 +3,7 @@ import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntr
 import { useStickyState } from './useStickyState';
 import { gasPost } from '../services/api';
 import type { BannerState } from './useBanner';
+import { MSG } from '../constants/messages';
 import {
   emptyLottery, emptyMerch,
   calcSummary, applyLotteryUpdate, applyMerchUpdate,
@@ -63,7 +64,7 @@ export function useCheckout({
       currentPoints: Number(m.points || 0),
     }));
     setShowMemberDropdown(false);
-    showBanner(`✓ 已帶入會員 ${m.name || m.phone}`, 'ok');
+    showBanner(MSG.checkout.memberLoaded(m.name || m.phone), 'ok');
   }, [showBanner]);
 
   // ── Lottery CRUD (delegated to pure function) ──
@@ -91,25 +92,25 @@ export function useCheckout({
   // ── Phone Lookup ──
   const handlePhoneKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;
-    showBanner('查詢會員中…', 'loading', false);
+    showBanner(MSG.checkout.memberSearching, 'loading', false);
     try {
       const res = await gasPost('getMember', { phone: customer.phoneName });
       if (res.success && res.data) {
         setCustomer(prev => ({ ...prev, name: res.data.name, gender: res.data.gender, birthday: res.data.birthday, currentPoints: res.data.points }));
-        showBanner(`✓ 找到會員: ${res.data.name}，點數 ${res.data.points}`, 'ok');
-      } else { showBanner(`✗ ${res.message || '找不到會員'}`, 'err'); }
-    } catch { showBanner('✗ 網路錯誤', 'err'); }
+        showBanner(MSG.checkout.memberFound(res.data.name, res.data.points), 'ok');
+      } else { showBanner(MSG.checkout.memberNotFound(res.message), 'err'); }
+    } catch { showBanner(MSG.checkout.networkErrorShort, 'err'); }
   }, [customer.phoneName, showBanner]);
 
   // ── Reset ──
   const handleResetCheckout = useCallback(() => {
-    if (!window.confirm('確定要清空所有已填寫的結帳資料嗎？')) return;
+    if (!window.confirm(MSG.checkout.confirmClear)) return;
     setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
     setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
     setLotteries(Array(5).fill(null).map(emptyLottery));
     setMerchandises(Array(2).fill(null).map(emptyMerch));
     setOrderNote('');
-    showBanner('已清空畫面', 'ok');
+    showBanner(MSG.checkout.cleared, 'ok');
   }, [showBanner]);
 
   // ── Submit Checkout ──
@@ -122,13 +123,13 @@ export function useCheckout({
 
     if (isSubmitting) return;
     setIsSubmitting(true);
-    showBanner('結帳資料傳送中…', 'loading', false);
+    showBanner(MSG.checkout.sending, 'loading', false);
     try {
       const totalReceived = payment.cash + payment.remittance + payment.creditCard;
       const payloadPayment = { ...payment, receivedAmount: totalReceived };
       const res = await gasPost('checkout', { branch, customer, payment: payloadPayment, summary, lotteries: filteredLotteries, merchandises: filteredMerch, orderNote });
       if (res.success) {
-        showBanner(`✓ 結帳成功！會員最新點數: ${res.newPoints}`, 'ok');
+        showBanner(MSG.checkout.success(res.newPoints), 'ok');
         if (typeof res.newPoints !== 'undefined') {
           const rawPhone = customer.phoneName.split(/[- ]/)[0];
           setMembers(prev => prev.map(m => String(m.phone).trim() === rawPhone ? { ...m, points: res.newPoints } : m));
@@ -139,8 +140,8 @@ export function useCheckout({
         setLotteries(Array(5).fill(null).map(emptyLottery));
         setMerchandises(Array(2).fill(null).map(emptyMerch));
         setOrderNote('');
-      } else { showBanner(`✗ 結帳失敗：${res.message}`, 'err'); }
-    } catch { showBanner('✗ 網路錯誤，請檢查連線', 'err'); }
+      } else { showBanner(MSG.checkout.fail(res.message), 'err'); }
+    } catch { showBanner(MSG.checkout.networkError, 'err'); }
     finally { setIsSubmitting(false); }
   }, [branch, customer, payment, lotteries, merchandises, summary, orderNote, isSubmitting, showBanner, setMembers, fetchMembers]);
 

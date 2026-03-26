@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import type { MemberEntry } from '../types';
 import { gasPost } from '../services/api';
 import type { BannerState } from './useBanner';
+import { MSG } from '../constants/messages';
 
 interface UseMembersDeps {
   showBanner: (msg: string, type: BannerState['type'], autoDismiss?: boolean) => void;
@@ -30,11 +31,11 @@ export function useMembers({ showBanner }: UseMembersDeps) {
         console.error('[useMembers] fetchMembers failed:', e);
         if (!isRetry && retryRef.current < 2) {
           retryRef.current++;
-          showBanner('會員資料載入失敗，2 秒後重試…', 'err');
+          showBanner(MSG.member.loadRetrying, 'err');
           setTimeout(() => fetchMembers(true), 2000);
           return;
         }
-        showBanner('會員資料載入失敗，請手動重新整理', 'err');
+        showBanner(MSG.member.loadFailed, 'err');
       })
       .finally(() => setLoadingMembers(false));
   }, [showBanner]);
@@ -50,7 +51,7 @@ export function useMemberHistory({ showBanner }: UseMembersDeps) {
 
   const fetchMemberHistory = useCallback(async () => {
     if (!historySearchPhone) {
-      showBanner('請輸入會員電話', 'err');
+      showBanner(MSG.member.enterPhone, 'err');
       return;
     }
     setLoadingHistory(true);
@@ -62,13 +63,13 @@ export function useMemberHistory({ showBanner }: UseMembersDeps) {
       ]);
 
       if (memRes.success) { setHistoryMember(memRes.data as MemberEntry); }
-      else { setHistoryMember(null); showBanner(memRes.message || '找不到此會員', 'err'); }
+      else { setHistoryMember(null); showBanner(MSG.member.notFound(memRes.message), 'err'); }
 
       if (histRes.success) { setHistoryRecords(histRes.data); }
       else { setHistoryRecords([]); }
     } catch (e) {
       console.error('[useMemberHistory] fetchMemberHistory failed:', e);
-      showBanner('查詢紀錄失敗', 'err');
+      showBanner(MSG.member.historyFailed, 'err');
     } finally {
       setLoadingHistory(false);
     }

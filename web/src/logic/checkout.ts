@@ -1,5 +1,6 @@
 import type { LotteryItem, MerchItem, PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
 import { CHECKOUT_SUGGESTION_LIMIT } from '../config';
+import { MSG } from '../constants/messages';
 
 // ── Factory helpers ──
 export const emptyLottery = (): LotteryItem => ({
@@ -153,34 +154,34 @@ export function validateCheckout(input: ValidationInput): string | null {
   const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName || l.amount > 0);
   const filteredMerch = merchandises.filter(m => m.id || m.name || m.quantity > 1);
 
-  if (filteredLotteries.length === 0 && filteredMerch.length === 0) return '無法結帳：請至少輸入一項福袋或商品';
-  if (!customer.phoneName) return '請輸入客戶電話號碼';
-  if (!customer.name) return '請先按下 Enter 完成會員查詢，確認會員身份與最新點數後再結帳';
+  if (filteredLotteries.length === 0 && filteredMerch.length === 0) return MSG.validation.emptyCart;
+  if (!customer.phoneName) return MSG.validation.noPhone;
+  if (!customer.name) return MSG.validation.noMemberLookup;
 
   for (let i = 0; i < filteredLotteries.length; i++) {
     const l = filteredLotteries[i];
     if (!l.id || !l.prize || !l.setName || !l.prizeName || l.draws < 1 || !Number.isInteger(l.draws)) {
-      return `無法結帳：福袋區第 ${i + 1} 項資料有誤（請確認單號與獎項正確，且套名與獎項名稱皆已帶出）`;
+      return MSG.validation.lotteryIncomplete(i + 1);
     }
   }
   for (let i = 0; i < filteredMerch.length; i++) {
     const m = filteredMerch[i];
     if (!m.id || !m.name || m.quantity < 1 || !Number.isInteger(m.quantity)) {
-      return `無法結帳：直購商品區第 ${i + 1} 項資料不完整（請確認貨號與商品名稱皆已帶出，且數量必須為大於 0 的整數）`;
+      return MSG.validation.merchIncomplete(i + 1);
     }
   }
 
   const isNeg = payment.cash < 0 || payment.remittance < 0 || payment.creditCard < 0 || payment.pointsUsed < 0;
   const isNegPrice = filteredLotteries.some(l => l.amount < 0) || filteredMerch.some(m => m.actualAmount < 0);
-  if (isNeg || isNegPrice || summary.dueAmount < 0) return '無法結帳：輸入的收款明細、系統應收總額，以及單項商品金額均不能為負數';
+  if (isNeg || isNegPrice || summary.dueAmount < 0) return MSG.validation.negativeValues;
 
   const totalReceived = payment.cash + payment.remittance + payment.creditCard;
-  if (totalReceived !== summary.dueAmount) return `無法結帳：實收總額 (${totalReceived}) 與系統應付總額 (${summary.dueAmount}) 不符`;
+  if (totalReceived !== summary.dueAmount) return MSG.validation.amountMismatch(totalReceived, summary.dueAmount);
 
   const itemPtsCost = summary.pointsChange < 0 ? Math.abs(summary.pointsChange) : 0;
   const totalPtsCost = itemPtsCost + (payment.pointsUsed || 0);
   if (totalPtsCost > customer.currentPoints) {
-    return `無法結帳：點數餘額不足！本單需扣除：${totalPtsCost} 點，會員目前僅有：${customer.currentPoints} 點`;
+    return MSG.validation.insufficientPoints(totalPtsCost, customer.currentPoints);
   }
 
   return null; // validation passed

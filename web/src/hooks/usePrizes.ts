@@ -3,6 +3,7 @@ import type { PrizeEntry } from '../types';
 import type { Branch } from '../types';
 import { gasPost } from '../services/api';
 import type { BannerState } from './useBanner';
+import { MSG } from '../constants/messages';
 
 interface UsePrizesDeps {
   branch: Branch;
@@ -34,19 +35,19 @@ export function usePrizes({ branch, showBanner }: UsePrizesDeps) {
     if (!voidConfirmPrize || !voidConfirmPrize.length) return;
     const prizeBranch = voidConfirmPrize[0].branch;
     if (prizeBranch && prizeBranch !== branch) {
-      showBanner(`無法作廢其他門市（${prizeBranch}）的套組`, 'err');
+      showBanner(MSG.prizes.crossBranchVoid(prizeBranch), 'err');
       setVoidConfirmPrize(null);
       return;
     }
     const { setId } = voidConfirmPrize[0];
     setVoidingPrizeLoading(true);
-    showBanner('執行整套作廢中...', 'loading', false);
+    showBanner(MSG.prizes.voiding, 'loading', false);
     gasPost('deletePrizeLibrary', { branch, setId })
       .then(res => {
-        if (res.success) { showBanner('整套獎項作廢成功！', 'ok'); fetchLibrary(); setVoidConfirmPrize(null); }
-        else { showBanner(`作廢失敗：${res.message}`, 'err'); }
+        if (res.success) { showBanner(MSG.prizes.voidSuccess, 'ok'); fetchLibrary(); setVoidConfirmPrize(null); }
+        else { showBanner(MSG.prizes.voidFail(res.message), 'err'); }
       })
-      .catch(e => { console.error('[usePrizes] executeVoidPrize failed:', e); showBanner('網路錯誤，作廢失敗', 'err'); })
+      .catch(e => { console.error('[usePrizes] executeVoidPrize failed:', e); showBanner(MSG.prizes.voidNetworkFail, 'err'); })
       .finally(() => setVoidingPrizeLoading(false));
   }, [branch, voidConfirmPrize, showBanner, fetchLibrary]);
 

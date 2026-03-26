@@ -97,12 +97,13 @@ describe('applyLotteryUpdate', () => {
     expect(result.prizeName).toBe('');
   });
 
-  it('field=prize 命中 → 帶入 prizeName + unitPoints + draws', () => {
+  it('field=prize 命中 → 帶入 prizeName + unitPoints（不帶入 draws）', () => {
     const item = { ...emptyLottery(), id: 'S1' };
     const result = applyLotteryUpdate(item, 'prize', 'B', prizes);
     expect(result.prizeName).toBe('獎B');
     expect(result.unitPoints).toBe(20);
-    expect(result.draws).toBe(2);
+    // draws 不自動帶入，維持初始值 1
+    expect(result.draws).toBe(1);
   });
 
   it('field=prize 為 z → 非GK 標記', () => {
@@ -116,6 +117,7 @@ describe('applyLotteryUpdate', () => {
     let item = { ...emptyLottery(), id: 'S1' };
     item = applyLotteryUpdate(item, 'id', 'S1', prizes);
     item = applyLotteryUpdate(item, 'prize', 'B', prizes);
+    item = applyLotteryUpdate(item, 'draws', 2, prizes); // 手動設 draws
     item = applyLotteryUpdate(item, 'type', '點數', prizes);
     // B has draws=2, points=20 → totalPoints = 2*20 = 40
     expect(item.totalPoints).toBe(40);
@@ -130,7 +132,8 @@ describe('applyLotteryUpdate', () => {
 
   it('amount = draws * unitPrice (自動計算)', () => {
     let item = applyLotteryUpdate(emptyLottery(), 'id', 'S1', prizes);
-    item = applyLotteryUpdate(item, 'prize', 'B', prizes); // draws=2, unitPrice=700
+    item = applyLotteryUpdate(item, 'prize', 'B', prizes);
+    item = applyLotteryUpdate(item, 'draws', 2, prizes); // 手動設 draws=2, unitPrice=700
     expect(item.amount).toBe(1400);
   });
 
