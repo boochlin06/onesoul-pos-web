@@ -114,27 +114,6 @@ export interface BlindBoxEntry {
 export type Tab = 'checkout' | 'daily' | 'members' | 'sales' | 'library' | 'stock' | 'blindbox' | 'member_history';
 export type Branch = '竹北' | '金山';
 
-export interface CustomerInfo {
-  phoneName: string;
-  name: string;
-  gender: string;
-  birthday: string;
-  currentPoints: number;
-}
-
-export interface PaymentInfo {
-  receivedAmount: number;
-  remittance: number;
-  creditCard: number;
-  cash: number;
-  pointsUsed: number;
-}
-
-export interface CheckoutSummary {
-  pointsChange: number;
-  dueAmount: number;
-}
-
 export interface BannerState {
   msg: string;
   type: 'ok' | 'err' | 'loading';

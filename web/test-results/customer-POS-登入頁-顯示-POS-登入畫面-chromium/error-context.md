@@ -1,0 +1,66 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "玩獸 POS 收銀系統" [level=1] [ref=e5]:
+      - img [ref=e6]
+      - text: 玩獸 POS 收銀系統
+    - generic [ref=e10]: 竹北店
+  - main [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - heading "會員資訊" [level=3] [ref=e15]:
+          - img [ref=e16]
+          - text: 會員資訊
+        - generic [ref=e21]:
+          - text: 輸入電話號碼
+          - generic [ref=e22]:
+            - textbox "例如：0912345678" [ref=e23]
+            - button "查詢" [ref=e24] [cursor=pointer]:
+              - img [ref=e25]
+              - text: 查詢
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - heading "福袋區" [level=3] [ref=e30]: 福袋區
+          - button "新增列" [ref=e32] [cursor=pointer]:
+            - img [ref=e33]
+            - text: 新增列
+        - generic [ref=e35]: 尚無福袋購買項目
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - heading "直購區" [level=3] [ref=e38]: 直購區
+          - button "新增列" [ref=e40] [cursor=pointer]:
+            - img [ref=e41]
+            - text: 新增列
+        - generic [ref=e43]: 尚無直購商品項目
+    - generic [ref=e45]:
+      - heading "結帳資訊" [level=3] [ref=e47]:
+        - img [ref=e48]
+        - text: 結帳資訊
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - generic [ref=e53]: 商品總計
+            - generic [ref=e54]: $0
+          - generic [ref=e55]:
+            - generic [ref=e56]: 點數總計 (帶走/新增點數)
+            - generic [ref=e57]: +0 / -0
+          - generic [ref=e58]:
+            - generic [ref=e59]: 應收金額
+            - generic [ref=e60]: $0
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - text: 點數折抵
+            - spinbutton [ref=e63]
+          - generic [ref=e64]:
+            - text: 現金
+            - spinbutton [ref=e65]
+          - generic [ref=e66]:
+            - text: 信用卡
+            - spinbutton [ref=e67]
+          - generic [ref=e68]:
+            - text: 匯款
+            - spinbutton [ref=e69]
+        - button "確認結帳" [ref=e70] [cursor=pointer]
+```

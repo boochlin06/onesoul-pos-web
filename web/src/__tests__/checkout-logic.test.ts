@@ -142,6 +142,97 @@ describe('applyLotteryUpdate', () => {
     item = applyLotteryUpdate(item, 'amount', 999, prizes);
     expect(item.amount).toBe(999);
   });
+
+  // ── 點數套相關測試 (covers L47-49, L79-81) ──
+  it('field=id 命中點數套 → type=點數, amount=0, remark=點數套', () => {
+    const pointsPrizes = [makePrize('PS1', 'A', { isPointsSet: true, unitPrice: 400 })];
+    const result = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    expect(result.type).toBe('點數');
+    expect(result.amount).toBe(0);
+    expect(result.remark).toBe('點數套');
+    expect(result.setName).toBe('套PS1');
+    expect(result.unitPrice).toBe(400);
+  });
+
+  it('點數套 pointsCost 預設 = unitPrice/20 * draws', () => {
+    const pointsPrizes = [makePrize('PS1', 'A', { isPointsSet: true, unitPrice: 400, points: 5, draws: 5 })];
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    // 步驟1後確認是點數套
+    expect(item.remark).toBe('點數套');
+    expect(item.amount).toBe(0);
+    // 設 draws=1 → pointsCost = floor(400/20)*1 = 20
+    item = applyLotteryUpdate(item, 'prize', 'A', pointsPrizes);
+    expect(item.pointsCost).toBe(20);
+    // 手動建立已設定完成的 item，直接測 draws 改變後的計算
+    const itemWithDraws3 = { ...item, draws: 3 };
+    const result = applyLotteryUpdate(itemWithDraws3, 'prize', 'A', pointsPrizes);
+    expect(result.pointsCost).toBe(60); // floor(400/20) * 3 = 60
+    expect(result.amount).toBe(0);
+    expect(result.totalPoints).toBe(15); // 3 * 5
+  });
+
+  it('從點數套切到正常套 → 清除 remark/pointsCost/type', () => {
+    const pointsPrizes = [
+      makePrize('PS1', 'A', { isPointsSet: true, unitPrice: 400 }),
+      makePrize('S1', 'A', { unitPrice: 700 }),
+    ];
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    expect(item.remark).toBe('點數套');
+    // 切到正常套
+    item = applyLotteryUpdate(item, 'id', 'S1', pointsPrizes);
+    expect(item.remark).toBe('');
+    expect(item.pointsCost).toBe(0);
+    expect(item.type).toBe('帶走');
+  });
+
+  it('點數套 field=pointsCost 不被覆蓋', () => {
+    const pointsPrizes = [makePrize('PS1', 'A', { isPointsSet: true, unitPrice: 400 })];
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    item = applyLotteryUpdate(item, 'pointsCost', 100, pointsPrizes);
+    expect(item.pointsCost).toBe(100); // 手動輸入不被覆蓋
+  });
+
+  it('點數套 field=prize 不覆蓋 remark=點數套', () => {
+    const pointsPrizes = [makePrize('PS1', 'z', { isPointsSet: true, unitPrice: 400 })];
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    // prize=z 正常會設 remark='' 但點數套應保留 '點數套'
+    item = applyLotteryUpdate(item, 'prize', 'z', pointsPrizes);
+    expect(item.remark).toBe('點數套');
+  });
+
+  // ── 抽數防呆 (covers L73) ──
+  it('draws 超過總抽數時 cap 到最大值', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'S1', prizes);
+    item = applyLotteryUpdate(item, 'prize', 'B', prizes); // B has draws=2
+    item = applyLotteryUpdate(item, 'draws', 999, prizes);
+    expect(item.draws).toBe(2); // capped to prize max
+  });
+
+  it('draws 未超過時正常設定', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'S1', prizes);
+    item = applyLotteryUpdate(item, 'prize', 'B', prizes); // B has draws=2
+    item = applyLotteryUpdate(item, 'draws', 1, prizes);
+    expect(item.draws).toBe(1);
+  });
+
+  // ── prize 特殊代碼 remark ──
+  it('field=prize 為 88888 → remark=送1點', () => {
+    const item = { ...emptyLottery(), id: 'S1' };
+    const result = applyLotteryUpdate(item, 'prize', '88888', prizes);
+    expect(result.remark).toBe('送1點');
+  });
+
+  it('field=prize 為 99999 → remark=扣1點', () => {
+    const item = { ...emptyLottery(), id: 'S1' };
+    const result = applyLotteryUpdate(item, 'prize', '99999', prizes);
+    expect(result.remark).toBe('扣1點');
+  });
+
+  it('field=prize 為 x → remark=盲盒', () => {
+    const item = { ...emptyLottery(), id: 'S1' };
+    const result = applyLotteryUpdate(item, 'prize', 'x', prizes);
+    expect(result.remark).toBe('盲盒');
+  });
 });
 
 // ═══════════════════════════════════════════════════

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GOOGLE_CLIENT_ID, AUTH_ROLES } from '../constants';
+import { GOOGLE_CLIENT_ID } from '../constants';
 import type { Branch } from '../types';
+import { getAllowedBranches, isTokenExpired, getRefreshDelay, parseCredential } from '../logic/auth';
 
 // ── Google GIS types ──
 declare global {
@@ -35,14 +36,6 @@ interface UseAuthReturn {
   logout: () => void;
 }
 
-/** decode JWT payload without library */
-function decodeJwtPayload(token: string): any {
-  try {
-    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(base64));
-  } catch { return null; }
-}
-
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AuthUser | null>(() => {
     const saved = sessionStorage.getItem('os_auth_user');
@@ -53,27 +46,11 @@ export function useAuth(): UseAuthReturn {
   const googleInitialized = useRef(false);
 
   const handleCredentialResponse = useCallback((response: any) => {
-    const payload = decodeJwtPayload(response.credential);
-    if (!payload?.email) {
-      setError('無法解析登入資訊');
+    const { authUser, error: parseError } = parseCredential(response.credential);
+    if (parseError || !authUser) {
+      setError(parseError);
       return;
     }
-
-    const email = payload.email.toLowerCase();
-    const roles = AUTH_ROLES[email];
-
-    if (!roles) {
-      setError(`⚠️ ${email} 不在授權名單中`);
-      return;
-    }
-
-    const authUser: AuthUser = {
-      email,
-      name: payload.name || email,
-      picture: payload.picture || '',
-      idToken: response.credential,
-    };
-
     sessionStorage.setItem('os_auth_user', JSON.stringify(authUser));
     setUser(authUser);
     setError(null);
@@ -85,7 +62,6 @@ export function useAuth(): UseAuthReturn {
 
     const initGoogle = () => {
       if (!window.google?.accounts?.id) {
-        // GIS script not loaded yet, retry
         setTimeout(initGoogle, 200);
         return;
       }
@@ -108,17 +84,7 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     if (!user) return;
 
-    const payload = decodeJwtPayload(user.idToken);
-    if (!payload?.exp) {
-      setIsLoading(false);
-      return;
-    }
-
-    const expMs = payload.exp * 1000;
-    const now = Date.now();
-
-    // 已過期 → 直接清除，等待重新登入
-    if (expMs < now) {
+    if (isTokenExpired(user.idToken)) {
       sessionStorage.removeItem('os_auth_user');
       setUser(null);
       setIsLoading(false);
@@ -127,14 +93,14 @@ export function useAuth(): UseAuthReturn {
 
     setIsLoading(false);
 
-    // 提前 5 分鐘刷新（最少 10 秒後）
-    const refreshIn = Math.max(expMs - now - 5 * 60 * 1000, 10_000);
+    const delay = getRefreshDelay(user.idToken);
+    if (delay === null) return;
+
     const timer = setTimeout(() => {
       if (window.google?.accounts?.id) {
-        // prompt() 會靜默觸發 auto_select 自動回呼 handleCredentialResponse
         window.google.accounts.id.prompt();
       }
-    }, refreshIn);
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [user]);
@@ -160,7 +126,7 @@ export function useAuth(): UseAuthReturn {
     setError(null);
   }, [user]);
 
-  const allowedBranches: Branch[] = user ? (AUTH_ROLES[user.email] || []) : [];
+  const allowedBranches: Branch[] = user ? getAllowedBranches(user.email) : [];
 
   return {
     user,

@@ -170,13 +170,6 @@ function addMemberPointsByPhone(phoneNumber, pointsToAdd) {
 }
 
 /**
- * 重置竹北結帳頁面所有欄位與公式
- */
-function resetChupei() {
-  resetAll(SpreadsheetApp.openById(appChupei).getSheetByName(sheetCheckout));
-}
-
-/**
  * 重置結帳頁面 — 清空輸入、還原公式
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 結帳頁面工作表
  */
