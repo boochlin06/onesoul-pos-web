@@ -63,14 +63,14 @@ export default function MemberLoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-6">
-          <img src="/logo-full.png" alt="OneSoul" className="h-20 mx-auto mb-2" />
+          <img src={`${import.meta.env.BASE_URL}logo-full.png`} alt="OneSoul" className="h-20 mx-auto mb-2" />
         </div>
 
         {member ? (
           /* ── 會員資訊卡 ── */
           <div className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-3xl shadow-2xl p-6 text-white relative overflow-hidden">
             <div className="absolute -right-8 -bottom-8 opacity-10">
-              <img src="/logo-only-monster.png" alt="" className="w-40 h-40" />
+              <img src={`${import.meta.env.BASE_URL}logo-only-monster.png`} alt="" className="w-40 h-40" />
             </div>
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-6">

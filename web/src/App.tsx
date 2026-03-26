@@ -111,7 +111,7 @@ function PosApp() {
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 rounded-xl p-1">
-              <img src="/logo-only-monster.png" alt="OneSoul" className="w-9 h-9" />
+              <img src={`${import.meta.env.BASE_URL}logo-only-monster.png`} alt="OneSoul" className="w-9 h-9" />
             </div>
             <div>
               <h1 className="text-white font-bold text-lg leading-none">OneSoul POS</h1>

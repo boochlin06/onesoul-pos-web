@@ -1,9 +1,9 @@
-import { Search, Users, Receipt, BookOpen, Plus, Trash2, Archive, ShoppingCart, Package } from 'lucide-react';
+import { Search, Users, Receipt, BookOpen, Plus, Trash2, Archive, ShoppingCart } from 'lucide-react';
 import type { Branch, LotteryItem, MerchItem } from '../../types';
 import { branchBadge, branchGradient } from '../../constants';
-import type { BannerState } from '../../hooks/useBanner';
 
-const fieldLabel = "text-[10px] font-bold text-slate-400 uppercase tracking-wider";
+
+
 
 interface CardCheckoutProps {
   branch: Branch;

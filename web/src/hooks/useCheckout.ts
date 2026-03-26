@@ -53,7 +53,7 @@ export function useCheckout({
     [customer.phoneName, members],
   );
 
-  const selectCacheMember = useCallback((m: MemberEntry) => {
+  const selectCacheMember = useCallback((m: { phone: string | number; name: string; gender?: string; birthday?: string; points?: number | string }) => {
     setCustomer(p => ({
       ...p,
       phoneName: String(m.phone || ''),

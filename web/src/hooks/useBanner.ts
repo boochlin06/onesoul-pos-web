@@ -7,7 +7,7 @@ export interface BannerState {
 
 export function useBanner() {
   const [banner, setBanner] = useState<BannerState | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const showBanner = useCallback((msg: string, type: BannerState['type'], autoDismiss = true) => {
     clearTimeout(timerRef.current);

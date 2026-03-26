@@ -94,11 +94,11 @@ export function applyMerchUpdate(
 }
 
 // ── Member filter ──
-export function filterMembers(
+export function filterMembers<T extends { phone: string | number; name: string }>(
   phoneName: string,
-  members: { phone: string | number; name: string }[],
+  members: T[],
   limit = CHECKOUT_SUGGESTION_LIMIT,
-) {
+): T[] {
   const pn = String(phoneName || '');
   if (pn.length < 2) return [];
   const q = pn.toLowerCase();

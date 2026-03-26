@@ -10,7 +10,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-start justify-center pt-12 px-4">
       <div className="w-full max-w-sm text-center">
-        <img src="/logo-full.png" alt="OneSoul" className="h-20 mx-auto mb-6" />
+        <img src={`${import.meta.env.BASE_URL}logo-full.png`} alt="OneSoul" className="h-20 mx-auto mb-6" />
 
         <div className="bg-white rounded-3xl shadow-xl p-8 border border-orange-100">
           <h2 className="text-2xl font-black text-slate-800 mb-6">相關連結</h2>

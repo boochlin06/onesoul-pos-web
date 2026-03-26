@@ -1,5 +1,5 @@
 import { Search, Users, Receipt, BookOpen, Plus, Trash2, Archive, ShoppingCart, LayoutGrid, Table2 } from 'lucide-react';
-import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../../types';
+import type { Branch, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../../types';
 import { branchBadge, branchGradient } from '../../constants';
 import { useCheckout } from '../../hooks/useCheckout';
 import { useStickyState } from '../../hooks/useStickyState';

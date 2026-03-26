@@ -78,7 +78,7 @@ export default function StockListPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <img src="/logo-full.png" alt="OneSoul" className="h-14 mx-auto mb-3" />
+          <img src={`${import.meta.env.BASE_URL}logo-full.png`} alt="OneSoul" className="h-14 mx-auto mb-3" />
           <h1 className="text-2xl font-black text-slate-800">點數兌換清單</h1>
         </div>
 
