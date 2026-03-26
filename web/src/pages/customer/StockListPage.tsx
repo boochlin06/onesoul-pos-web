@@ -8,25 +8,22 @@ export default function StockListPage() {
   const [data, setData] = useState<string[][]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    // 檢查是否已登入（3天過期）
+  const [isLoggedIn] = useState(() => {
     const memberTime = localStorage.getItem('os_member_time');
     const member = localStorage.getItem('os_member');
     if (member && memberTime) {
       const elapsed = Date.now() - parseInt(memberTime);
-      if (elapsed < 3 * 24 * 60 * 60 * 1000) {
-        setIsLoggedIn(true);
-      }
+      return elapsed < 3 * 24 * 60 * 60 * 1000;
     }
-  }, []);
+    return false;
+  });
 
   useEffect(() => {
     if (!isLoggedIn) {
       setIsLoading(false);
       return;
     }
+    setIsLoading(true);
     (async () => {
       try {
         const res = await fetch(GAS_URL, {
@@ -67,8 +64,13 @@ export default function StockListPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <img src={`${import.meta.env.BASE_URL}logo-full.png`} alt="OneSoul" className="h-16 mx-auto mb-6 opacity-60" />
+          <Loader2 className="w-10 h-10 text-orange-500 animate-spin mx-auto mb-4" />
+          <p className="text-slate-500 font-bold text-sm">正在載入兌換清單...</p>
+          <p className="text-slate-400 text-xs mt-1">資料量較大，請稍候</p>
+        </div>
       </div>
     );
   }

@@ -2,8 +2,11 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["main", "master"]
-  workflow_dispatch:
+    branches: [dev]
+    paths:
+      - 'web/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:  # 也可以在 GitHub 上手動觸發
 
 permissions:
   contents: read
@@ -11,12 +14,16 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,15 +32,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
-        working-directory: ./web
+        working-directory: web
         run: npm ci
 
+      - name: Create .env from secrets
+        working-directory: web
+        run: |
+          cat <<EOF > .env
+          VITE_GAS_URL=${{ secrets.VITE_GAS_URL }}
+          VITE_API_KEY=${{ secrets.VITE_API_KEY }}
+          VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          EOF
+
       - name: Build
-        working-directory: ./web
+        working-directory: web
         run: npm run build
 
       - name: Setup Pages
@@ -42,15 +58,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './web/dist'
+          path: web/dist
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
