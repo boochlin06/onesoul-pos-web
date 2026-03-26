@@ -199,6 +199,7 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
                              <td className="px-6 py-3">
                                <div className="flex items-center gap-2">
                                  <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${isLottery ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{isLottery ? '福袋' : '商品'}</span>
+                                 {isLottery && r.lotteryId && <span className="font-mono text-xs text-slate-400">#{r.lotteryId}</span>}
                                  <span className="font-bold text-slate-700 text-[15px]">{r.setName || r.name || '-'}</span>
                                </div>
                              </td>

@@ -160,6 +160,7 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
               <div className="flex items-center gap-3">
                 <span className="font-bold text-amber-700 text-base">#{setId}</span>
                 <span className="font-semibold text-slate-700">{entries[0].setName}</span>
+                {entries[0].isPointsSet && <span className="bg-violet-100 text-violet-700 font-bold text-xs px-2 py-0.5 rounded-full">點數套</span>}
                 <div className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded ml-2">NT${entries[0].unitPrice} / 抽</div>
               </div>
               <div className="flex items-center gap-3">
