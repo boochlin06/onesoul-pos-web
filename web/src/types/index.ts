@@ -10,6 +10,7 @@ export interface PrizeEntry {
   draws: number;
   date: string;
   branch: string;
+  isPointsSet?: boolean;
 }
 
 export interface MemberEntry {
@@ -67,6 +68,7 @@ export interface LotteryItem {
   unitPoints: number;
   totalPoints: number;
   amount: number;
+  pointsCost: number;
   remark: string;
 }
 

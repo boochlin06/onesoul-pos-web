@@ -4,7 +4,7 @@ import { CHECKOUT_SUGGESTION_LIMIT } from '../config';
 // ── Factory helpers ──
 export const emptyLottery = (): LotteryItem => ({
   id: '', prize: '', draws: 1, type: '帶走', setName: '', unitPrice: 0,
-  prizeId: '', prizeName: '', unitPoints: 0, totalPoints: 0, amount: 0, remark: '',
+  prizeId: '', prizeName: '', unitPoints: 0, totalPoints: 0, amount: 0, pointsCost: 0, remark: '',
 });
 
 export const emptyMerch = (): MerchItem => ({
@@ -15,7 +15,10 @@ export const emptyMerch = (): MerchItem => ({
 // ── Summary calculation ──
 export function calcSummary(lotteries: LotteryItem[], merchandises: MerchItem[]) {
   let due = 0, pts = 0;
-  lotteries.forEach(it => { due += it.amount; pts += it.totalPoints; });
+  lotteries.forEach(it => {
+    due += it.amount;
+    pts += it.totalPoints - (it.pointsCost || 0);
+  });
   merchandises.forEach(it => {
     if (it.paymentType === '現金') due += it.actualAmount;
     else if (it.paymentType !== '贈送') pts -= it.totalPoints;
@@ -36,17 +39,31 @@ export function applyLotteryUpdate(
 
   if (field === 'id') {
     const setEntry = prizes.find(p => p.setId === String(value));
-    if (setEntry) { updated.setName = setEntry.setName; updated.unitPrice = setEntry.unitPrice; }
-    else { updated.setName = ''; updated.unitPrice = 0; updated.prize = ''; updated.prizeId = ''; updated.prizeName = ''; updated.unitPoints = 0; updated.draws = 0; updated.amount = 0; updated.totalPoints = 0; }
+    if (setEntry) {
+      updated.setName = setEntry.setName;
+      updated.unitPrice = setEntry.unitPrice;
+      if (setEntry.isPointsSet) {
+        updated.type = '點數';
+        updated.amount = 0;
+        updated.remark = '點數套';
+      } else {
+        // 切到正常套時清掉點數套狀態
+        if (item.remark === '點數套') { updated.remark = ''; updated.pointsCost = 0; updated.type = '帶走'; }
+      }
+    }
+    else { updated.setName = ''; updated.unitPrice = 0; updated.prize = ''; updated.prizeId = ''; updated.prizeName = ''; updated.unitPoints = 0; updated.draws = 0; updated.amount = 0; updated.totalPoints = 0; updated.pointsCost = 0; }
   }
   if (field === 'prize') {
+    const wasPointsSet = item.remark === '點數套';
     const prizeEntry = prizes.find(p => p.setId === updated.id && p.prize === String(value));
     if (prizeEntry) { updated.prizeId = prizeEntry.prizeId; updated.prizeName = prizeEntry.prizeName; updated.unitPoints = prizeEntry.points; }
     else { updated.prizeId = ''; updated.prizeName = ''; updated.unitPoints = 0; updated.draws = 0; updated.amount = 0; updated.totalPoints = 0; }
-    if (value === '88888') updated.remark = '送1點';
-    else if (value === '99999') updated.remark = '扣1點';
-    else if (value === 'x') updated.remark = '盲盒';
-    else if (value === 'z' || value === 'Z') { updated.remark = ''; updated.prizeName = '非GK'; updated.unitPoints = 1; }
+    if (!wasPointsSet) {
+      if (value === '88888') updated.remark = '送1點';
+      else if (value === '99999') updated.remark = '扣1點';
+      else if (value === 'x') updated.remark = '盲盒';
+      else if (value === 'z' || value === 'Z') { updated.remark = ''; updated.prizeName = '非GK'; updated.unitPoints = 1; }
+    }
   }
   // 抽數防呆：不可超過該獎項的總抽數
   if (field === 'draws') {
@@ -55,8 +72,15 @@ export function applyLotteryUpdate(
       updated.draws = prizeEntry.draws;
     }
   }
-  if (field !== 'amount' && field !== 'remark') {
-    if (field !== 'type') updated.amount = updated.draws * (updated.unitPrice || 0);
+  const isPointsSet = updated.remark === '點數套';
+  if (field !== 'amount' && field !== 'remark' && field !== 'pointsCost') {
+    if (isPointsSet) {
+      updated.amount = 0;
+      // 預設扣抵點數 = 單抽價 / 20 * 抽數
+      updated.pointsCost = Math.floor((updated.unitPrice || 0) / 20) * updated.draws;
+    } else {
+      if (field !== 'type') updated.amount = updated.draws * (updated.unitPrice || 0);
+    }
     updated.totalPoints = updated.type === '點數' ? (updated.draws * (updated.unitPoints || 0)) : 0;
   }
   return updated;

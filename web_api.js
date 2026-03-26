@@ -139,10 +139,11 @@ function apiCheckout(payload) {
     
     for (var i = 0; i < lotteries.length; i++) {
       var item = lotteries[i];
+      var netPoints = (item.totalPoints || 0) - (item.pointsCost || 0);
       targetData.push([
         phoneNumbers, item.id, item.prize, item.draws, item.type, item.setName, 
         item.unitPrice, item.prizeId, item.prizeName, item.unitPoints, 
-        item.totalPoints, item.amount, item.remark, currentDate, checkoutUID
+        netPoints, item.amount, item.remark, currentDate, checkoutUID
       ]);
     }
     
@@ -305,8 +306,11 @@ function apiGetPrizeLibrary(branch) {
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       if (!row[0]) continue;
-      if (branch && row[9] && row[9].toString().trim() !== branch) continue;
-      results.push({ setId: row[0].toString(), setName: row[1]||'', unitPrice: row[2]||0, prize: row[3]||'', prizeId: row[4]||'', prizeName: row[5]||'', points: row[6]||0, draws: row[7]||1, branch: row[9]||'' });
+      var colJ = (row[9] || '').toString().trim();
+      if (branch && colJ && colJ.indexOf(branch) === -1) continue;
+      var isPointsSet = colJ.indexOf('點數') !== -1;
+      var parsedBranch = colJ.replace('點數', '').trim() || '';
+      results.push({ setId: row[0].toString(), setName: row[1]||'', unitPrice: row[2]||0, prize: row[3]||'', prizeId: row[4]||'', prizeName: row[5]||'', points: row[6]||0, draws: row[7]||1, branch: parsedBranch, isPointsSet: isPointsSet });
     }
     return { success: true, data: results };
   } catch(error) { return { success: false, message: error.toString() }; }

@@ -223,7 +223,14 @@ export function CheckoutView({
                     <span className={`px-2 py-1 rounded flex w-min ml-auto ${item.totalPoints > 0 ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-400'}`}>{item.totalPoints > 0 ? `+${item.totalPoints}` : '0'}</span>
                   </td>
                   <td className="px-1 py-2">
-                    <input type="number" min="0" className={numInp + ' font-bold text-amber-700 min-w-[6rem]'} placeholder="金額" value={item.amount} onChange={e => updateLottery(idx, 'amount', Number(e.target.value))} />
+                    {item.remark === '點數套' ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] text-rose-400 font-bold">扣抵點數</span>
+                        <input type="number" min="0" className={numInp + ' font-bold text-rose-600 min-w-[6rem] bg-rose-50 border-rose-200'} placeholder="扣抵點數" value={item.pointsCost || ''} onChange={e => updateLottery(idx, 'pointsCost', Number(e.target.value))} />
+                      </div>
+                    ) : (
+                      <input type="number" min="0" className={numInp + ' font-bold text-amber-700 min-w-[6rem]'} placeholder="金額" value={item.amount} onChange={e => updateLottery(idx, 'amount', Number(e.target.value))} />
+                    )}
                   </td>
                   <td className="px-1 py-2"><input type="text" className={inp + ' text-slate-400 text-xs min-w-[7rem]'} placeholder="備註..." value={item.remark} onChange={e => updateLottery(idx, 'remark', e.target.value)} /></td>
                   <td className="px-1 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => removeLotteryRow(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded p-1.5 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
