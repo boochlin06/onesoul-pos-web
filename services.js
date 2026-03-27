@@ -140,31 +140,41 @@ function updateMemberPointsByPhone(phoneNumber, newPoints) {
 }
 
 /**
- * 增減會員點數（相對值加減）
- * 使用 ScriptLock 防止兩店同時操作同一會員
+ * 增減會員點數（相對值加減）— 內部版本，不拿鎖
+ * ⚠️ 呼叫者必須自行確保已持有 ScriptLock
  * @param {string} phoneNumber - 會員電話
  * @param {number} pointsToAdd - 要增減的點數（負值為扣點）
- * @returns {number} 成功回傳新點數，找不到回傳 -1
+ * @returns {number} 成功回傳新點數，找不到回傳 -1，點數不足回傳 -2
+ */
+function _addPointsUnsafe(phoneNumber, pointsToAdd) {
+  var tempApp = SpreadsheetApp.openById(appBackground);
+  var memberSheet = tempApp.getSheetByName(sheetMemberList);
+  var data = memberSheet.getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][2] == phoneNumber) {
+      var currentPoints = Number(data[i][6]) || 0;
+      var newPoints = currentPoints + pointsToAdd;
+      if (newPoints < 0) return -2; // 點數不足
+      memberSheet.getRange("G" + (i + 1)).setValue(newPoints);
+      return newPoints;
+    }
+  }
+  return -1;
+}
+
+/**
+ * 增減會員點數（相對值加減）— 公開版本，自帶鎖
+ * 適用於獨立呼叫（不在其他 ScriptLock 內時使用）
+ * @param {string} phoneNumber - 會員電話
+ * @param {number} pointsToAdd - 要增減的點數（負值為扣點）
+ * @returns {number} 成功回傳新點數，找不到回傳 -1，點數不足回傳 -2
  */
 function addMemberPointsByPhone(phoneNumber, pointsToAdd) {
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
-
-    var tempApp = SpreadsheetApp.openById(appBackground);
-    var memberSheet = tempApp.getSheetByName(sheetMemberList);
-    var data = memberSheet.getDataRange().getValues();
-
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][2] == phoneNumber) {
-        var currentPoints = Number(data[i][6]) || 0;
-        var newPoints = currentPoints + pointsToAdd;
-        if (newPoints < 0) return -2; // 點數不足
-        memberSheet.getRange("G" + (i + 1)).setValue(newPoints);
-        return newPoints;
-      }
-    }
-    return -1;
+    return _addPointsUnsafe(phoneNumber, pointsToAdd);
   } finally {
     lock.releaseLock();
   }

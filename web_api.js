@@ -160,7 +160,8 @@ function apiCheckout(payload) {
     }
 
     // ★ 使用相對值加減，鎖內讀 DB 即時點數，防止 race condition
-    var newPoints = addMemberPointsByPhone(phoneNumbers, pointsDelta);
+    // ★ 使用 _addPointsUnsafe 而非 addMemberPointsByPhone，因為 apiCheckout 已持有 ScriptLock
+    var newPoints = _addPointsUnsafe(phoneNumbers, pointsDelta);
     if (newPoints == -1) return { success: false, message: '會員電話不存在或結帳失敗' };
     if (newPoints == -2) return { success: false, message: '客戶點數不足' };
 
@@ -310,6 +311,13 @@ function apiGetPrizeLibrary(branch) {
 }
 
 function apiDeletePrizeLibrary(branch, setId) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+  } catch(e) {
+    return { success: false, message: '系統忙碌中，請稍後再試作廢福袋' };
+  }
+
   try {
     var tempApp = SpreadsheetApp.openById(appBackground);
     var sheet = tempApp.getSheetByName(sheetLotteryDB);
@@ -341,7 +349,10 @@ function apiDeletePrizeLibrary(branch, setId) {
     SpreadsheetApp.flush();
     return { success: true, message: '已成功作廢整套福袋' };
     
-  } catch(error) { return { success: false, message: error.toString() }; }
+  } catch(error) { return { success: false, message: error.toString() }; 
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ── 5. 取得所有會員 API ───────────────────────────────────
@@ -538,22 +549,14 @@ function apiDeleteDailySales(branch, checkoutUID) {
     
     if (rowsToDelete.length === 0) return { success: false, message: '找不到訂單' };
     
-    // 退點
+    // ★ 使用 _addPointsUnsafe 而非手寫點數操作，因為 apiDeleteDailySales 已持有 ScriptLock
     if (phoneToUpdate && !isNaN(totalPointsImpact) && totalPointsImpact !== 0) {
-      var memberSheet = tempApp.getSheetByName(sheetMemberList);
-      var mData = memberSheet.getDataRange().getValues();
-      for (var m = 1; m < mData.length; m++) {
-        var rawPhone = mData[m][2];
-        if (rawPhone && String(rawPhone).trim() === String(phoneToUpdate).trim()) {
-          var currentPoints = Number(mData[m][6]) || 0;
-          var newPoints = currentPoints - totalPointsImpact;
-          if (newPoints < 0) {
-            return { success: false, message: '作廢失敗：退點後客戶點數將變為 ' + newPoints + '（目前 ' + currentPoints + '，需退 ' + totalPointsImpact + '），請先處理客戶點數' };
-          }
-          memberSheet.getRange(m + 1, 7).setValue(newPoints);
-          SpreadsheetApp.flush();
-          break;
-        }
+      var refundResult = _addPointsUnsafe(phoneToUpdate, -totalPointsImpact);
+      if (refundResult == -1) {
+        return { success: false, message: '作廢失敗：找不到會員電話 ' + phoneToUpdate };
+      }
+      if (refundResult == -2) {
+        return { success: false, message: '作廢失敗：退點後客戶點數將變為負數，請先處理客戶點數' };
       }
     }
     rowsToDelete.sort(function(a, b) { return b - a; }); // 確保大→小，避免行號偏移
