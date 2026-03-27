@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, Box, Loader2 } from 'lucide-react';
+import { RefreshButton } from '../ui/RefreshButton';
 import { useStickyState } from '../../hooks/useStickyState';
 import type { BlindBoxEntry } from '../../types';
 
@@ -45,10 +46,7 @@ export function BlindBoxView({ records, isLoading, onRefresh }: BlindBoxViewProp
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <button onClick={onRefresh} className="flex shrink-0 items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-lg text-sm font-bold shadow-sm transition-colors">
-            <Search className="w-4 h-4" />
-            <span className="hidden sm:inline">強制更新</span>
-          </button>
+          <RefreshButton onClick={onRefresh} isLoading={isLoading} variant="toolbar" />
         </div>
       </div>
 

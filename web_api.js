@@ -245,17 +245,6 @@ function apiCloseDay(payload) {
       return row;
     });
 
-    var summaryRow = [];
-    while (summaryRow.length < 25) summaryRow.push('');
-    summaryRow[0] = '【系統結帳紀錄】';
-    summaryRow[8] = '【' + branch + '】關帳結算';
-    summaryRow[12] = '開櫃: $' + openingCash + ', 應收: $' + expectedCash + ', 實收: $' + actualCash + ', 差異: $' + discrepancy + (note ? ', 備註: ' + note : '');
-    summaryRow[13] = Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss");
-    summaryRow[14] = 'SYS_CLOSE_' + branch + '_' + new Date().getTime();
-    summaryRow[24] = branch;
-    
-    dataWithBranch.push(summaryRow);
-
     var lastRowTarget = targetSheet.getLastRow();
     var targetCols = Math.max(srcCols, 25);
     targetSheet.getRange(lastRowTarget + 1, 1, dataWithBranch.length, targetCols).setValues(dataWithBranch);

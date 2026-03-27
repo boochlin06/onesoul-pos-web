@@ -6,6 +6,26 @@ import type {
 } from '../types';
 
 // ── Low-level fetch ────────────────────────────────────
+
+/** 需要 Math.round 的欄位名（避免 IEEE 754 浮點誤差，如 110.00000000000001） */
+const ROUND_KEYS = new Set([
+  'points', 'pointDelta', 'pointsUsed', 'pointsCost',
+  'unitPoints', 'newPoints', 'amount', 'receivedAmount',
+  'cash', 'remittance', 'creditCard', 'manualPrice',
+]);
+
+function roundFields(obj: any): any {
+  if (obj == null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(roundFields);
+  const out: any = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (ROUND_KEYS.has(k) && typeof v === 'number') out[k] = Math.round(v);
+    else if (typeof v === 'object') out[k] = roundFields(v);
+    else out[k] = v;
+  }
+  return out;
+}
+
 export async function gasPost(action: string, payload?: object) {
   const res = await fetch(GAS_URL, {
     method: 'POST',
@@ -16,7 +36,8 @@ export async function gasPost(action: string, payload?: object) {
       idToken: getIdToken(),
     }),
   });
-  return res.json();
+  const json = await res.json();
+  return roundFields(json);
 }
 
 // ── Members ────────────────────────────────────────────

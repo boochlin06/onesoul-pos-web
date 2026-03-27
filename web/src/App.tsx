@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Archive, LogOut } from 'lucide-react';
 import type { Branch, Tab } from './types';
 import { TABS, branchGradient, CROSS_BRANCH_DAILY_VIEW } from './constants';
+import { useStickyState } from './hooks/useStickyState';
 import { useAuth } from './hooks/useAuth';
 import { LoginScreen } from './components/LoginScreen';
 import { useBanner } from './hooks/useBanner';
@@ -44,8 +45,8 @@ export default function App() {
 
 function PosApp() {
   const auth = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('checkout');
-  const [branch, setBranch] = useState<Branch>('竹北');
+  const [activeTab, setActiveTab] = useStickyState<Tab>('checkout', 'pos_active_tab');
+  const [branch, setBranch] = useStickyState<Branch>('竹北', 'pos_branch');
 
   // 登入後自動切換到該帳號允許的第一個門市
   useEffect(() => {
@@ -63,28 +64,44 @@ function PosApp() {
   const sales = useSalesRecords({ showBanner });
   const history = useMemberHistory({ showBanner });
 
-  // ── Initial data load ──
+  // ── Initial data load（登入後才發請求）──
   useEffect(() => {
+    if (!auth.isAuthenticated) return;
     prizes.fetchLibrary();
     fetchMembers();
     fetchStocks();
     fetchBlindBoxes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [auth.isAuthenticated]);
 
-  // ── Tab-driven fetching ──
+  // ── Tab-driven fetching（登入後才發請求）──
+  const initialFetchDone = useRef(false);
   useEffect(() => {
-    if (activeTab === 'sales' && sales.salesRecords.length === 0) sales.fetchSalesRecords();
-    else if (activeTab === 'daily') daily.fetchDailySales();
+    if (!auth.isAuthenticated) return;
+    if (activeTab === 'sales' && sales.salesRecords.length === 0) {
+      // F5 重整 = 首次載入 → forceRefresh 跳過 cache；切換 tab 回來 → 用 cache
+      const isPageLoad = !initialFetchDone.current;
+      sales.fetchSalesRecords(isPageLoad);
+    } else if (activeTab === 'daily') {
+      daily.fetchDailySales();
+    }
+    initialFetchDone.current = true;
     // 離開 daily tab 時，確保 branch 在允許範圍內
     if (activeTab !== 'daily' && !auth.allowedBranches.includes(branch)) {
       setBranch(auth.allowedBranches[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, auth.isAuthenticated]);
 
-  // ── Branch change ──
+  // ── Branch change（跳過首次 mount，只在使用者切換門市時才 reset）──
+  const branchMounted = useRef(false);
   useEffect(() => {
+    if (!branchMounted.current) {
+      branchMounted.current = true;
+      // 首次 mount：不 reset，只觸發 daily fetch（如在 daily tab）
+      if (activeTab === 'daily') daily.fetchDailySales();
+      return;
+    }
     sales.resetSalesRecords();
     if (activeTab === 'daily') daily.fetchDailySales();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -167,10 +184,10 @@ function PosApp() {
           />
         )}
 
-        {activeTab === 'daily' && <DailySalesView branch={branch} records={daily.dailySales} members={members} isLoading={daily.loadingDaily} onDelete={daily.handleDeleteDaily} openingCash={daily.openingCash} onSetOpeningCash={daily.handleSetOpeningCash} readOnly={!canEditBranch} />}
+        {activeTab === 'daily' && <DailySalesView branch={branch} records={daily.dailySales} members={members} isLoading={daily.loadingDaily} onDelete={daily.handleDeleteDaily} openingCash={daily.openingCash} onSetOpeningCash={daily.handleSetOpeningCash} onRefresh={daily.fetchDailySales} readOnly={!canEditBranch} />}
         {activeTab === 'members' && <MembersView members={members} isLoading={loadingMembers} onRefresh={fetchMembers} />}
-        {activeTab === 'sales' && <SalesView records={sales.salesRecords} isLoading={sales.loadingSales} onRefresh={() => sales.fetchSalesRecords(true)} onClearCache={sales.clearSalesCache} lastCacheTime={sales.lastCacheTime} />}
-        {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes.prizes} isLoading={prizes.loadingLibrary || prizes.voidingPrizeLoading} onDeletePrize={prizes.handleDeletePrize} onCreateSetSuccess={prizes.fetchLibrary} showBanner={showBanner} />}
+        {activeTab === 'sales' && <SalesView records={sales.salesRecords} isLoading={sales.loadingSales} onRefresh={() => sales.fetchSalesRecords(true)} onClearCache={sales.clearSalesCache} lastCacheTime={sales.lastCacheTime} members={members} />}
+        {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes.prizes} isLoading={prizes.loadingLibrary || prizes.voidingPrizeLoading} onDeletePrize={prizes.handleDeletePrize} onCreateSetSuccess={prizes.fetchLibrary} showBanner={showBanner} onRefresh={prizes.fetchLibrary} />}
         {activeTab === 'stock' && <StockView branch={branch} records={stocks} isLoading={loadingStocks} onRefresh={fetchStocks} setBranch={setBranch} />}
         {activeTab === 'blindbox' && <BlindBoxView records={blindBoxes} isLoading={loadingBlindBox} onRefresh={fetchBlindBoxes} />}
         {activeTab === 'member_history' && (

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, Package, ChevronDown, Loader2 } from 'lucide-react';
+import { RefreshButton } from '../ui/RefreshButton';
 import { useStickyState } from '../../hooks/useStickyState';
 import type { Branch, StockEntry } from '../../types';
 
@@ -69,10 +70,7 @@ export function StockView({ branch, records, isLoading, onRefresh, setBranch }: 
                </div>
              </div>
 
-             <button onClick={onRefresh} className="flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-300 shadow-sm rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors active:scale-95">
-                <Search className="w-4 h-4" />
-                <span className="hidden sm:inline">更新資料</span>
-             </button>
+             <RefreshButton onClick={onRefresh} isLoading={isLoading} variant="toolbar" />
           </div>
         </div>
 

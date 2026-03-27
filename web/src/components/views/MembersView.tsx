@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Search, Users, BookOpen, RefreshCw, Loader2 } from 'lucide-react';
+import { Search, Users, BookOpen, Loader2 } from 'lucide-react';
+import { RefreshButton } from '../ui/RefreshButton';
 import { useStickyState } from '../../hooks/useStickyState';
 import type { MemberEntry } from '../../types';
 
@@ -29,15 +30,7 @@ export function MembersView({ members, isLoading, onRefresh }: MembersViewProps)
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-slate-800">會員資料</h2>
-            <button 
-              onClick={onRefresh}
-              disabled={isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 disabled:opacity-50 shadow-sm"
-              title="重新載入名單"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              刷新資料
-            </button>
+            <RefreshButton onClick={onRefresh} isLoading={isLoading} />
           </div>
           <p className="text-sm text-slate-500 mt-1">目前共有 {filtered.length} 筆資料</p>
         </div>

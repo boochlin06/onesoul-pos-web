@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, ClipboardList, Receipt, Loader2, Trash2, Archive, MessageSquare, AlertCircle } from 'lucide-react';
+import { RefreshButton } from '../ui/RefreshButton';
 import { useStickyState } from '../../hooks/useStickyState';
 import { Pagination } from '../ui/Pagination';
 import type { Branch, DailySalesEntry, MemberEntry } from '../../types';
@@ -12,10 +13,11 @@ interface DailySalesViewProps {
   onDelete: (uid: string) => void;
   openingCash: number | null;
   onSetOpeningCash: (amt: number) => void;
+  onRefresh?: () => void;
   readOnly?: boolean;
 }
 
-export function DailySalesView({ branch, records, members, isLoading, onDelete, openingCash, onSetOpeningCash, readOnly = false }: DailySalesViewProps) {
+export function DailySalesView({ branch, records, members, isLoading, onDelete, openingCash, onSetOpeningCash, onRefresh, readOnly = false }: DailySalesViewProps) {
   const [search, setSearch] = useState('');
   const [uiMode, setUiMode] = useStickyState<'classic' | 'audit'>('audit', 'pos_daily_ui_mode');
   const [voidConfirmUid, setVoidConfirmUid] = useState<string | null>(null);
@@ -109,7 +111,10 @@ export function DailySalesView({ branch, records, members, isLoading, onDelete, 
     <div className="flex flex-col gap-6 mb-24 max-w-screen-2xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">當日銷售資料 ({branch})</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-slate-800">當日銷售資料 ({branch})</h2>
+            {onRefresh && <RefreshButton onClick={onRefresh} isLoading={isLoading} />}
+          </div>
           <p className="text-sm text-slate-500 mt-1">尚未關帳的當日明細。以交易單號分組，點擊整組底部的垃圾桶可作廢該筆交易 (每頁顯示約 100 筆資料)。</p>
         </div>
         <div className="flex items-center gap-4">

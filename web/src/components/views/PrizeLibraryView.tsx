@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Search, BookOpen, Trash2, X, Loader2, Plus, Package } from 'lucide-react';
+import { RefreshButton } from '../ui/RefreshButton';
 import { branchBadge, CREATE_SET_CONFIG } from '../../constants';
 import { gasPost } from '../../services/api';
 import { calcSuggestedPrice, validateCreateSetPrice } from '../../logic/createSet';
@@ -12,11 +13,12 @@ interface PrizeLibraryViewProps {
   onDeletePrize: (entries: PrizeEntry[]) => void;
   onCreateSetSuccess: () => void;
   showBanner: (msg: string, type: 'ok' | 'err' | 'loading', autoDismiss?: boolean) => void;
+  onRefresh?: () => void;
 }
 
 const { drawOptions: DRAW_OPTIONS, priceMultiplier, minPriceRatio, maxPriceRatio } = CREATE_SET_CONFIG;
 
-export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onCreateSetSuccess, showBanner }: PrizeLibraryViewProps) {
+export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onCreateSetSuccess, showBanner, onRefresh }: PrizeLibraryViewProps) {
   const [search, setSearch] = useState('');
   const [filterBranch, setFilterBranch] = useState<'all' | Branch>('all');
 
@@ -123,7 +125,10 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">福袋獎項庫</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-slate-800">福袋獎項庫</h2>
+            {onRefresh && <RefreshButton onClick={onRefresh} isLoading={isLoading} />}
+          </div>
           <p className="text-sm text-slate-500 mt-1">點擊「加入結帳」可直接帶入結帳表單</p>
         </div>
         <div className="flex gap-2 items-center flex-wrap">

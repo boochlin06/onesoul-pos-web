@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, BarChart3, Receipt, Loader2, MessageSquare } from 'lucide-react';
+import { RefreshButton } from '../ui/RefreshButton';
 import { Pagination } from '../ui/Pagination';
-import type { SalesRecordEntry } from '../../types';
+import type { SalesRecordEntry, MemberEntry } from '../../types';
 
 interface SalesViewProps {
   records: SalesRecordEntry[];
@@ -9,9 +10,10 @@ interface SalesViewProps {
   onRefresh: () => void;
   onClearCache: () => void;
   lastCacheTime: string;
+  members: MemberEntry[];
 }
 
-export function SalesView({ records, isLoading, onRefresh, onClearCache, lastCacheTime }: SalesViewProps) {
+export function SalesView({ records, isLoading, onRefresh, onClearCache, lastCacheTime, members }: SalesViewProps) {
   const [search, setSearch] = useState('');
 
   const groupedRecords = useMemo(() => {
@@ -81,9 +83,7 @@ export function SalesView({ records, isLoading, onRefresh, onClearCache, lastCac
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <button onClick={onRefresh} disabled={isLoading} className="flex flex-col items-center justify-center px-4 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-            <span>強制更新</span><span className="text-[10px] opacity-70">(重抓前1000筆)</span>
-          </button>
+          <RefreshButton onClick={onRefresh} isLoading={isLoading} variant="toolbar" />
           <button onClick={onClearCache} className="flex flex-col items-center justify-center px-4 py-1.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors">
             <span>清除快取</span><span className="text-[10px] opacity-70">(清空版面資料)</span>
           </button>
@@ -120,8 +120,8 @@ export function SalesView({ records, isLoading, onRefresh, onClearCache, lastCac
                   </div>
                   <div className="h-4 w-px bg-slate-200 mx-1"></div>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-400 text-xs">客戶電話：</span>
-                    <span className="font-mono font-medium text-slate-700 bg-white px-2 py-0.5 border border-slate-200 rounded text-sm">{first.phone || '無電話'}</span>
+                    {first.phone && (() => { const m = members.find(mb => String(mb.phone) === String(first.phone)); return m ? <span className="text-sm font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg">{m.name}</span> : null; })()}
+                    <span className="font-mono font-medium text-slate-500 bg-white px-2 py-0.5 border border-slate-200 rounded text-sm">{first.phone || '無電話'}</span>
                   </div>
                 </div>
                 <div>
