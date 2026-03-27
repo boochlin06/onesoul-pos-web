@@ -266,7 +266,7 @@ export function CheckoutView({
                   <td className="px-1 py-2"><input type="text" className={inp + ' text-xs font-mono text-slate-600 !w-24 !min-w-[5rem] !px-1'} placeholder="輸入貨號" value={item.id} onChange={e => updateMerch(idx, 'id', e.target.value)} /></td>
                   <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.quantity} onChange={e => updateMerch(idx, 'quantity', Number(e.target.value))} /></td>
                   <td className="px-1 py-2">
-                    <select className={`${inp} text-xs font-bold !w-16 !min-w-[4rem] !px-1 ${item.paymentType === '現金' ? 'text-rose-700' : item.paymentType === '點數' ? 'text-indigo-700' : 'text-emerald-700'}`} value={item.paymentType} onChange={e => updateMerch(idx, 'paymentType', e.target.value as '現金'|'點數'|'贈送')}>
+                    <select className={`${inp} text-xs font-bold !w-16 !min-w-[4rem] !px-1 ${item.paymentType === '現金' ? 'text-rose-700' : item.paymentType === '點數' ? 'text-indigo-700' : 'text-emerald-700'}`} value={item.paymentType} onChange={e => updateMerch(idx, 'paymentType', e.target.value as '現金' | '點數' | '贈送')}>
                       {!item.isGk && <option>現金</option>}
                       <option>點數</option>
                       <option>贈送</option>
