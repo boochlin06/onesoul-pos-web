@@ -211,7 +211,7 @@ export function CheckoutView({
                   <td className="px-1 py-2"><input type="text" className={inp + ' text-center text-amber-700 font-bold text-xs !w-12 !min-w-[3rem] !px-1'} placeholder="A/1/Z" value={item.prize} onChange={e => updateLottery(idx, 'prize', e.target.value)} /></td>
                   <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.draws} onChange={e => updateLottery(idx, 'draws', Number(e.target.value))} /></td>
                   <td className="px-1 py-2">
-                    <select className={inp + ' text-amber-700 font-bold min-w-[5rem]'} value={item.type} onChange={e => updateLottery(idx, 'type', e.target.value)}>
+                    <select className={`${inp} font-bold min-w-[5rem] ${item.type === '帶走' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-indigo-700 bg-indigo-50 border-indigo-300'}`} value={item.type} onChange={e => updateLottery(idx, 'type', e.target.value)}>
                       <option>帶走</option><option>點數</option>
                     </select>
                   </td>

@@ -2,11 +2,12 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, ClipboardList, Receipt, Loader2, Trash2, Archive, MessageSquare, AlertCircle } from 'lucide-react';
 import { useStickyState } from '../../hooks/useStickyState';
 import { Pagination } from '../ui/Pagination';
-import type { Branch, DailySalesEntry } from '../../types';
+import type { Branch, DailySalesEntry, MemberEntry } from '../../types';
 
 interface DailySalesViewProps {
   branch: Branch;
   records: DailySalesEntry[];
+  members: MemberEntry[];
   isLoading: boolean;
   onDelete: (uid: string) => void;
   openingCash: number | null;
@@ -14,7 +15,7 @@ interface DailySalesViewProps {
   readOnly?: boolean;
 }
 
-export function DailySalesView({ branch, records, isLoading, onDelete, openingCash, onSetOpeningCash, readOnly = false }: DailySalesViewProps) {
+export function DailySalesView({ branch, records, members, isLoading, onDelete, openingCash, onSetOpeningCash, readOnly = false }: DailySalesViewProps) {
   const [search, setSearch] = useState('');
   const [uiMode, setUiMode] = useStickyState<'classic' | 'audit'>('audit', 'pos_daily_ui_mode');
   const [voidConfirmUid, setVoidConfirmUid] = useState<string | null>(null);
@@ -200,6 +201,7 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
                   <div className="flex items-center gap-2">
                     <span className="text-slate-400 text-xs">客戶電話：</span>
                     <span className="font-mono font-medium text-slate-700 bg-white px-2 py-0.5 border border-slate-200 rounded text-sm">{first.phone || '無電話'}</span>
+                    {first.phone && (() => { const m = members.find(mb => String(mb.phone) === String(first.phone)); return m ? <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded ml-1">{m.name}</span> : null; })()}
                   </div>
                 </div>
               </div>
@@ -337,7 +339,10 @@ export function DailySalesView({ branch, records, isLoading, onDelete, openingCa
               <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-4 mb-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">客戶電話</span>
-                  <span className="font-mono font-bold text-slate-800 text-lg">{voidFirst?.phone || '未知'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-slate-800 text-lg">{voidFirst?.phone || '未知'}</span>
+                    {voidFirst?.phone && (() => { const m = members.find(mb => String(mb.phone) === String(voidFirst.phone)); return m ? <span className="text-xs font-medium text-indigo-600">{m.name}</span> : null; })()}
+                  </div>
                 </div>
                 {voidFirst?.date && (
                   <div className="flex items-center justify-between">
