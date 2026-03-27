@@ -19,6 +19,8 @@ const sheetTodaySalesRecord = "當日結帳紀錄";
 const sheetTodaySalesRecordChupei = "當日結帳紀錄";
 const sheetTodaySalesRecordJinsang = "當日結帳紀錄-金山";
 const sheetBlindBoxDB = "盲盒資料庫";
+const sheetCloseDayLog = "開關帳紀錄";
+const sheetVoidSetLog = "廢套紀錄";
 
 // ── Spreadsheet IDs ──
 const appBackground = "1Dc_vjyCcl3_wjA1_IQssVEKTBA7sqJAjNgR3sSx-OSk";
