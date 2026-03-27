@@ -211,7 +211,7 @@ export function CheckoutView({
                   <td className="px-1 py-2"><input type="text" className={inp + ' text-center text-amber-700 font-bold text-xs !w-12 !min-w-[3rem] !px-1'} placeholder="A/1/Z" value={item.prize} onChange={e => updateLottery(idx, 'prize', e.target.value)} /></td>
                   <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.draws} onChange={e => updateLottery(idx, 'draws', Number(e.target.value))} /></td>
                   <td className="px-1 py-2">
-                    <select className={`${inp} font-bold min-w-[5rem] ${item.type === '帶走' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-indigo-700 bg-indigo-50 border-indigo-300'}`} value={item.type} onChange={e => updateLottery(idx, 'type', e.target.value)}>
+                    <select className={`${inp} font-bold min-w-[5rem] ${item.type === '帶走' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' : '!text-indigo-700 !bg-indigo-50 !border-indigo-300'}`} value={item.type} onChange={e => updateLottery(idx, 'type', e.target.value)}>
                       <option>帶走</option><option>點數</option>
                     </select>
                   </td>
@@ -266,7 +266,7 @@ export function CheckoutView({
                   <td className="px-1 py-2"><input type="text" className={inp + ' text-xs font-mono text-slate-600 !w-24 !min-w-[5rem] !px-1'} placeholder="輸入貨號" value={item.id} onChange={e => updateMerch(idx, 'id', e.target.value)} /></td>
                   <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.quantity} onChange={e => updateMerch(idx, 'quantity', Number(e.target.value))} /></td>
                   <td className="px-1 py-2">
-                    <select className={`${inp} text-xs font-bold !w-16 !min-w-[4rem] !px-1 ${item.paymentType === '現金' ? 'text-rose-700' : item.paymentType === '點數' ? 'text-indigo-700' : 'text-emerald-700'}`} value={item.paymentType} onChange={e => updateMerch(idx, 'paymentType', e.target.value as '現金' | '點數' | '贈送')}>
+                    <select className={`${inp} text-xs font-bold !w-16 !min-w-[4rem] !px-1 ${item.paymentType === '現金' ? '!text-rose-700 !bg-rose-50 !border-rose-300' : item.paymentType === '點數' ? '!text-indigo-700 !bg-indigo-50 !border-indigo-300' : '!text-emerald-700 !bg-emerald-50 !border-emerald-300'}`} value={item.paymentType} onChange={e => updateMerch(idx, 'paymentType', e.target.value as '現金' | '點數' | '贈送')}>
                       {!item.isGk && <option>現金</option>}
                       <option>點數</option>
                       <option>贈送</option>

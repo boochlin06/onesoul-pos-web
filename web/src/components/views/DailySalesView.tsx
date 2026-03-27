@@ -199,9 +199,8 @@ export function DailySalesView({ branch, records, members, isLoading, onDelete, 
                   </div>
                   <div className="h-4 w-px bg-slate-200 mx-1"></div>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-400 text-xs">客戶電話：</span>
-                    <span className="font-mono font-medium text-slate-700 bg-white px-2 py-0.5 border border-slate-200 rounded text-sm">{first.phone || '無電話'}</span>
-                    {first.phone && (() => { const m = members.find(mb => String(mb.phone) === String(first.phone)); return m ? <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded ml-1">{m.name}</span> : null; })()}
+                    {first.phone && (() => { const m = members.find(mb => String(mb.phone) === String(first.phone)); return m ? <span className="text-sm font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg">{m.name}</span> : null; })()}
+                    <span className="font-mono font-medium text-slate-500 bg-white px-2 py-0.5 border border-slate-200 rounded text-sm">{first.phone || '無電話'}</span>
                   </div>
                 </div>
               </div>
