@@ -62,34 +62,30 @@ function 結帳() {
     }
   }
 
-  // 驗證點數充足並更新
-  var success = false;
-  var newPoints = 0;
-  try {
-    if (memberPoint + totalCheckPoint - costToPayPoint < 0) {
-      showErrorMessage('客戶點數不足');
-      return;
-    } else {
-      newPoints = updateMemberPointsByPhone(phoneNumbers, memberPoint + totalCheckPoint - costToPayPoint);
-      if (newPoints == memberPoint + totalCheckPoint - costToPayPoint) {
-        success = true;
-      } else {
-        showErrorMessage(phoneNumbers + '-結帳失敗');
-        return;
-      }
-    }
-  } catch (error) {
-    showErrorMessage('發生異常: ' + error.toString());
-    return;
-  }
-
-  // 寫入當日銷售紀錄（加鎖防止同時結帳導致行號衝突）
+  // ★ 單一 ScriptLock 包覆：點數更新 + 銷售紀錄寫入，確保原子性
   var tempApp = SpreadsheetApp.openById(appBackground);
   var tempTodaySalesSheet = tempApp.getSheetByName(sheetTodaySalesRecordChupei);
 
+  var success = false;
+  var newPoints = 0;
   var writeLock = LockService.getScriptLock();
   try {
     writeLock.waitLock(30000);
+
+    // 驗證點數充足並更新（已持有鎖，用 _addPointsUnsafe 避免雙重拿鎖）
+    var pointsDelta = totalCheckPoint - costToPayPoint;
+    newPoints = _addPointsUnsafe(phoneNumbers, pointsDelta);
+    if (newPoints >= 0) {
+      success = true;
+    } else if (newPoints == -2) {
+      showErrorMessage('客戶點數不足');
+      return;
+    } else {
+      showErrorMessage(phoneNumbers + '-結帳失敗');
+      return;
+    }
+
+    // 寫入當日銷售紀錄
     var lastRow = tempTodaySalesSheet.getLastRow();
     var newData = targetData.map(function(row, index) {
       return index === 0 ? row.concat(saleMethodValues[0]).concat(totalCheckPoint - costToPayPoint) : row.concat(["", "", "", "", "", "", ""]);
@@ -98,7 +94,8 @@ function 結帳() {
     tempTodaySalesSheet.getRange(lastRow + 1, 1, newData.length, newData[0].length).setBorder(true, false, true, false, false, false);
   } catch (error) {
     console.error(error);
-    showErrorMessage('寫入資料時發生異常');
+    showErrorMessage('結帳時發生異常: ' + error.toString());
+    return;
   } finally {
     writeLock.releaseLock();
   }

@@ -37,7 +37,11 @@ function deleteTodaySaleRecord() {
     }
   });
 
+  // ★ 加鎖：標記刪除 + 退點必須是原子操作
+  var lock = LockService.getScriptLock();
   try {
+    lock.waitLock(30000);
+
     // 標記刪除（紅底刪除線）
     for (var row in deletedRows) {
       sourceBackSheet.getRange(row, DAILY_SALE_COL.DELETE_FLAG + 1).setValue("Y");
@@ -45,10 +49,10 @@ function deleteTodaySaleRecord() {
       range.setFontLine("line-through").setBackground("red");
     }
 
-    // 退回點數
+    // ★ 退回點數：已持有 ScriptLock，用 _addPointsUnsafe 避免雙重拿鎖
     for (var phoneNumber in pointDeltas) {
       var delta = pointDeltas[phoneNumber];
-      var currentPoint = addMemberPointsByPhone(phoneNumber, -delta);
+      var currentPoint = _addPointsUnsafe(phoneNumber, -delta);
       if (currentPoint >= 0) {
         showErrorMessage("刪除 ID " + deleteId + " 成功，點數修正為：" + currentPoint);
       } else if (currentPoint === -2) {
@@ -67,6 +71,8 @@ function deleteTodaySaleRecord() {
     for (var row in deletedRows) {
       sourceBackSheet.getRange(row, DAILY_SALE_COL.DELETE_FLAG + 1).setValue("");
     }
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -154,16 +160,25 @@ function closeAccountBox() {
   var result = SpreadsheetApp.getUi().alert("關帳出貨資訊", message, SpreadsheetApp.getUi().ButtonSet.OK_CANCEL);
 
   if (result === SpreadsheetApp.getUi().Button.OK) {
-    var lock = LockService.getDocumentLock();
+    // ★ 改用 ScriptLock — 與 apiCheckout / apiDeleteDailySales 互斥
+    var lock = LockService.getScriptLock();
     if (lock.tryLock(30000)) {
       try {
-        // 寫入歷史銷售紀錄
+        // ★ 批次寫入歷史銷售紀錄（取代逐行 appendRow）
+        var rowsToMove = [];
         for (var i = 0; i < saleItems.length; i++) {
           var deleted = saleItems[i][DAILY_SALE_COL.DELETE_FLAG];
           if (deleted !== "Y") {
-            saleItems[i].push("竹北");
-            destSheet.appendRow(saleItems[i]);
+            var row = saleItems[i].slice(); // 複製避免修改原陣列
+            while (row.length < 25) row.push('');
+            if (!row[24]) row[24] = '竹北';
+            rowsToMove.push(row);
           }
+        }
+
+        if (rowsToMove.length > 0) {
+          var destLastRow = destSheet.getLastRow();
+          destSheet.getRange(destLastRow + 1, 1, rowsToMove.length, rowsToMove[0].length).setValues(rowsToMove);
         }
 
         // 清空當日銷售紀錄
@@ -178,7 +193,7 @@ function closeAccountBox() {
         lock.releaseLock();
       }
     } else {
-      SpreadsheetApp.getActive().toast("系統繁忙，無法取得檔案鎖定，請稍後再試！");
+      SpreadsheetApp.getActive().toast("系統繁忙，無法取得鎖定，請稍後再試！");
       return;
     }
   } else if (result === SpreadsheetApp.getUi().Button.CANCEL) {

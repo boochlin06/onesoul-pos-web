@@ -39,7 +39,6 @@ function 福袋入檔(source) {
     if (row[colDone] == "總成本") {
       success = true;
       startRow = i;
-      finalId = getMaxValueOfColumnA() + 1;
     }
 
     // 驗證套組完整性
@@ -73,6 +72,11 @@ function 福袋入檔(source) {
         try {
           lock.waitLock(30000);
           var lastRow = targetSheet.getLastRow();
+          var lastValue = targetSheet.getRange(lastRow, 1).getValue();
+          var actualFinalId = (typeof lastValue === 'number' && lastValue > 0) ? lastValue + 1 : 1;
+          for (var j = 0; j < lotterySet.length; j++) {
+            lotterySet[j][0] = actualFinalId;
+          }
           targetSheet.getRange(lastRow + 1, 1, lotterySet.length, lotterySet[0].length).setValues(lotterySet);
           targetSheet.getRange(lastRow + 1, 1, lotterySet.length, lotterySet[0].length).setBorder(true, false, true, false, false, false);
         } finally {
