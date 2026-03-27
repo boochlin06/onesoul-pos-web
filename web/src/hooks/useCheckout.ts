@@ -127,7 +127,8 @@ export function useCheckout({
     try {
       const totalReceived = payment.cash + payment.remittance + payment.creditCard;
       const payloadPayment = { ...payment, receivedAmount: totalReceived };
-      const res = await gasPost('checkout', { branch, customer, payment: payloadPayment, summary, lotteries: filteredLotteries, merchandises: filteredMerch, orderNote });
+      const { currentPoints: _unused, ...customerPayload } = customer;
+      const res = await gasPost('checkout', { branch, customer: customerPayload, payment: payloadPayment, summary, lotteries: filteredLotteries, merchandises: filteredMerch, orderNote });
       if (res.success) {
         showBanner(MSG.checkout.success(res.newPoints), 'ok');
         if (typeof res.newPoints !== 'undefined') {

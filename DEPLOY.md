@@ -374,6 +374,12 @@ export const MEMBER_AUTOCOMPLETE_LIMIT = 10;    // 會員搜尋顯示幾筆
 |------|----------------------|
 | **解法** | 用 `npx gh-pages -d dist` 代替（npx 會自動下載） |
 
+### `Branch "dev" is not allowed to deploy to github-pages`
+
+| 原因 | GitHub Pages 環境保護限定 `main` 分支才能部署 |
+|------|-----------------------------------------------|
+| **解法** | 先合併到 main 再推：`git checkout main && git merge dev && git push origin main && git checkout dev` |
+
 ---
 
 ## 11. 📌 快速指令速查表
@@ -390,14 +396,14 @@ export const MEMBER_AUTOCOMPLETE_LIMIT = 10;    // 會員搜尋顯示幾筆
 ### 完整部署流程（前後端都改了）
 
 ```bash
-# 1. 存檔到 git
-git add -A && git commit -m "你改了什麼" && git push
+# 1. 存檔到 git（dev 分支）
+git add -A && git commit -m "你改了什麼" && git push origin dev
 
-# 2. 部署後端
+# 2. 部署後端（GAS）
 clasp push && clasp deploy -i AKfycbyG4EO3XVIIUIyc05fwgktgcld-RMhdfxp9-ge9TZTLVcOUG_DGvD3wAnxYFneUuSR6
 
-# 3. 部署前端
-cd web && npm run build && npx gh-pages -d dist
+# 3. 合併到 main 並部署前端（GitHub Pages 只接受 main）
+git checkout main && git merge dev && git push origin main && git checkout dev
 ```
 
 ### 常見維護流程

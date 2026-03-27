@@ -157,8 +157,9 @@ function addMemberPointsByPhone(phoneNumber, pointsToAdd) {
 
     for (var i = 1; i < data.length; i++) {
       if (data[i][2] == phoneNumber) {
-        var currentPoints = data[i][6];
+        var currentPoints = Number(data[i][6]) || 0;
         var newPoints = currentPoints + pointsToAdd;
+        if (newPoints < 0) return -2; // 點數不足
         memberSheet.getRange("G" + (i + 1)).setValue(newPoints);
         return newPoints;
       }

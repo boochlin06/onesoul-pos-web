@@ -126,7 +126,7 @@ function apiCheckout(payload) {
     var orderNote = payload.orderNote || '';
     var totalCheckPoint = payload.summary.pointsChange || 0;
     var costToPayPoint = payment.pointsUsed || 0;
-    var memberPoint = payload.customer.currentPoints || 0;
+    var pointsDelta = totalCheckPoint - costToPayPoint; // 淨點數異動（相對值）
 
     var checkoutUID = phoneNumbers + "_" + Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd_HHmmss");
     var currentDate = Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd");
@@ -159,13 +159,10 @@ function apiCheckout(payload) {
       ]);
     }
 
-    var newPoints = memberPoint;
-    if (memberPoint + totalCheckPoint - costToPayPoint < 0) {
-      return { success: false, message: '客戶點數不足' };
-    } else {
-      newPoints = updateMemberPointsByPhone(phoneNumbers, memberPoint + totalCheckPoint - costToPayPoint);
-      if (newPoints == -1) return { success: false, message: '會員電話不存在或結帳失敗' };
-    }
+    // ★ 使用相對值加減，鎖內讀 DB 即時點數，防止 race condition
+    var newPoints = addMemberPointsByPhone(phoneNumbers, pointsDelta);
+    if (newPoints == -1) return { success: false, message: '會員電話不存在或結帳失敗' };
+    if (newPoints == -2) return { success: false, message: '客戶點數不足' };
 
     var tempApp = SpreadsheetApp.openById(appBackground);
     var targetSheetName = branch === '竹北' ? sheetTodaySalesRecordChupei : sheetTodaySalesRecordJinsang;
@@ -174,7 +171,7 @@ function apiCheckout(payload) {
     var lastRow = dailySheet.getLastRow();
     var saleMethodValues = [payment.receivedAmount, payment.remittance, payment.creditCard, payment.cash, payment.pointsUsed, orderNote];
     var newData = targetData.map(function(row, index) {
-      return index === 0 ? row.concat(saleMethodValues).concat(totalCheckPoint - costToPayPoint) : row.concat(["","","","","","",""]);
+      return index === 0 ? row.concat(saleMethodValues).concat(pointsDelta) : row.concat(["","","","","","",""]);
     });
     
     if (newData.length > 0) {
@@ -337,6 +334,7 @@ function apiDeletePrizeLibrary(branch, setId) {
       return { success: false, message: '找不到此編號對應的任何獎項' };
     }
     
+    rowsToDelete.sort(function(a, b) { return b - a; }); // 確保大→小，避免行號偏移
     for (var r = 0; r < rowsToDelete.length; r++) {
        sheet.deleteRow(rowsToDelete[r]);
     }
@@ -558,6 +556,7 @@ function apiDeleteDailySales(branch, checkoutUID) {
         }
       }
     }
+    rowsToDelete.sort(function(a, b) { return b - a; }); // 確保大→小，避免行號偏移
     for (var r = 0; r < rowsToDelete.length; r++) sheet.deleteRow(rowsToDelete[r]);
     return { success: true, message: '已作廢且點數已退回' };
   } catch(error) { return { success: false, message: error.toString() };
@@ -814,7 +813,13 @@ function verifyGoogleIdToken_(idToken) {
       return null;
     }
     
-    // 可選：驗證 audience
+    // 驗證 issuer（必須來自 Google）
+    if (payload.iss !== 'accounts.google.com' && payload.iss !== 'https://accounts.google.com') {
+      Logger.log('Token issuer invalid: ' + payload.iss);
+      return null;
+    }
+    
+    // 驗證 audience
     var expectedClientId = PropertiesService.getScriptProperties().getProperty('GOOGLE_CLIENT_ID');
     if (expectedClientId && payload.aud !== expectedClientId) {
       Logger.log('Token audience mismatch: expected=' + expectedClientId + ' got=' + payload.aud);
@@ -841,6 +846,15 @@ function apiMemberLogin(phone, birth) {
     if (!phone || !birth) {
       return { success: false, message: '電話和生日為必填' };
     }
+    
+    // ★ 速率限制：同一電話 60 秒內最多 5 次嘗試
+    var cache = CacheService.getScriptCache();
+    var rateKey = 'login_attempts_' + phone.toString().trim();
+    var attempts = parseInt(cache.get(rateKey) || '0');
+    if (attempts >= 5) {
+      return { success: false, message: '嘗試次數過多，請 1 分鐘後再試' };
+    }
+    cache.put(rateKey, (attempts + 1).toString(), 60);
 
     var memberSheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetMemberList);
     var memberData = memberSheet.getDataRange().getValues();
