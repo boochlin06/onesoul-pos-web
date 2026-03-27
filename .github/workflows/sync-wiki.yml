@@ -1,0 +1,46 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'wiki/**'
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare wiki pages
+        run: |
+          mkdir -p _wiki_out
+          # 複製 wiki 模板
+          cp wiki/Home.md wiki/_Sidebar.md _wiki_out/
+          # docs → wiki（重命名）
+          cp docs/介紹.md _wiki_out/專案介紹.md
+          cp docs/操作流程.md _wiki_out/操作流程.md
+          cp docs/DEPLOY.md _wiki_out/部署手冊.md
+          cp docs/更新日誌.md _wiki_out/更新日誌.md
+          cp docs/change.md _wiki_out/變更紀錄.md
+
+      - name: Push to wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git _wiki_repo
+          cp _wiki_out/* _wiki_repo/
+          cd _wiki_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki is up to date"
+          else
+            git commit -m "docs: auto-sync wiki from docs/"
+            git push
+          fi
