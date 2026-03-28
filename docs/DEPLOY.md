@@ -198,7 +198,7 @@ git push
 
 ```bash
 # 在專案根目錄（不是 web/ 裡面）執行
-clasp push && clasp deploy -i AKfycbyG4EO3XVIIUIyc05fwgktgcld-RMhdfxp9-ge9TZTLVcOUG_DGvD3wAnxYFneUuSR6
+clasp push && clasp deploy -i AKfycbz7G3Vz5MG6EKM3Xh2nmEL_ksjZhL-F3HKkzyMgvjyssUkW0fZWc48-NEtwqG7Z7i5b
 ```
 
 | 指令 | 做什麼 |
@@ -403,7 +403,7 @@ export const MEMBER_AUTOCOMPLETE_LIMIT = 10;    // 會員搜尋顯示幾筆
 git add -A && git commit -m "你改了什麼" && git push origin dev
 
 # 2. 部署後端（GAS）
-clasp push && clasp deploy -i AKfycbyG4EO3XVIIUIyc05fwgktgcld-RMhdfxp9-ge9TZTLVcOUG_DGvD3wAnxYFneUuSR6
+clasp push && clasp deploy -i AKfycbz7G3Vz5MG6EKM3Xh2nmEL_ksjZhL-F3HKkzyMgvjyssUkW0fZWc48-NEtwqG7Z7i5b
 
 # 3. 合併到 main 並部署前端（GitHub Pages 只接受 main）
 git checkout main && git merge dev && git push origin main && git checkout dev
