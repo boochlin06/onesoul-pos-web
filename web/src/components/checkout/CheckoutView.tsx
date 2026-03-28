@@ -17,6 +17,7 @@ export interface CheckoutViewProps {
   branch: Branch;
   prizes: PrizeEntry[];
   stocks: StockEntry[];
+  allStocks: StockEntry[];
   blindBoxes: BlindBoxEntry[];
   members: MemberEntry[];
   setMembers: React.Dispatch<React.SetStateAction<MemberEntry[]>>;
@@ -26,7 +27,7 @@ export interface CheckoutViewProps {
 }
 
 export function CheckoutView({
-  branch, prizes, stocks, blindBoxes, members, setMembers, fetchMembers, showBanner, setActiveTab,
+  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner, setActiveTab,
 }: CheckoutViewProps) {
   const {
     customer, setCustomer,
@@ -38,7 +39,7 @@ export function CheckoutView({
     merchandises, addMerchRow, removeMerchRow, updateMerch,
     summary, orderNote, setOrderNote,
     handleResetCheckout, handleCheckout,
-  } = useCheckout({ branch, prizes, stocks, blindBoxes, members, setMembers, fetchMembers, showBanner });
+  } = useCheckout({ branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner });
 
   const [viewMode, setViewMode] = useStickyState<'classic' | 'card'>('classic', 'os_checkout_viewmode');
 

@@ -14,6 +14,7 @@ interface UseCheckoutDeps {
   branch: Branch;
   prizes: PrizeEntry[];
   stocks: StockEntry[];
+  allStocks: StockEntry[];
   blindBoxes: BlindBoxEntry[];
   members: MemberEntry[];
   setMembers: React.Dispatch<React.SetStateAction<MemberEntry[]>>;
@@ -22,7 +23,7 @@ interface UseCheckoutDeps {
 }
 
 export function useCheckout({
-  branch, prizes, stocks, blindBoxes, members, setMembers, fetchMembers, showBanner,
+  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner,
 }: UseCheckoutDeps) {
   const [customer, setCustomer] = useStickyState(
     { phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 },
@@ -84,10 +85,10 @@ export function useCheckout({
   const updateMerch = useCallback((index: number, field: keyof MerchItem, value: unknown) => {
     setMerchandises(prev => {
       const list = [...prev];
-      list[index] = applyMerchUpdate(list[index], field, value, stocks, blindBoxes);
+      list[index] = applyMerchUpdate(list[index], field, value, stocks, blindBoxes, allStocks, branch);
       return list;
     });
-  }, [stocks, blindBoxes]);
+  }, [stocks, blindBoxes, allStocks, branch]);
 
   // ── Phone Lookup ──
   const handlePhoneKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLInputElement>) => {

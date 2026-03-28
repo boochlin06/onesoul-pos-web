@@ -20,6 +20,18 @@ export function useStocks(branch: Branch) {
   return { stocks, loadingStocks, fetchStocks };
 }
 
+export function useAllStocks() {
+  const [allStocks, setAllStocks] = useState<StockEntry[]>([]);
+
+  const fetchAllStocks = useCallback(() => {
+    gasPost('getStockList', { branch: '全部' })
+      .then(res => { if (res.success && res.data) setAllStocks(res.data); })
+      .catch(e => console.error('[useAllStocks] fetch failed:', e));
+  }, []);
+
+  return { allStocks, fetchAllStocks };
+}
+
 export function useBlindBoxes() {
   const [blindBoxes, setBlindBoxes] = useState<BlindBoxEntry[]>([]);
   const [loadingBlindBox, setLoadingBlindBox] = useState(false);

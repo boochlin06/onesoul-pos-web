@@ -239,57 +239,97 @@ describe('applyLotteryUpdate', () => {
 // applyMerchUpdate
 // ═══════════════════════════════════════════════════
 describe('applyMerchUpdate', () => {
+  // 全門市庫存（包含跨店商品）
+  const allStocks = [
+    ...stocks,
+    makeStock('CROSS001', { branch: '金山', category: 'card' }),
+    makeStock('CROSS_GK', { branch: '金山', category: 'GK限定' }),
+  ];
+  const currentBranch = '竹北';
+
   it('id 命中 stock → 帶入名稱 + points', () => {
-    const result = applyMerchUpdate(emptyMerch(), 'id', '100065', stocks, blindBoxes);
+    const result = applyMerchUpdate(emptyMerch(), 'id', '100065', stocks, blindBoxes, allStocks, currentBranch);
     expect(result.name).toBe('商品100065');
     expect(result.suggestedPoints).toBe(5);
   });
 
   it('GK 類商品自動切 paymentType=點數', () => {
-    const result = applyMerchUpdate(emptyMerch(), 'id', 'GK001', stocks, blindBoxes);
+    const result = applyMerchUpdate(emptyMerch(), 'id', 'GK001', stocks, blindBoxes, allStocks, currentBranch);
     expect(result.isGk).toBe(true);
     expect(result.paymentType).toBe('點數');
   });
 
   it('id 命中 blindBox → 帶入名稱 + manualPrice', () => {
-    const result = applyMerchUpdate(emptyMerch(), 'id', 'BB001', stocks, blindBoxes);
+    const result = applyMerchUpdate(emptyMerch(), 'id', 'BB001', stocks, blindBoxes, allStocks, currentBranch);
     expect(result.name).toBe('盲盒BB001');
     expect(result.unitAmount).toBe(200);
   });
 
   it('88888 手動加點', () => {
-    const result = applyMerchUpdate(emptyMerch(), 'id', '88888', stocks, blindBoxes);
+    const result = applyMerchUpdate(emptyMerch(), 'id', '88888', stocks, blindBoxes, allStocks, currentBranch);
     expect(result.name).toBe('手動加點 (隨便加)');
     expect(result.paymentType).toBe('贈送');
     expect(result.remark).toBe('補點');
   });
 
   it('99999 手動扣點', () => {
-    const result = applyMerchUpdate(emptyMerch(), 'id', '99999', stocks, blindBoxes);
+    const result = applyMerchUpdate(emptyMerch(), 'id', '99999', stocks, blindBoxes, allStocks, currentBranch);
     expect(result.name).toBe('手動扣點 (隨便扣)');
     expect(result.paymentType).toBe('贈送');
   });
 
   it('paymentType=現金 → actualAmount = quantity * unitAmount', () => {
-    let item = applyMerchUpdate(emptyMerch(), 'id', 'BB001', stocks, blindBoxes);
-    item = applyMerchUpdate(item, 'quantity', 3, stocks, blindBoxes);
-    item = applyMerchUpdate(item, 'paymentType', '現金', stocks, blindBoxes);
+    let item = applyMerchUpdate(emptyMerch(), 'id', 'BB001', stocks, blindBoxes, allStocks, currentBranch);
+    item = applyMerchUpdate(item, 'quantity', 3, stocks, blindBoxes, allStocks, currentBranch);
+    item = applyMerchUpdate(item, 'paymentType', '現金', stocks, blindBoxes, allStocks, currentBranch);
     expect(item.actualAmount).toBe(600); // 3 * 200
   });
 
   it('paymentType=點數 → totalPoints = quantity * suggestedPoints', () => {
-    let item = applyMerchUpdate(emptyMerch(), 'id', '100065', stocks, blindBoxes);
-    item = applyMerchUpdate(item, 'quantity', 2, stocks, blindBoxes);
-    item = applyMerchUpdate(item, 'paymentType', '點數', stocks, blindBoxes);
+    let item = applyMerchUpdate(emptyMerch(), 'id', '100065', stocks, blindBoxes, allStocks, currentBranch);
+    item = applyMerchUpdate(item, 'quantity', 2, stocks, blindBoxes, allStocks, currentBranch);
+    item = applyMerchUpdate(item, 'paymentType', '點數', stocks, blindBoxes, allStocks, currentBranch);
     expect(item.totalPoints).toBe(10); // 2 * 5
     expect(item.actualAmount).toBe(0);
   });
 
   it('paymentType=贈送 → 全部歸零', () => {
-    let item = applyMerchUpdate(emptyMerch(), 'id', '100065', stocks, blindBoxes);
-    item = applyMerchUpdate(item, 'paymentType', '贈送', stocks, blindBoxes);
+    let item = applyMerchUpdate(emptyMerch(), 'id', '100065', stocks, blindBoxes, allStocks, currentBranch);
+    item = applyMerchUpdate(item, 'paymentType', '贈送', stocks, blindBoxes, allStocks, currentBranch);
     expect(item.actualAmount).toBe(0);
     expect(item.totalPoints).toBe(0);
+  });
+
+  // ── 跨店 fallback 測試 ──
+  it('本店查無但 allStocks 有 → 帶入名稱 + 備註標注門市', () => {
+    const result = applyMerchUpdate(emptyMerch(), 'id', 'CROSS001', stocks, blindBoxes, allStocks, currentBranch);
+    expect(result.name).toBe('商品CROSS001');
+    expect(result.suggestedPoints).toBe(5);
+    expect(result.remark).toBe('在金山店');
+  });
+
+  it('跨店 GK 商品自動切 paymentType=點數 + 備註門市', () => {
+    const result = applyMerchUpdate(emptyMerch(), 'id', 'CROSS_GK', stocks, blindBoxes, allStocks, currentBranch);
+    expect(result.isGk).toBe(true);
+    expect(result.paymentType).toBe('點數');
+    expect(result.remark).toBe('在金山店');
+  });
+
+  it('本店有的商品不加跨店備註', () => {
+    const result = applyMerchUpdate(emptyMerch(), 'id', '100065', stocks, blindBoxes, allStocks, currentBranch);
+    expect(result.remark).toBe(''); // 原始 remark，不加跨店標記
+  });
+
+  it('兩邊都查無 → fallback blindBox', () => {
+    const result = applyMerchUpdate(emptyMerch(), 'id', 'BB001', stocks, blindBoxes, allStocks, currentBranch);
+    expect(result.name).toBe('盲盒BB001');
+    expect(result.unitAmount).toBe(200);
+  });
+
+  it('所有來源都查無 → 不帶入任何資料', () => {
+    const result = applyMerchUpdate(emptyMerch(), 'id', 'NOTEXIST', stocks, blindBoxes, allStocks, currentBranch);
+    expect(result.name).toBe('');
+    expect(result.remark).toBe('');
   });
 });
 

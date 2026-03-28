@@ -20,9 +20,8 @@
 3. 確認 `web/src/App.tsx` 中的 `GAS_URL` 指向您的部署網址。
 
 ### 後端 (Google Apps Script)
-1. 將根目錄下的 `.js` 檔案內容貼入 Google Apps Script 編輯器中的 `.gs` 檔案。
-2. 定義腳本中使用的工作表名稱變數（已在 `gas_backend_changes.md` 中整理）。
-3. 使用「新增部署」發布為 Web App。
+1. 在專案根目錄執行 `npm run push:dev` 會部署到開發版 GAS，執行 `npm run push:prod` 會部署到正式版 GAS。
+2. 系統會自動切換對應的環境變數及資料庫（受 `ScriptProperties` 的 `APP_BACKGROUND_ID` 控制）。
 
 ## 🌟 主要功能亮點
 - **交易群組化顯示**：不論是當日銷售或歷史紀錄，系統都會自動根據 `ID` (checkoutUID) 將多個品項群組化為單一交易卡片，並醒目顯示交易 ID。

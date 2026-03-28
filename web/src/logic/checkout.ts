@@ -94,6 +94,8 @@ export function applyMerchUpdate(
   value: unknown,
   stocks: StockEntry[],
   blindBoxes: BlindBoxEntry[],
+  allStocks: StockEntry[] = [],
+  branch: string = '',
 ): MerchItem {
   const updated = { ...item, [field]: value } as MerchItem;
 
@@ -110,8 +112,20 @@ export function applyMerchUpdate(
         updated.isGk = stockEntry.category.toLowerCase().includes('gk');
         if (updated.isGk && updated.paymentType === '現金') updated.paymentType = '點數';
       } else {
-        const bb = blindBoxes.find(b => b.id === String(value));
-        if (bb) { updated.name = bb.name; updated.suggestedPoints = bb.points; updated.unitAmount = bb.manualPrice; updated.remark = bb.remark; updated.isGk = false; }
+        // ★ 跨店 fallback：查全門市貨品
+        const crossEntry = allStocks.find(s => s.id === String(value));
+        if (crossEntry) {
+          updated.name = crossEntry.name; updated.suggestedPoints = crossEntry.points;
+          updated.unitAmount = 0;
+          updated.isGk = crossEntry.category.toLowerCase().includes('gk');
+          if (updated.isGk && updated.paymentType === '現金') updated.paymentType = '點數';
+          // 備註標注所在門市
+          const otherBranch = crossEntry.branch || '';
+          updated.remark = otherBranch && otherBranch !== branch ? `在${otherBranch}店` : crossEntry.remark;
+        } else {
+          const bb = blindBoxes.find(b => b.id === String(value));
+          if (bb) { updated.name = bb.name; updated.suggestedPoints = bb.points; updated.unitAmount = bb.manualPrice; updated.remark = bb.remark; updated.isGk = false; }
+        }
       }
     }
   }

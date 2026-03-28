@@ -1,8 +1,14 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { gasPost } from '../services/api';
 
+// mock getIdToken 避免 sessionStorage 依賴
+vi.mock('../hooks/useAuth', () => ({ getIdToken: () => 'fake-token' }));
+
 // ── Setup ──
-const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFetch = vi.fn() as ReturnType<typeof vi.fn>;
+globalThis.fetch = mockFetch;
 
 beforeEach(() => {
   mockFetch.mockReset();

@@ -9,7 +9,7 @@ import { useBanner } from './hooks/useBanner';
 import { useMembers, useMemberHistory } from './hooks/useMembers';
 import { usePrizes } from './hooks/usePrizes';
 import { useDailySales, useSalesRecords } from './hooks/useSales';
-import { useStocks, useBlindBoxes } from './hooks/useInventory';
+import { useStocks, useAllStocks, useBlindBoxes } from './hooks/useInventory';
 import { StatusBanner } from './components/ui/StatusBanner';
 import { ClosingModal } from './components/checkout/ClosingModal';
 import { VoidPrizeModal } from './components/checkout/VoidPrizeModal';
@@ -63,6 +63,7 @@ function PosApp() {
   const prizes = usePrizes({ branch, showBanner });
   const { stocks, loadingStocks, fetchStocks } = useStocks(branch);
   const { blindBoxes, loadingBlindBox, fetchBlindBoxes } = useBlindBoxes();
+  const { allStocks, fetchAllStocks } = useAllStocks();
   const daily = useDailySales({ branch, showBanner, fetchMembers });
   const sales = useSalesRecords({ showBanner });
   const history = useMemberHistory({ showBanner });
@@ -75,6 +76,7 @@ function PosApp() {
     fetchMembers();
     fetchStocks();
     fetchBlindBoxes();
+    fetchAllStocks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.isAuthenticated]);
 
@@ -181,6 +183,7 @@ function PosApp() {
             branch={branch}
             prizes={prizes.prizes}
             stocks={stocks}
+            allStocks={allStocks}
             blindBoxes={blindBoxes}
             members={members}
             setMembers={setMembers}
