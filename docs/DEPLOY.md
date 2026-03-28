@@ -189,6 +189,8 @@ git push
 
 ## 5. 🔧 後端部署到 Google Apps Script
 
+現在系統分為**開發版 (Dev)** 與**正式版 (Prod)**，兩個環境對應不同的 GAS 專案與資料表。
+
 ### 什麼時候需要部署後端？
 
 - 改了 `web_api.js`、`services.js`、`main.js` 等根目錄的 `.js` 檔案
@@ -196,15 +198,20 @@ git push
 
 ### 部署步驟（1 行指令）
 
+已經將發佈指令封裝寫入 `package.json`，請在 **專案根目錄** 執行：
+
 ```bash
-# 在專案根目錄（不是 web/ 裡面）執行
-clasp push && clasp deploy -i AKfycbz7G3Vz5MG6EKM3Xh2nmEL_ksjZhL-F3HKkzyMgvjyssUkW0fZWc48-NEtwqG7Z7i5b
+# 推送到 開發版 (Dev) - 供測試用
+npm run push:dev
+
+# 推送到 正式版 (Prod) - 供正式環境用
+npm run push:prod
 ```
 
 | 指令 | 做什麼 |
 |------|--------|
-| `clasp push` | 把 .js 檔案上傳到 GAS |
-| `clasp deploy -i xxx` | 更新線上部署版本（`-i` 後面是部署 ID，固定不變） |
+| `npm run push:dev` | 自動切換為 `.clasp-dev.json`、推送程式碼並建立新版 Deploy |
+| `npm run push:prod`| 自動切換為 `.clasp-prod.json`、推送程式碼並建立新版 Deploy |
 
 > ⚠️ `clasp push` 只會推 `.js` / `.html` / `.json` 檔案，`web/` 資料夾不受影響。
 
@@ -392,20 +399,21 @@ export const MEMBER_AUTOCOMPLETE_LIMIT = 10;    // 會員搜尋顯示幾筆
 | 我想要... | 指令 | 在哪裡跑 |
 |----------|------|---------|
 | 本機開發測試 | `npm run dev` | `web/` |
-| 部署前端到 GitHub Pages | `npm run build && npx gh-pages -d dist` | `web/` |
-| 部署後端到 GAS | `clasp push && clasp deploy -i AKfycby...` | 根目錄 |
+| 部署前端到 GitHub Pages | 只要推送到 `main` 分支，GitHub Actions 會自動部署 | 根目錄 |
+| 部署後端到 GAS (開發版) | `npm run push:dev` | 根目錄 |
+| 部署後端到 GAS (正式版) | `npm run push:prod` | 根目錄 |
 | 存檔到 git | `git add -A && git commit -m "說明" && git push` | 根目錄 |
 
-### 完整部署流程（前後端都改了）
+### 完整部署流程（開發完成要上線）
 
 ```bash
-# 1. 存檔到 git（dev 分支）
+# 1. 存檔到 git（在 dev 分支）
 git add -A && git commit -m "你改了什麼" && git push origin dev
 
-# 2. 部署後端（GAS）
-clasp push && clasp deploy -i AKfycbz7G3Vz5MG6EKM3Xh2nmEL_ksjZhL-F3HKkzyMgvjyssUkW0fZWc48-NEtwqG7Z7i5b
+# 2. 部署後端（推到 Prod）
+npm run push:prod
 
-# 3. 合併到 main 並部署前端（GitHub Pages 只接受 main）
+# 3. 部署前端（合併到 main 觸發自動部署）
 git checkout main && git merge dev && git push origin main && git checkout dev
 ```
 
@@ -413,122 +421,39 @@ git checkout main && git merge dev && git push origin main && git checkout dev
 
 | 情境 | 要做的事 |
 |------|---------|
-| **新增員工帳號** | ① 改 `config.ts` → ② 改 GAS `ALLOWED_EMAILS` → ③ 部署前端 |
-| **改價格/開套參數** | ① 改 `config.ts` → ② 部署前端 |
-| **修改後端 API 邏輯** | ① 改 `.js` 檔 → ② `clasp push && clasp deploy` |
-| **改客戶面頁面** | ① 改 `web/src/pages/customer/` → ② 部署前端 |
-| **切換到正式 Sheet** | 見第 12 節 |
+| **新增員工帳號** | ① 改 `config.ts` → ② 改 GAS `ALLOWED_EMAILS` → ③ 合併到 `main` 部署前端 |
+| **改價格/開套參數** | ① 改 `config.ts` → ② 合併到 `main` 部署前端 |
+| **修改後端 API 邏輯** | ① 改 `.js` 檔 → ② `npm run push:dev` 測試 → ③ `npm run push:prod` |
+| **改客戶面頁面** | ① 改 `web/src/pages/customer/` → ② 合併到 `main` 部署前端 |
 
 ---
 
-## 12. 🔄 遷移到正式 Google Sheet
+## 12. 🌍 多環境配置 (Dev vs Prod)
 
-> 如果你目前用的是測試 Sheet，準備要切換到店員真正在用的正式 Sheet，照以下步驟操作。
+為了讓同一個程式碼庫能夠乾淨地支援開發與正式兩個環境，我們使用了 `ScriptProperties` 動態決定資料庫來源，並透過 GitHub Actions 分離前端部署。
 
-### 事前確認清單
+### 12.1 後端資料庫分離 (APP_BACKGROUND_ID)
 
-在開始之前，請確認正式 Sheet 滿足以下條件：
-
-- [ ] 工作表（Tab）名稱和測試 Sheet **完全相同**（例如：`銷售紀錄`、`會員資料庫`、`獎品資料庫` 等）
-- [ ] 每個工作表的**欄位順序**（A, B, C...）和測試 Sheet 一致
-- [ ] 你有正式 Sheet 的**編輯權限**
-
-> ⚠️ 如果正式 Sheet 的 tab 名稱或欄位結構不一樣，需要先手動調整成跟測試 Sheet 一樣的格式，否則 API 會壞掉。
-
-### 步驟 1：取得正式 Sheet 的 Script ID
-
-1. 打開正式 Google Sheet
-2. 上方選單 →「**延伸功能**」→「**Apps Script**」
-3. 瀏覽器會跳到 GAS 編輯器，看**網址列**：
-
+在 `config.js` 中，我們設定了：
+```javascript
+const appBackground = SCRIPT_PROP.getProperty('APP_BACKGROUND_ID') || "1Dc_vjyCcl3_wjA1_IQssVEKTBA7sqJAjNgR3sSx-OSk";
 ```
-https://script.google.com/d/【這段就是 Script ID】/edit
-```
+這代表：
+- **正式環境 GAS**：需要在專案設定的 Script Properties 中，手動加入一組 `APP_BACKGROUND_ID`，並填入正式 Sheet 的 ID。
+- **開發環境 GAS**：什麼都不用設，它會自動 fallback 使用舊的開發用 Sheet ID。
 
-4. 複製 Script ID（`/d/` 和 `/edit` 中間那一長串）
+### 12.2 前端 API 分離
 
-### 步驟 2：備份正式 Sheet 原有的 Script（重要！）
+- **本地開發 (`web/.env`)**：存放的是開發版的 GAS URL，供 `npm run dev` 使用。
+- **線上正式 (`GitHub Pages`)**：在 GitHub 專案的 `Settings > Secrets and variables > Actions` 中設定了 `VITE_GAS_URL`（正式版 URL），只有推送到 `main` 分支時，GitHub Actions 才會拿正式版的 URL 去建置。
 
-> ⚠️ `clasp push` 會**覆蓋**目標 Script 的所有程式碼！
+### 12.3 Clasp 多環境設定
 
-如果正式 Sheet 已經有自己的 Apps Script 程式碼：
+根目錄底下有兩個配置檔：
+- `.clasp-dev.json` (指向開發版 GAS 專案)
+- `.clasp-prod.json` (指向正式版 GAS 專案)
 
-1. 在 GAS 編輯器裡全選程式碼 (`Cmd+A`)
-2. 複製貼到一個文字檔保存
-3. 或是在 GAS 編輯器裡「**建立副本**」
-
-### 步驟 3：修改 `.clasp.json`
-
-打開專案根目錄的 `.clasp.json`：
-
-```json
-{
-  "scriptId": "貼上步驟 1 拿到的 Script ID",
-  "rootDir": "."
-}
-```
-
-### 步驟 4：推送程式碼到正式 Sheet
-
-```bash
-clasp push
-```
-
-> 看到 `Pushed X files` 就成功了。
-
-### 步驟 5：部署
-
-```bash
-clasp deploy
-```
-
-會輸出類似：
-```
-Created version 1.
-- AKfycbx...（新的 Deploy ID）@1.
-```
-
-**記下這個 Deploy ID**，後面要用。
-
-> 💡 第一次部署完後，之後更新用：
-> ```bash
-> clasp push && clasp deploy -i 你的Deploy_ID
-> ```
-
-### 步驟 6：設定正式 Sheet 的 ScriptProperties
-
-到新的 GAS 專案 → ⚙️ 專案設定 → **Script Properties**，加入：
-
-| Key | Value |
-|-----|-------|
-| `API_KEY` | 和 `web/.env` 裡的 `VITE_API_KEY` 一致 |
-| `GOOGLE_CLIENT_ID` | 和 `web/.env` 裡的 `VITE_GOOGLE_CLIENT_ID` 一致 |
-| `ALLOWED_EMAILS` | 允許的 email，逗號分隔 |
-
-### 步驟 7：更新前端環境變數
-
-修改 `web/.env`：
-
-```bash
-# 把 URL 改成新的 Web App URL
-VITE_GAS_URL=https://script.google.com/macros/s/【步驟 5 的 Deploy ID】/exec
-```
-
-### 步驟 8：重新部署前端
-
-```bash
-cd web && npm run build && npx gh-pages -d dist
-```
-
-### 步驟 9：驗證
-
-1. 打開 `https://boochlin06.github.io/onesoul-pos-web/`
-2. 用 Google 帳號登入
-3. 確認看到的是**正式 Sheet 的資料**
-4. 測試結帳、查會員等功能是否正常
-
-> ⚠️ **也要更新 GitHub Secrets**（如果有用 GitHub Actions 自動部署）：
-> Settings → Secrets → 把 `VITE_GAS_URL` 改成新的 URL
+透過 `package.json` 的指令 (`npm run push:dev` 與 `npm run push:prod`)，系統會在推播前自動切換對應的檔案並執行 deploy，實現真正的一鍵部署。
 
 ---
 
