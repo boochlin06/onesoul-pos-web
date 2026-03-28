@@ -93,6 +93,18 @@ function doPost(e) {
       case "getStockItemByNo":
         result = apiGetStockItemByNo(payload.itemNo);
         break;
+      case "setEmergencyNotice":
+        result = apiSetEmergencyNotice(payload.message, tokenEmail);
+        break;
+      case "getEmergencyNotice":
+        result = apiGetEmergencyNotice();
+        break;
+      case "clearEmergencyNotice":
+        result = apiClearEmergencyNotice(tokenEmail);
+        break;
+      case "getDrawCounts":
+        result = apiGetDrawCounts(tokenEmail);
+        break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
     }
@@ -334,7 +346,7 @@ function apiGetPrizeLibrary(branch) {
       if (branch && colJ && colJ.indexOf(branch) === -1) continue;
       var isPointsSet = colJ.indexOf('點數') !== -1;
       var parsedBranch = colJ.replace('點數', '').trim() || '';
-      results.push({ setId: row[0].toString(), setName: row[1]||'', unitPrice: row[2]||0, prize: row[3]||'', prizeId: row[4]||'', prizeName: row[5]||'', points: row[6]||0, draws: row[7]||1, branch: parsedBranch, isPointsSet: isPointsSet });
+      results.push({ setId: row[0].toString(), setName: row[1]||'', unitPrice: row[2]||0, prize: row[3]||'', prizeId: row[4]||'', prizeName: row[5]||'', points: row[6]||0, draws: row[7]||1, branch: parsedBranch, isPointsSet: isPointsSet, drawnCount: Number(row[10]) || 0 });
     }
     return { success: true, data: results };
   } catch(error) { return { success: false, message: error.toString() }; }
@@ -383,16 +395,65 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
     var originalDate = firstRow[8] || ''; // I 欄 date
     if (originalDate instanceof Date) originalDate = Utilities.formatDate(originalDate, "GMT+8", "yyyy/MM/dd");
     
-    // 計算總抽數 + 獎項明細
+    // 計算總抽數 + 獎項明細 + 已抽數（交叉比對銷售紀錄+當日銷售）
     var totalDraws = 0;
+    var totalDrawn = 0;
     var details = [];
+
+    // ── 先掃描銷售紀錄與當日銷售建立 counts map ──
+    var drawCounts = {};
+    // 銷售紀錄
+    var salesSheet = tempApp.getSheetByName(sheetSalesRecord);
+    var salesLastRow = salesSheet.getLastRow();
+    if (salesLastRow > 1) {
+      var salesData = salesSheet.getRange(2, 1, salesLastRow - 1, salesSheet.getLastColumn()).getValues();
+      for (var si = 0; si < salesData.length; si++) {
+        var sRow = salesData[si];
+        var sIsOld = sRow[4] && !isNaN(Number(sRow[4])) && sRow[4].toString().trim() !== '';
+        var sSetId = (sRow[1] || '').toString().trim();
+        if (sIsOld) continue; // 舊格式商品無獎項代號
+        var sPrize = String(sRow[2] || '').trim().toLowerCase();
+        var sDraws = Number(sRow[3]) || 0;
+        if (!sDraws && sSetId && sPrize) sDraws = 1;
+        if (sSetId && sPrize && sDraws > 0) {
+          var sKey = sSetId + '_' + sPrize;
+          drawCounts[sKey] = (drawCounts[sKey] || 0) + sDraws;
+        }
+      }
+    }
+    // 當日銷售
+    var dailySheetNames = [sheetTodaySalesRecordChupei, sheetTodaySalesRecordJinsang];
+    for (var ds = 0; ds < dailySheetNames.length; ds++) {
+      var dSheet = tempApp.getSheetByName(dailySheetNames[ds]);
+      var dLastRow = dSheet.getLastRow();
+      if (dLastRow <= 5) continue;
+      var dData = dSheet.getRange(6, 1, dLastRow - 5, dSheet.getLastColumn()).getValues();
+      for (var dj = 0; dj < dData.length; dj++) {
+        var dRow = dData[dj];
+        if (dRow[22] && dRow[22].toString().trim() !== '') continue;
+        var dIsOld = dRow[4] && !isNaN(Number(dRow[4])) && dRow[4].toString().trim() !== '';
+        if (dIsOld) continue;
+        var dSetId2 = (dRow[1] || '').toString().trim();
+        var dPrize2 = String(dRow[2] || '').trim().toLowerCase();
+        var dDraws2 = Number(dRow[3]) || 0;
+        if (!dDraws2 && dSetId2 && dPrize2) dDraws2 = 1;
+        if (dSetId2 && dPrize2 && dDraws2 > 0) {
+          var dKey2 = dSetId2 + '_' + dPrize2;
+          drawCounts[dKey2] = (drawCounts[dKey2] || 0) + dDraws2;
+        }
+      }
+    }
+
     matchedRows.reverse().forEach(function(row) {
       var prize = row[3] || '';
       var prizeName = row[5] || '';
       var points = Math.round(Number(row[6]) || 0);
       var draws = Number(row[7]) || 1;
+      var drawnKey = setId.toString().trim() + '_' + String(prize).toLowerCase();
+      var drawn = drawCounts[drawnKey] || 0;
       totalDraws += draws;
-      details.push(prize + ':' + prizeName + ':' + points);
+      totalDrawn += drawn;
+      details.push(prize + ':' + prizeName + ':' + points + ':已抽' + drawn);
     });
     
     rowsToDelete.sort(function(a, b) { return b - a; }); // 確保大→小，避免行號偏移
@@ -406,7 +467,7 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
       var logSheet = tempApp.getSheetByName(sheetVoidSetLog);
       if (logSheet) {
         if (logSheet.getLastRow() === 0) {
-          logSheet.appendRow(['作廢時間', '門市', '操作人員', '套號', '套名', '單抽價', '獎項數', '總抽數', '獎項明細', '是否點數套', '原始建套日期']);
+          logSheet.appendRow(['作廢時間', '門市', '操作人員', '套號', '套名', '單抽價', '獎項數', '總抽數', '已抽總數', '獎項明細', '是否點數套', '原始建套日期']);
         }
         logSheet.appendRow([
           Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss"), // A 作廢時間
@@ -417,9 +478,10 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
           unitPrice,                                                         // F 單抽價
           matchedRows.length,                                                // G 獎項數
           totalDraws,                                                        // H 總抽數
-          details.join(';'),                                                 // I 獎項明細
-          isPointsSet ? 'TRUE' : 'FALSE',                                    // J 是否點數套
-          originalDate                                                       // K 原始建套日期
+          totalDrawn,                                                        // I 已抽總數
+          details.join(';'),                                                 // J 獎項明細
+          isPointsSet ? 'TRUE' : 'FALSE',                                    // K 是否點數套
+          originalDate                                                       // L 原始建套日期
         ]);
       }
     } catch(logErr) {
@@ -992,5 +1054,134 @@ function apiGetSellListPublic() {
   } catch (e) {
     Logger.log('apiGetSellListPublic error: ' + e.toString());
     return { success: false, message: '取得清單失敗: ' + e.toString() };
+  }
+}
+
+// ── 緊急通知 API ──────────────────────────────────────────
+
+var ADMIN_EMAILS = ['onesoul.chupei@gmail.com', 'gamejeffjeff@gmail.com'];
+var NOTICE_KEY = 'EMERGENCY_NOTICE';
+
+function apiSetEmergencyNotice(message, callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限發送緊急通知' };
+  }
+  if (!message || !message.trim()) {
+    return { success: false, message: '通知內容不可為空' };
+  }
+  var props = PropertiesService.getScriptProperties();
+  var notice = JSON.stringify({
+    message: message.trim(),
+    sender: callerEmail,
+    timestamp: Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss")
+  });
+  props.setProperty(NOTICE_KEY, notice);
+  return { success: true, message: '緊急通知已發佈' };
+}
+
+function apiGetEmergencyNotice() {
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty(NOTICE_KEY);
+  if (!raw) return { success: true, notice: null };
+  try {
+    return { success: true, notice: JSON.parse(raw) };
+  } catch(e) {
+    return { success: true, notice: null };
+  }
+}
+
+function apiClearEmergencyNotice(callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限撤回緊急通知' };
+  }
+  var props = PropertiesService.getScriptProperties();
+  props.deleteProperty(NOTICE_KEY);
+  return { success: true, message: '緊急通知已撤回' };
+}
+
+// ── 抽選狀況 API（大師專用）─────────────────────────────────
+
+function apiGetDrawCounts(callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限查詢抽選狀況' };
+  }
+
+  try {
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var counts = {}; // key: "setId_prize" → 已抽數
+
+    // ── 掃描歷史銷售紀錄 ──
+    var salesSheet = tempApp.getSheetByName(sheetSalesRecord);
+    var salesLastRow = salesSheet.getLastRow();
+    if (salesLastRow > 1) {
+      var salesData = salesSheet.getRange(2, 1, salesLastRow - 1, salesSheet.getLastColumn()).getValues();
+      for (var i = 0; i < salesData.length; i++) {
+        var row = salesData[i];
+        var isOldFmt = row[4] && !isNaN(Number(row[4])) && row[4].toString().trim() !== '';
+        var setId = (row[1] || '').toString().trim();
+        var prize, draws;
+        if (isOldFmt) {
+          prize = ''; // 舊格式商品 — 無獎項代號
+          draws = Number(row[2]) || 1;
+        } else {
+          prize = String(row[2] || '').trim().toLowerCase();
+          draws = Number(row[3]) || 0;
+          if (!draws && setId && prize) draws = 1; // 有效福袋紀錄至少算 1 抽
+        }
+        if (setId && prize && draws > 0) {
+          var key = setId + '_' + prize;
+          counts[key] = (counts[key] || 0) + draws;
+        }
+      }
+    }
+
+    // ── 掃描兩店當日銷售 ──
+    var dailySheets = [sheetTodaySalesRecordChupei, sheetTodaySalesRecordJinsang];
+    for (var s = 0; s < dailySheets.length; s++) {
+      var dSheet = tempApp.getSheetByName(dailySheets[s]);
+      var dLastRow = dSheet.getLastRow();
+      if (dLastRow <= 5) continue;
+      var dData = dSheet.getRange(6, 1, dLastRow - 5, dSheet.getLastColumn()).getValues();
+      for (var j = 0; j < dData.length; j++) {
+        var dRow = dData[j];
+        // 跳過已作廢的紀錄
+        if (dRow[22] && dRow[22].toString().trim() !== '') continue;
+        var dIsOld = dRow[4] && !isNaN(Number(dRow[4])) && dRow[4].toString().trim() !== '';
+        var dSetId = (dRow[1] || '').toString().trim();
+        var dPrize, dDraws;
+        if (dIsOld) {
+          dPrize = '';
+          dDraws = Number(dRow[2]) || 1;
+        } else {
+          dPrize = String(dRow[2] || '').trim().toLowerCase();
+          dDraws = Number(dRow[3]) || 0;
+          if (!dDraws && dSetId && dPrize) dDraws = 1;
+        }
+        if (dSetId && dPrize && dDraws > 0) {
+          var dKey = dSetId + '_' + dPrize;
+          counts[dKey] = (counts[dKey] || 0) + dDraws;
+        }
+      }
+    }
+
+    // ── 寫回「福袋獎項庫」K 欄 ──
+    var lotterySheet = tempApp.getSheetByName(sheetLotteryDB);
+    var lotteryData = lotterySheet.getDataRange().getValues();
+    if (lotteryData.length > 1) {
+      var kValues = [];
+      for (var k = 1; k < lotteryData.length; k++) {
+        var lRow = lotteryData[k];
+        var lSetId = (lRow[0] || '').toString().trim();
+        var lPrize = (lRow[3] || '').toString().trim().toLowerCase(); // D 欄 = prize code
+        var lKey = lSetId + '_' + lPrize;
+        kValues.push([counts[lKey] || 0]);
+      }
+      // K 欄 = 第 11 欄，從第 2 行開始（跳過標題）
+      lotterySheet.getRange(2, 11, kValues.length, 1).setValues(kValues);
+    }
+
+    return { success: true, data: counts };
+  } catch(error) {
+    return { success: false, message: '查詢抽選狀況失敗: ' + error.toString() };
   }
 }

@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Search, BookOpen, Trash2, X, Loader2, Plus, Package } from 'lucide-react';
+import { Search, BookOpen, Trash2, X, Loader2, Plus, Package, BarChart3 } from 'lucide-react';
 import { RefreshButton } from '../ui/RefreshButton';
 import { branchBadge, CREATE_SET_CONFIG } from '../../constants';
-import { gasPost } from '../../services/api';
+import { gasPost, apiGetDrawCounts } from '../../services/api';
 import { calcSuggestedPrice, validateCreateSetPrice } from '../../logic/createSet';
 import type { Branch, PrizeEntry } from '../../types';
 
@@ -14,13 +14,16 @@ interface PrizeLibraryViewProps {
   onCreateSetSuccess: () => void;
   showBanner: (msg: string, type: 'ok' | 'err' | 'loading', autoDismiss?: boolean) => void;
   onRefresh?: () => void;
+  isAdmin?: boolean;
 }
 
 const { drawOptions: DRAW_OPTIONS, priceMultiplier, minPriceRatio, maxPriceRatio } = CREATE_SET_CONFIG;
 
-export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onCreateSetSuccess, showBanner, onRefresh }: PrizeLibraryViewProps) {
+export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onCreateSetSuccess, showBanner, onRefresh, isAdmin }: PrizeLibraryViewProps) {
   const [search, setSearch] = useState('');
   const [filterBranch, setFilterBranch] = useState<'all' | Branch>('all');
+  const [drawCounts, setDrawCounts] = useState<Record<string, number> | null>(null);
+  const [loadingDrawCounts, setLoadingDrawCounts] = useState(false);
 
   // ── Create Set Modal State ──
   const [showCreateSet, setShowCreateSet] = useState(false);
@@ -138,6 +141,28 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
           >
             <Plus className="w-4 h-4" /> 開套
           </button>
+          {isAdmin && (
+            <button
+              onClick={async () => {
+                setLoadingDrawCounts(true);
+                try {
+                  const res = await apiGetDrawCounts();
+                  if (res.success && res.data) {
+                    setDrawCounts(res.data);
+                    showBanner('✓ 抽選狀況已更新', 'ok');
+                  } else {
+                    showBanner(res.message || '查詢失敗', 'err');
+                  }
+                } catch { showBanner('查詢失敗', 'err'); }
+                finally { setLoadingDrawCounts(false); }
+              }}
+              disabled={loadingDrawCounts}
+              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-500 text-white text-sm font-bold rounded-lg shadow-md shadow-indigo-500/20 hover:bg-indigo-600 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {loadingDrawCounts ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart3 className="w-4 h-4" />}
+              查詢抽選狀況
+            </button>
+          )}
           <div className="flex bg-slate-100 rounded-lg p-1">
             {(['all', '竹北', '金山'] as const).map(b => (
               <button key={b} onClick={() => setFilterBranch(b)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterBranch === b ? 'bg-white shadow-sm text-slate-700' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -196,6 +221,7 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
                 <th className="px-4 py-2 text-left font-semibold">名稱</th>
                 <th className="px-4 py-2 text-right font-semibold">點數</th>
                 <th className="px-4 py-2 text-right font-semibold">抽數</th>
+                <th className="px-4 py-2 text-right font-semibold text-indigo-600">已抽</th>
               </tr></thead>
               <tbody className="divide-y divide-slate-50">
                 {entries.map((p, i) => (
@@ -205,6 +231,12 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
                     <td className="px-4 py-2 text-slate-700">{p.prizeName}</td>
                     <td className="px-4 py-2 text-right text-indigo-600 font-semibold">{Number(p.points).toLocaleString()}</td>
                     <td className="px-4 py-2 text-right text-slate-500">{p.draws}</td>
+                    {(() => {
+                      const key = p.setId + '_' + String(p.prize || '').toLowerCase();
+                      const drawn = drawCounts ? (drawCounts[key] || 0) : (p.drawnCount || 0);
+                      const full = drawn >= p.draws;
+                      return <td className={`px-4 py-2 text-right font-bold ${full ? 'text-emerald-600' : 'text-rose-500'}`}>{drawn}</td>;
+                    })()}
                   </tr>
                 ))}
               </tbody>

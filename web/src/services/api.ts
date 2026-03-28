@@ -109,3 +109,8 @@ export async function apiSetOpeningCash(branch: Branch, amount: number) {
 export async function apiCloseDay(payload: object) {
   return gasPost('closeDay', payload);
 }
+
+// ── Draw Counts (Master) ───────────────────────────────
+export async function apiGetDrawCounts(): Promise<{ success: boolean; data?: Record<string, number>; message?: string }> {
+  return gasPost('getDrawCounts');
+}

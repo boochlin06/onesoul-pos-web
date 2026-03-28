@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Archive, LogOut } from 'lucide-react';
 import type { Branch, Tab } from './types';
-import { TABS, branchGradient, CROSS_BRANCH_DAILY_VIEW } from './constants';
+import { TABS, branchGradient, CROSS_BRANCH_DAILY_VIEW, ADMIN_EMAILS } from './constants';
 import { useStickyState } from './hooks/useStickyState';
 import { useAuth } from './hooks/useAuth';
 import { LoginScreen } from './components/LoginScreen';
@@ -21,6 +21,9 @@ import { PrizeLibraryView } from './components/views/PrizeLibraryView';
 import { StockView } from './components/views/StockView';
 import { BlindBoxView } from './components/views/BlindBoxView';
 import { MemberHistoryView } from './components/views/MemberHistoryView';
+import { MasterView } from './components/views/MasterView';
+import { useEmergencyNotice } from './hooks/useEmergencyNotice';
+import { EmergencyNoticeModal } from './components/ui/EmergencyNoticeModal';
 import CustomerApp from './pages/customer/CustomerApp';
 
 /** 判斷是否為客戶面路由 */
@@ -63,6 +66,7 @@ function PosApp() {
   const daily = useDailySales({ branch, showBanner, fetchMembers });
   const sales = useSalesRecords({ showBanner });
   const history = useMemberHistory({ showBanner });
+  const emergencyNotice = useEmergencyNotice(auth.isAuthenticated);
 
   // ── Initial data load（登入後才發請求）──
   useEffect(() => {
@@ -112,6 +116,8 @@ function PosApp() {
     return <LoginScreen renderGoogleButton={auth.renderGoogleButton} error={auth.error} isLoading={auth.isLoading} />;
   }
 
+  const isAdmin = !!auth.user && ADMIN_EMAILS.includes(auth.user.email.toLowerCase());
+
   // ── Branch filter for role ──
   // 當日銷售 tab 允許看雙店（唯讀），其他 tab 只能看自己的店
   const availableBranches = (activeTab === 'daily' && CROSS_BRANCH_DAILY_VIEW)
@@ -158,7 +164,7 @@ function PosApp() {
         </div>
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6">
           <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {TABS.map(t => (
+            {TABS.filter(t => t.key !== 'master' || isAdmin).map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key as Tab)}
                 className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-t-lg transition-all border-b-2 ${activeTab === t.key ? 'bg-slate-50 text-slate-700 border-transparent shadow-inner' : 'text-white/70 border-transparent hover:text-white hover:bg-white/10'}`}>
                 {t.icon}{t.label}
@@ -187,11 +193,14 @@ function PosApp() {
         {activeTab === 'daily' && <DailySalesView branch={branch} records={daily.dailySales} members={members} isLoading={daily.loadingDaily} onDelete={daily.handleDeleteDaily} openingCash={daily.openingCash} onSetOpeningCash={daily.handleSetOpeningCash} onRefresh={daily.fetchDailySales} readOnly={!canEditBranch} />}
         {activeTab === 'members' && <MembersView members={members} isLoading={loadingMembers} onRefresh={fetchMembers} />}
         {activeTab === 'sales' && <SalesView records={sales.salesRecords} isLoading={sales.loadingSales} onRefresh={() => sales.fetchSalesRecords(true)} onClearCache={sales.clearSalesCache} lastCacheTime={sales.lastCacheTime} members={members} />}
-        {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes.prizes} isLoading={prizes.loadingLibrary || prizes.voidingPrizeLoading} onDeletePrize={prizes.handleDeletePrize} onCreateSetSuccess={prizes.fetchLibrary} showBanner={showBanner} onRefresh={prizes.fetchLibrary} />}
+        {activeTab === 'library' && <PrizeLibraryView branch={branch} prizes={prizes.prizes} isLoading={prizes.loadingLibrary || prizes.voidingPrizeLoading} onDeletePrize={prizes.handleDeletePrize} onCreateSetSuccess={prizes.fetchLibrary} showBanner={showBanner} onRefresh={prizes.fetchLibrary} isAdmin={isAdmin} />}
         {activeTab === 'stock' && <StockView branch={branch} records={stocks} isLoading={loadingStocks} onRefresh={fetchStocks} setBranch={setBranch} />}
         {activeTab === 'blindbox' && <BlindBoxView records={blindBoxes} isLoading={loadingBlindBox} onRefresh={fetchBlindBoxes} />}
         {activeTab === 'member_history' && (
           <MemberHistoryView phone={history.historySearchPhone} setPhone={history.setHistorySearchPhone} member={history.historyMember} records={history.historyRecords} isLoading={history.loadingHistory} onSearch={history.fetchMemberHistory} allMembers={members} />
+        )}
+        {activeTab === 'master' && isAdmin && (
+          <MasterView notice={emergencyNotice.notice} isSending={emergencyNotice.isSending} onSend={emergencyNotice.sendNotice} onClear={emergencyNotice.clearNotice} />
         )}
 
         {daily.isClosingModalOpen && (
@@ -202,6 +211,16 @@ function PosApp() {
           <VoidPrizeModal entries={prizes.voidConfirmPrize} isLoading={prizes.voidingPrizeLoading} onConfirm={prizes.executeVoidPrize} onCancel={() => prizes.setVoidConfirmPrize(null)} />
         )}
       </main>
+
+      {/* ── Emergency Notice Modal（全域）── */}
+      {emergencyNotice.notice && !emergencyNotice.isDismissed && (
+        <EmergencyNoticeModal
+          notice={emergencyNotice.notice}
+          isAdmin={isAdmin}
+          onDismiss={emergencyNotice.dismissLocal}
+          onClear={emergencyNotice.clearNotice}
+        />
+      )}
     </div>
   );
 }

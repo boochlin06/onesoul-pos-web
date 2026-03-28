@@ -59,6 +59,19 @@ export const CHECKOUT_SUGGESTION_LIMIT = 8;
 export const MEMBER_AUTOCOMPLETE_LIMIT = 10;
 
 // ─────────────────────────────────────────────────────
+// 🔔 緊急通知
+// ─────────────────────────────────────────────────────
+
+/** 大師帳號 — 可發送緊急通知、看到大師分頁 */
+export const ADMIN_EMAILS = [
+  'onesoul.chupei@gmail.com',
+  'gamejeffjeff@gmail.com',
+];
+
+/** 緊急通知輪詢間隔（毫秒） */
+export const NOTICE_POLL_MS = 2 * 60 * 1000; // 2 分鐘
+
+// ─────────────────────────────────────────────────────
 // 🎨 門市主題色
 // ─────────────────────────────────────────────────────
 

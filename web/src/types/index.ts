@@ -11,6 +11,7 @@ export interface PrizeEntry {
   date: string;
   branch: string;
   isPointsSet?: boolean;
+  drawnCount?: number;
 }
 
 export interface MemberEntry {
@@ -111,7 +112,7 @@ export interface BlindBoxEntry {
   remark: string;          // 備註
 }
 
-export type Tab = 'checkout' | 'daily' | 'members' | 'sales' | 'library' | 'stock' | 'blindbox' | 'member_history';
+export type Tab = 'checkout' | 'daily' | 'members' | 'sales' | 'library' | 'stock' | 'blindbox' | 'member_history' | 'master';
 export type Branch = '竹北' | '金山';
 
 export interface BannerState {

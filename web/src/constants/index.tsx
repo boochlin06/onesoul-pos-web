@@ -1,6 +1,6 @@
 import {
   Receipt, ClipboardList, Users, History,
-  BarChart3, BookOpen, Package, Box
+  BarChart3, BookOpen, Package, Box, Crown
 } from 'lucide-react';
 import type { Tab } from '../types';
 
@@ -12,6 +12,8 @@ export {
   SALES_RECORDS_LIMIT,
   CHECKOUT_SUGGESTION_LIMIT,
   MEMBER_AUTOCOMPLETE_LIMIT,
+  ADMIN_EMAILS,
+  NOTICE_POLL_MS,
   branchGradient,
   branchBadge,
 } from '../config';
@@ -33,4 +35,5 @@ export const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'library', label: '獎項庫', icon: <BookOpen className="w-4 h-4" /> },
   { key: 'stock', label: '貨品資料', icon: <Package className="w-4 h-4" /> },
   { key: 'blindbox', label: '盲盒資料庫', icon: <Box className="w-4 h-4" /> },
+  { key: 'master', label: '大師', icon: <Crown className="w-4 h-4" /> },
 ];
