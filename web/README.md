@@ -63,3 +63,4 @@ npx vitest run
 ## 📝 授權
 
 本專案為私有財產，僅供專屬 POS 操作使用。
+trigger deploy
