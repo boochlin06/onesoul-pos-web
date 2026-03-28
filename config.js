@@ -23,7 +23,7 @@ const sheetCloseDayLog = "開關帳紀錄";
 const sheetVoidSetLog = "廢套紀錄";
 
 // ── Spreadsheet IDs ──
-const appBackground = "1qTYGU_sk7dmAGN7KCQnYT5n7XjVIwNcJk_AnEn3JJUQ";
+const appBackground = SCRIPT_PROP.getProperty('APP_BACKGROUND_ID') || "1Dc_vjyCcl3_wjA1_IQssVEKTBA7sqJAjNgR3sSx-OSk";
 const appChupei = "1OYpsKmJoVDmjailFvDj242FwcgGKpiysUcPez8Fbzek";
 const appJinshan = "1Qt9eN2k6od1q01C-lH6KGQAzmmB3zJYsDCNguwjMXbM";
 

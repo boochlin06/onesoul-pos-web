@@ -4,7 +4,9 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "push:dev": "cp .clasp-dev.json .clasp.json && clasp push && clasp deploy -i AKfycbyG4EO3XVIIUIyc05fwgktgcld-RMhdfxp9-ge9TZTLVcOUG_DGvD3wAnxYFneUuSR6",
+    "push:prod": "cp .clasp-prod.json .clasp.json && clasp push && clasp deploy -i AKfycbz7G3Vz5MG6EKM3Xh2nmEL_ksjZhL-F3HKkzyMgvjyssUkW0fZWc48-NEtwqG7Z7i5b"
   },
   "repository": {
     "type": "git",
