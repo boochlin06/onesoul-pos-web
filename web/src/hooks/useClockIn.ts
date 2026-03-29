@@ -85,7 +85,17 @@ export function useClockIn({ branch, isAuthenticated, showBanner }: UseClockInOp
         // 打卡狀態
         const clocked = attRes.success && attRes.data?.clocked === true;
 
-        if (open && !clocked) {
+        // 提早超過 1 小時 → 不顯示打卡
+        let tooEarly = false;
+        if (open && !clocked && configRes.success && configRes.data) {
+          const [sh, sm] = configRes.data.startTime.split(':').map(Number);
+          const now = new Date();
+          const nowMin = now.getHours() * 60 + now.getMinutes();
+          const startMin = sh * 60 + sm;
+          if (nowMin < startMin - 60) tooEarly = true;
+        }
+
+        if (open && !clocked && !tooEarly) {
           setNeedsClockIn(true);
         } else {
           setNeedsClockIn(false);
