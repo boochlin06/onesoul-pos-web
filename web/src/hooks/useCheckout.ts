@@ -105,7 +105,6 @@ export function useCheckout({
 
   // ── Reset ──
   const handleResetCheckout = useCallback(() => {
-    if (!window.confirm(MSG.checkout.confirmClear)) return;
     setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
     setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
     setLotteries(Array(5).fill(null).map(emptyLottery));
