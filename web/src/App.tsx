@@ -23,7 +23,10 @@ import { BlindBoxView } from './components/views/BlindBoxView';
 import { MemberHistoryView } from './components/views/MemberHistoryView';
 import { MasterView } from './components/views/MasterView';
 import { useEmergencyNotice } from './hooks/useEmergencyNotice';
+import { useClockIn } from './hooks/useClockIn';
 import { EmergencyNoticeModal } from './components/ui/EmergencyNoticeModal';
+import { ClockInModal } from './components/ui/ClockInModal';
+import { LateReminderModal } from './components/ui/LateReminderModal';
 import CustomerApp from './pages/customer/CustomerApp';
 
 /** 判斷是否為客戶面路由 */
@@ -68,6 +71,7 @@ function PosApp() {
   const sales = useSalesRecords({ showBanner });
   const history = useMemberHistory({ showBanner });
   const emergencyNotice = useEmergencyNotice(auth.isAuthenticated);
+  const clockIn = useClockIn({ branch, email: auth.user?.email, isAuthenticated: auth.isAuthenticated, showBanner });
 
   // ── Initial data load（登入後才發請求）──
   useEffect(() => {
@@ -129,6 +133,28 @@ function PosApp() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans overflow-x-hidden">
+      {/* ── Clock In Modal ── */}
+      {clockIn.needsClockIn && !clockIn.isLateReminder && clockIn.branchConfig && (
+        <ClockInModal
+          branch={branch}
+          staff={clockIn.staff}
+          email={auth.user?.email || ''}
+          branchConfig={clockIn.branchConfig}
+          isClockingIn={clockIn.isClockingIn}
+          onConfirm={clockIn.confirmClockIn}
+        />
+      )}
+      {clockIn.isLateReminder && (
+        <LateReminderModal
+          branch={branch}
+          lateMinutes={clockIn.lateMinutes}
+          reminderCount={clockIn.reminderCount}
+          isClockingIn={clockIn.isClockingIn}
+          onConfirm={clockIn.confirmClockIn}
+          onDismiss={clockIn.dismissReminder}
+        />
+      )}
+
       {banner && <StatusBanner msg={banner.msg} type={banner.type} onClose={clearBanner} />}
 
       {/* ── Top Bar ── */}

@@ -114,3 +114,17 @@ export async function apiCloseDay(payload: object) {
 export async function apiGetDrawCounts(): Promise<{ success: boolean; data?: Record<string, number>; message?: string }> {
   return gasPost('getDrawCounts');
 }
+
+// ── Clock In / Attendance ──────────────────────────────
+export async function apiGetBranchConfig(branch: string) {
+  return gasPost('getBranchConfig', { branch });
+}
+export async function apiGetTodaySchedule(branch: string) {
+  return gasPost('getTodaySchedule', { branch });
+}
+export async function apiClockIn(branch: string) {
+  return gasPost('clockIn', { branch });
+}
+export async function apiGetTodayAttendance(branch: string) {
+  return gasPost('getTodayAttendance', { branch });
+}

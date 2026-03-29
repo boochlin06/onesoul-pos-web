@@ -84,3 +84,16 @@ export const branchBadge: Record<Branch, string> = {
   竹北: 'bg-emerald-100 text-emerald-800',
   金山: 'bg-violet-100 text-violet-800',
 };
+
+// ─────────────────────────────────────────────────────
+// ⏰ 打卡 UI 設定（營運參數從後台讀取，這裡只控制 UI 行為）
+// ─────────────────────────────────────────────────────
+
+export const CLOCK_IN_CONFIG = {
+  /** 🔧 測試模式 — 設為 true 可快速測試遲到提醒（10 秒間隔） */
+  debug: false,
+  /** 遲到提醒間隔（毫秒） */
+  get reminderIntervalMs() { return this.debug ? 10 * 1000 : 60 * 60 * 1000; },
+  /** 最多提醒幾次 */
+  maxReminders: 3,
+};
