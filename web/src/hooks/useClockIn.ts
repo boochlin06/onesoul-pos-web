@@ -37,7 +37,7 @@ interface UseClockInOpts {
   branch: string;
   email?: string;
   isAuthenticated: boolean;
-  showBanner: (msg: string, type?: 'info' | 'success' | 'warn' | 'error') => void;
+  showBanner: (msg: string, type: 'ok' | 'err' | 'loading') => void;
 }
 
 export function useClockIn({ branch, isAuthenticated, showBanner }: UseClockInOpts): ClockInState {
@@ -146,12 +146,12 @@ export function useClockIn({ branch, isAuthenticated, showBanner }: UseClockInOp
       if (res.success) {
         setNeedsClockIn(false);
         setIsLateReminder(false);
-        showBanner(res.message || `${branch} 打卡成功`, 'success');
+        showBanner(res.message || `${branch} 打卡成功`, 'ok');
       } else {
-        showBanner(res.message || '打卡失敗', 'error');
+        showBanner(res.message || '打卡失敗', 'err');
       }
     } catch (err) {
-      showBanner('打卡失敗: ' + String(err), 'error');
+      showBanner('打卡失敗: ' + String(err), 'err');
     } finally {
       setIsClockingIn(false);
     }
