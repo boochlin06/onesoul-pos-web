@@ -1282,17 +1282,10 @@ function apiGetBranchConfig(branch) {
     var sheet = tempApp.getSheetByName(sheetSchedule);
     if (!sheet) return { success: false, message: '找不到班表分頁' };
 
-    var configData = sheet.getRange(1, 1, 4, 3).getValues(); // Row 1-4, A-C
+    var configData = sheet.getRange(1, 1, 4, 3).getDisplayValues(); // Row 1-4, A-C (用 getDisplayValues 避免時間格式被 timezone 轉換)
     var col = (branch === '竹北') ? 1 : 2; // B=1 竹北, C=2 金山
 
-    var startTimeRaw = configData[1][col]; // Row 2
-    var startTime = '';
-    if (startTimeRaw instanceof Date) {
-      startTime = Utilities.formatDate(startTimeRaw, 'Asia/Taipei', 'HH:mm');
-    } else {
-      startTime = String(startTimeRaw).trim() || (branch === '竹北' ? '14:00' : '16:00');
-    }
-
+    var startTime = String(configData[1][col]).trim() || (branch === '竹北' ? '14:00' : '16:00'); // Row 2
     var standardHours = Number(configData[2][col]) || (branch === '竹北' ? 8 : 6); // Row 3
     var lateGraceMinutes = Number(configData[3][col]) || 15; // Row 4
 
@@ -1354,16 +1347,11 @@ function apiClockIn(payload, callerEmail) {
     var clockInCol = (branch === '竹北') ? 3 : 6; // D=3(竹北), G=6(金山)
     var remarkCol = 9; // J
 
-    // 讀設定區
+    // 讀設定區（用 getDisplayValues 避免時間格式被 timezone 轉換）
     var configCol = (branch === '竹北') ? 1 : 2;
-    var startTimeRaw = data[1][configCol]; // Row 2
-    var startTime = '';
-    if (startTimeRaw instanceof Date) {
-      startTime = Utilities.formatDate(startTimeRaw, 'Asia/Taipei', 'HH:mm');
-    } else {
-      startTime = String(startTimeRaw).trim() || (branch === '竹北' ? '14:00' : '16:00');
-    }
-    var lateGrace = Number(data[3][configCol]) || 15; // Row 4
+    var configDisplay = sheet.getRange(1, 1, 4, 3).getDisplayValues();
+    var startTime = String(configDisplay[1][configCol]).trim() || (branch === '竹北' ? '14:00' : '16:00');
+    var lateGrace = Number(configDisplay[3][configCol]) || 15; // Row 4
 
     for (var r = 5; r < data.length; r++) {
       if (parseScheduleDate_(data[r][0]) === today) {
