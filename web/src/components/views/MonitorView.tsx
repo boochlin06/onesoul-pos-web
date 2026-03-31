@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Radio, Loader2, User, Clock, ShoppingCart, Package } from 'lucide-react';
+import { Radio, Loader2, User, Clock, ShoppingCart, Package, RefreshCw } from 'lucide-react';
 import { apiGetDrafts } from '../../services/api';
 import type { Branch } from '../../types';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -47,12 +47,11 @@ export function MonitorView({ branch }: MonitorViewProps) {
     finally { setLoading(false); }
   }, [branch]);
 
-  // Polling every 60s when enabled
+  // Fetch when toggled ON
   useEffect(() => {
-    if (!enabled) return;
-    fetchDrafts();
-    const timer = setInterval(fetchDrafts, 60000);
-    return () => clearInterval(timer);
+    if (enabled) {
+      fetchDrafts();
+    }
   }, [enabled, fetchDrafts]);
 
   // Reset when branch changes
@@ -76,6 +75,16 @@ export function MonitorView({ branch }: MonitorViewProps) {
               上次更新：{new Date(lastFetch).toLocaleTimeString()}
             </span>
           )}
+          {enabled && (
+            <button
+              onClick={fetchDrafts}
+              disabled={loading}
+              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors disabled:opacity-50"
+              title="重新整理"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          )}
           <button
             onClick={() => setEnabled(e => !e)}
             className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
@@ -92,7 +101,7 @@ export function MonitorView({ branch }: MonitorViewProps) {
         <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
           <Radio className="w-8 h-8 mx-auto mb-3 opacity-40" />
           <p>點擊右上角開關啟動監控</p>
-          <p className="text-xs mt-1">啟動後每 60 秒自動更新</p>
+          <p className="text-xs mt-1">啟動後可點擊重新整理獲取最新畫面</p>
         </div>
       ) : loading && drafts.length === 0 ? (
         <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
