@@ -425,3 +425,328 @@ describe('Race Condition: 並發安全性模擬', () => {
     lock1.releaseLock();
   });
 });
+
+// ═══════════════════════════════════════════════════
+// 即時監控 Draft — 不與結帳鎖衝突
+// ═══════════════════════════════════════════════════
+describe('Race Condition: Draft 監控與結帳互不干擾', () => {
+  // 模擬 ScriptProperties 操作
+  const draftStore: Record<string, string> = {};
+  const mockScriptProps = {
+    getProperty: vi.fn((key: string) => draftStore[key] || null),
+    setProperty: vi.fn((key: string, val: string) => { draftStore[key] = val; }),
+    deleteProperty: vi.fn((key: string) => { delete draftStore[key]; }),
+    getProperties: vi.fn(() => ({ ...draftStore })),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    lockAcquireCount = 0;
+    lockReleaseCount = 0;
+    lockHeld = false;
+    memberPointsCell = 100;
+    Object.keys(draftStore).forEach(k => delete draftStore[k]);
+    (globalThis as any).PropertiesService = {
+      getScriptProperties: vi.fn(() => mockScriptProps),
+    };
+  });
+
+  it('saveDraft 不需要取得 ScriptLock', () => {
+    // 模擬 saveDraft：直接寫 ScriptProperties，無需鎖
+    const key = 'draft_竹北_session123';
+    const value = JSON.stringify({ email: 'staff@test.com', data: {}, ts: Date.now() });
+    mockScriptProps.setProperty(key, value);
+
+    expect(mockLockService.getScriptLock).not.toHaveBeenCalled();
+    expect(lockAcquireCount).toBe(0);
+    expect(draftStore[key]).toBeDefined();
+  });
+
+  it('getDrafts 不需要取得 ScriptLock', () => {
+    // 預先塞入草稿
+    draftStore['draft_竹北_s1'] = JSON.stringify({ email: 'a@x.com', data: {}, ts: Date.now() });
+    draftStore['draft_竹北_s2'] = JSON.stringify({ email: 'b@x.com', data: {}, ts: Date.now() });
+
+    const allProps = mockScriptProps.getProperties();
+    const prefix = 'draft_竹北_';
+    const results = Object.keys(allProps).filter(k => k.startsWith(prefix));
+
+    expect(results).toHaveLength(2);
+    expect(mockLockService.getScriptLock).not.toHaveBeenCalled();
+  });
+
+  it('結帳持有 ScriptLock 時，saveDraft 仍可正常寫入', () => {
+    // 模擬結帳持鎖
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    expect(lockHeld).toBe(true);
+
+    // 另一個請求做 saveDraft（不需要鎖）
+    const key = 'draft_竹北_sessionABC';
+    mockScriptProps.setProperty(key, JSON.stringify({ email: 'x@x.com', data: {}, ts: Date.now() }));
+
+    // Draft 寫入不受影響
+    expect(draftStore[key]).toBeDefined();
+    // 鎖仍然被結帳流程持有
+    expect(lockHeld).toBe(true);
+
+    lock.releaseLock();
+  });
+
+  it('clearDraft 不影響結帳鎖', () => {
+    draftStore['draft_竹北_s1'] = 'test';
+
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+
+    mockScriptProps.deleteProperty('draft_竹北_s1');
+
+    expect(draftStore['draft_竹北_s1']).toBeUndefined();
+    expect(lockHeld).toBe(true); // 結帳鎖未被影響
+
+    lock.releaseLock();
+  });
+
+  it('多個 session 的 draft 寫入互不覆蓋', () => {
+    const sessions = ['s1', 's2', 's3'];
+    sessions.forEach(s => {
+      mockScriptProps.setProperty(`draft_竹北_${s}`, JSON.stringify({ email: `${s}@x.com` }));
+    });
+
+    expect(Object.keys(draftStore).filter(k => k.startsWith('draft_竹北_'))).toHaveLength(3);
+    sessions.forEach(s => {
+      const val = JSON.parse(draftStore[`draft_竹北_${s}`]);
+      expect(val.email).toBe(`${s}@x.com`);
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// 結帳 + 作廢 並發衝突
+// ═══════════════════════════════════════════════════
+describe('Race Condition: 結帳與作廢的鎖順序', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    lockAcquireCount = 0;
+    lockReleaseCount = 0;
+    lockHeld = false;
+    memberPointsCell = 100;
+  });
+
+  it('結帳完成並釋放鎖後，作廢可以正常取鎖', () => {
+    // 結帳
+    const lock1 = LockService.getScriptLock();
+    lock1.waitLock(30000);
+    _addPointsUnsafe('0912345678', 50);
+    lock1.releaseLock();
+
+    // 作廢（需要退點）
+    const lock2 = LockService.getScriptLock();
+    lock2.waitLock(30000);
+    _addPointsUnsafe('0912345678', -50);
+    lock2.releaseLock();
+
+    expect(lockAcquireCount).toBe(2);
+    expect(lockReleaseCount).toBe(2);
+    expect(lockHeld).toBe(false);
+  });
+
+  it('結帳持鎖期間，作廢請求應被阻擋', () => {
+    const lock1 = LockService.getScriptLock();
+    lock1.waitLock(30000);
+
+    // 作廢嘗試取鎖 → 應該 throw
+    expect(() => {
+      const lock2 = LockService.getScriptLock();
+      lock2.waitLock(30000);
+    }).toThrow('Lock already held');
+
+    lock1.releaseLock();
+  });
+
+  it('作廢持鎖期間，結帳請求應被阻擋', () => {
+    // 和上面相反的順序
+    const lock1 = LockService.getScriptLock();
+    lock1.waitLock(30000);
+    _addPointsUnsafe('0912345678', -30); // 退點
+
+    expect(() => {
+      const lock2 = LockService.getScriptLock();
+      lock2.waitLock(30000);
+    }).toThrow('Lock already held');
+
+    lock1.releaseLock();
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// Lock 生命週期邊界測試
+// ═══════════════════════════════════════════════════
+describe('Race Condition: Lock 生命週期邊界', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    lockAcquireCount = 0;
+    lockReleaseCount = 0;
+    lockHeld = false;
+  });
+
+  it('重複釋放鎖不應 crash', () => {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    lock.releaseLock();
+    // 重複釋放 — 不應拋出錯誤
+    expect(() => lock.releaseLock()).not.toThrow();
+    expect(lockReleaseCount).toBe(2);
+  });
+
+  it('取鎖 → 釋放 → 再取鎖 → 釋放：完整循環正常', () => {
+    for (let i = 0; i < 5; i++) {
+      const lock = LockService.getScriptLock();
+      lock.waitLock(30000);
+      expect(lockHeld).toBe(true);
+      lock.releaseLock();
+      expect(lockHeld).toBe(false);
+    }
+    expect(lockAcquireCount).toBe(5);
+    expect(lockReleaseCount).toBe(5);
+  });
+
+  it('多個操作連續進行，鎖的計數正確', () => {
+    // 模擬一天下來的操作序列：結帳 × 3 + 作廢 × 1 + 結帳 × 2
+    const ops = [50, 30, -20, -80, 100, 40];
+    ops.forEach(pts => {
+      const lock = LockService.getScriptLock();
+      lock.waitLock(30000);
+      _addPointsUnsafe('0912345678', pts);
+      lock.releaseLock();
+    });
+
+    expect(lockAcquireCount).toBe(6);
+    expect(lockReleaseCount).toBe(6);
+    expect(lockHeld).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// ScriptProperties 原子性（Draft 過期清除）
+// ═══════════════════════════════════════════════════
+describe('Race Condition: Draft 過期清除的冪等性', () => {
+  const draftStore2: Record<string, string> = {};
+  const mockProps2 = {
+    getProperties: vi.fn(() => ({ ...draftStore2 })),
+    deleteProperty: vi.fn((key: string) => { delete draftStore2[key]; }),
+  };
+
+  const DRAFT_EXPIRE_MS = 3 * 60 * 60 * 1000;
+
+  beforeEach(() => {
+    Object.keys(draftStore2).forEach(k => delete draftStore2[k]);
+    vi.clearAllMocks();
+  });
+
+  it('過期草稿被清除', () => {
+    const expiredTs = Date.now() - DRAFT_EXPIRE_MS - 1000;
+    draftStore2['draft_竹北_old'] = JSON.stringify({ email: 'x', data: {}, ts: expiredTs });
+    draftStore2['draft_竹北_new'] = JSON.stringify({ email: 'y', data: {}, ts: Date.now() });
+
+    const allProps = mockProps2.getProperties();
+    const results: any[] = [];
+    for (const key in allProps) {
+      if (!key.startsWith('draft_竹北_')) continue;
+      const val = JSON.parse(allProps[key]);
+      if (Date.now() - val.ts > DRAFT_EXPIRE_MS) {
+        mockProps2.deleteProperty(key);
+      } else {
+        results.push({ key, ...val });
+      }
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0].email).toBe('y');
+    expect(draftStore2['draft_竹北_old']).toBeUndefined();
+    expect(draftStore2['draft_竹北_new']).toBeDefined();
+  });
+
+  it('兩次清除同一個 key 不會報錯（冪等性）', () => {
+    draftStore2['draft_竹北_expired'] = JSON.stringify({ ts: 0 });
+
+    mockProps2.deleteProperty('draft_竹北_expired');
+    expect(draftStore2['draft_竹北_expired']).toBeUndefined();
+
+    // 第二次刪除 — 不應出錯
+    expect(() => mockProps2.deleteProperty('draft_竹北_expired')).not.toThrow();
+  });
+
+  it('JSON 格式損壞的草稿被安全清除', () => {
+    draftStore2['draft_竹北_broken'] = 'NOT_JSON{{{';
+    draftStore2['draft_竹北_good'] = JSON.stringify({ email: 'ok', data: {}, ts: Date.now() });
+
+    const allProps = mockProps2.getProperties();
+    const results: any[] = [];
+    for (const key in allProps) {
+      if (!key.startsWith('draft_竹北_')) continue;
+      try {
+        const val = JSON.parse(allProps[key]);
+        if (Date.now() - val.ts > DRAFT_EXPIRE_MS) {
+          mockProps2.deleteProperty(key);
+        } else {
+          results.push(val);
+        }
+      } catch {
+        mockProps2.deleteProperty(key); // 格式錯誤也清掉
+      }
+    }
+
+    expect(results).toHaveLength(1);
+    expect(draftStore2['draft_竹北_broken']).toBeUndefined();
+    expect(draftStore2['draft_竹北_good']).toBeDefined();
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// 多門市並行操作
+// ═══════════════════════════════════════════════════
+describe('Race Condition: 多門市 Draft 隔離', () => {
+  const store: Record<string, string> = {};
+  const props = {
+    setProperty: vi.fn((k: string, v: string) => { store[k] = v; }),
+    getProperties: vi.fn(() => ({ ...store })),
+    deleteProperty: vi.fn((k: string) => { delete store[k]; }),
+  };
+
+  beforeEach(() => {
+    Object.keys(store).forEach(k => delete store[k]);
+    vi.clearAllMocks();
+  });
+
+  it('竹北和金山的 draft 互不干擾', () => {
+    props.setProperty('draft_竹北_s1', JSON.stringify({ email: 'zhubei@x.com' }));
+    props.setProperty('draft_金山_s1', JSON.stringify({ email: 'jinshan@x.com' }));
+
+    // getDrafts for 竹北 only
+    const allProps = props.getProperties();
+    const zhubeiDrafts = Object.keys(allProps).filter(k => k.startsWith('draft_竹北_'));
+    const jinshanDrafts = Object.keys(allProps).filter(k => k.startsWith('draft_金山_'));
+
+    expect(zhubeiDrafts).toHaveLength(1);
+    expect(jinshanDrafts).toHaveLength(1);
+
+    // 清除竹北不影響金山
+    props.deleteProperty('draft_竹北_s1');
+    expect(store['draft_竹北_s1']).toBeUndefined();
+    expect(store['draft_金山_s1']).toBeDefined();
+  });
+
+  it('同 sessionId 不同門市為不同 key', () => {
+    const sessionId = 'shared_session';
+    const keyA = `draft_竹北_${sessionId}`;
+    const keyB = `draft_金山_${sessionId}`;
+
+    props.setProperty(keyA, JSON.stringify({ email: 'a@x.com' }));
+    props.setProperty(keyB, JSON.stringify({ email: 'b@x.com' }));
+
+    expect(store[keyA]).toBeDefined();
+    expect(store[keyB]).toBeDefined();
+    expect(JSON.parse(store[keyA]).email).not.toBe(JSON.parse(store[keyB]).email);
+  });
+});
