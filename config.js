@@ -23,6 +23,9 @@ const sheetCloseDayLog = "開關帳紀錄";
 const sheetVoidSetLog = "廢套紀錄";
 const sheetSchedule = "班表";
 
+// ── 監控草稿過期時間（3 小時）──
+const DRAFT_EXPIRE_MS = 3 * 60 * 60 * 1000;
+
 // ── Spreadsheet IDs ──
 const appBackground = SCRIPT_PROP.getProperty('APP_BACKGROUND_ID') || "1Dc_vjyCcl3_wjA1_IQssVEKTBA7sqJAjNgR3sSx-OSk";
 const appChupei = "1OYpsKmJoVDmjailFvDj242FwcgGKpiysUcPez8Fbzek";

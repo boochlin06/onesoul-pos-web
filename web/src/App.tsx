@@ -22,6 +22,7 @@ import { StockView } from './components/views/StockView';
 import { BlindBoxView } from './components/views/BlindBoxView';
 import { MemberHistoryView } from './components/views/MemberHistoryView';
 import { MasterView } from './components/views/MasterView';
+import { MonitorView } from './components/views/MonitorView';
 import { useEmergencyNotice } from './hooks/useEmergencyNotice';
 import { useClockIn } from './hooks/useClockIn';
 import { EmergencyNoticeModal } from './components/ui/EmergencyNoticeModal';
@@ -192,7 +193,7 @@ function PosApp() {
         </div>
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6">
           <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {TABS.filter(t => t.key !== 'master' || isAdmin).map(t => (
+            {TABS.filter(t => (t.key !== 'master' && t.key !== 'monitor') || isAdmin).map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key as Tab)}
                 className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-t-lg transition-all border-b-2 ${activeTab === t.key ? 'bg-slate-50 text-slate-700 border-transparent shadow-inner' : 'text-white/70 border-transparent hover:text-white hover:bg-white/10'}`}>
                 {t.icon}{t.label}
@@ -216,6 +217,7 @@ function PosApp() {
             fetchMembers={fetchMembers}
             showBanner={showBanner}
             setActiveTab={setActiveTab as any}
+            email={auth.user?.email}
           />
         )}
 
@@ -230,6 +232,9 @@ function PosApp() {
         )}
         {activeTab === 'master' && isAdmin && (
           <MasterView notice={emergencyNotice.notice} isSending={emergencyNotice.isSending} onSend={emergencyNotice.sendNotice} onClear={emergencyNotice.clearNotice} />
+        )}
+        {activeTab === 'monitor' && isAdmin && (
+          <MonitorView branch={branch} />
         )}
 
         {daily.isClosingModalOpen && (

@@ -24,10 +24,11 @@ export interface CheckoutViewProps {
   fetchMembers: () => void;
   showBanner: (msg: string, type: BannerState['type'], autoDismiss?: boolean) => void;
   setActiveTab: (t: string) => void;
+  email?: string;
 }
 
 export function CheckoutView({
-  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner, setActiveTab,
+  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner, setActiveTab, email,
 }: CheckoutViewProps) {
   const {
     customer, setCustomer,
@@ -39,7 +40,7 @@ export function CheckoutView({
     merchandises, addMerchRow, removeMerchRow, updateMerch,
     summary, orderNote, setOrderNote,
     handleResetCheckout, handleCheckout,
-  } = useCheckout({ branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner });
+  } = useCheckout({ branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner, email });
 
   const [viewMode, setViewMode] = useStickyState<'classic' | 'card'>('classic', 'os_checkout_viewmode');
 

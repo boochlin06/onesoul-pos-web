@@ -128,3 +128,14 @@ export async function apiClockIn(branch: string) {
 export async function apiGetTodayAttendance(branch: string) {
   return gasPost('getTodayAttendance', { branch });
 }
+
+// ── 即時結帳監控 ──
+export async function apiSaveDraft(branch: string, sessionId: string, email: string, data: object) {
+  return gasPost('saveDraft', { branch, sessionId, email, data });
+}
+export async function apiClearDraft(sessionId: string, branch: string) {
+  return gasPost('clearDraft', { sessionId, branch });
+}
+export async function apiGetDrafts(branch: string) {
+  return gasPost('getDrafts', { branch });
+}

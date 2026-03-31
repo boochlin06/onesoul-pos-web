@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
 import { useStickyState } from './useStickyState';
-import { gasPost } from '../services/api';
+import { gasPost, apiSaveDraft, apiClearDraft } from '../services/api';
 import type { BannerState } from './useBanner';
 import { MSG } from '../constants/messages';
 import {
@@ -20,11 +20,15 @@ interface UseCheckoutDeps {
   setMembers: React.Dispatch<React.SetStateAction<MemberEntry[]>>;
   fetchMembers: () => void;
   showBanner: (msg: string, type: BannerState['type'], autoDismiss?: boolean) => void;
+  email?: string;
 }
 
 export function useCheckout({
-  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner,
+  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner, email,
 }: UseCheckoutDeps) {
+  // ── Draft monitoring ──
+  const sessionIdRef = useRef(Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const lastDraftRef = useRef('');
   const [customer, setCustomer] = useStickyState(
     { phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 },
     'os_checkout_customer',
@@ -48,6 +52,30 @@ export function useCheckout({
   useEffect(() => {
     setSummary(calcSummary(lotteries, merchandises));
   }, [lotteries, merchandises]);
+
+  // ── Draft monitoring: debounce 3s, only send on change ──
+  useEffect(() => {
+    const snapshot = JSON.stringify({ customer, lotteries, merchandises, payment, orderNote });
+    const timer = setTimeout(() => {
+      if (snapshot !== lastDraftRef.current && email) {
+        lastDraftRef.current = snapshot;
+        apiSaveDraft(branch, sessionIdRef.current, email, { customer, lotteries, merchandises, payment, orderNote }).catch(() => {});
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [customer, lotteries, merchandises, payment, orderNote, branch, email]);
+
+  // ── Clear draft on tab close ──
+  useEffect(() => {
+    const handleUnload = () => {
+      if (email) {
+        // navigator.sendBeacon not available for POST JSON, use sync fetch
+        try { apiClearDraft(sessionIdRef.current, branch).catch(() => {}); } catch {}
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [branch, email]);
 
   // ── Member autocomplete (delegated to pure function) ──
   const filteredCacheMembers = useMemo(
@@ -141,6 +169,9 @@ export function useCheckout({
         setLotteries(Array(5).fill(null).map(emptyLottery));
         setMerchandises(Array(2).fill(null).map(emptyMerch));
         setOrderNote('');
+        // 清除監控草稿
+        lastDraftRef.current = '';
+        apiClearDraft(sessionIdRef.current, branch).catch(() => {});
       } else { showBanner(MSG.checkout.fail(res.message), 'err'); }
     } catch { showBanner(MSG.checkout.networkError, 'err'); }
     finally { setIsSubmitting(false); }

@@ -117,6 +117,15 @@ function doPost(e) {
       case "getTodayAttendance":
         result = apiGetTodayAttendance(payload.branch);
         break;
+      case "saveDraft":
+        result = apiSaveDraft(payload);
+        break;
+      case "getDrafts":
+        result = apiGetDrafts(payload.branch);
+        break;
+      case "clearDraft":
+        result = apiClearDraft(payload.sessionId, payload.branch);
+        break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
     }
@@ -1431,5 +1440,80 @@ function apiGetTodayAttendance(branch) {
     return { success: true, data: { clocked: false } };
   } catch(error) {
     return { success: false, message: '查詢出勤狀態失敗: ' + error.toString() };
+  }
+}
+
+// ── 即時結帳監控 API ──────────────────────────────────────
+
+/**
+ * 儲存結帳草稿到 ScriptProperties
+ * Key: draft_{branch}_{sessionId}
+ */
+function apiSaveDraft(payload) {
+  try {
+    var branch = payload.branch;
+    var sessionId = payload.sessionId;
+    var email = payload.email || '';
+    var data = payload.data || {};
+    if (!branch || !sessionId) return { success: false, message: '缺少 branch 或 sessionId' };
+
+    var key = 'draft_' + branch + '_' + sessionId;
+    var value = JSON.stringify({ email: email, data: data, ts: Date.now() });
+    PropertiesService.getScriptProperties().setProperty(key, value);
+    return { success: true };
+  } catch(error) {
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * 取得指定門市的所有活躍草稿（過期自動清除）
+ */
+function apiGetDrafts(branch) {
+  try {
+    if (!branch) return { success: false, message: '缺少 branch' };
+    var props = PropertiesService.getScriptProperties();
+    var allProps = props.getProperties();
+    var prefix = 'draft_' + branch + '_';
+    var now = Date.now();
+    var results = [];
+
+    for (var key in allProps) {
+      if (key.indexOf(prefix) !== 0) continue;
+      try {
+        var val = JSON.parse(allProps[key]);
+        if (now - val.ts > DRAFT_EXPIRE_MS) {
+          props.deleteProperty(key); // 清除過期
+          continue;
+        }
+        var sessionId = key.substring(prefix.length);
+        results.push({
+          sessionId: sessionId,
+          email: val.email || '',
+          data: val.data || {},
+          ts: val.ts,
+          ago: Math.round((now - val.ts) / 1000) // 秒前
+        });
+      } catch(e) {
+        props.deleteProperty(key); // 格式錯誤也清掉
+      }
+    }
+    return { success: true, data: results };
+  } catch(error) {
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * 清除指定 session 的草稿
+ */
+function apiClearDraft(sessionId, branch) {
+  try {
+    if (!sessionId || !branch) return { success: false, message: '缺少參數' };
+    var key = 'draft_' + branch + '_' + sessionId;
+    PropertiesService.getScriptProperties().deleteProperty(key);
+    return { success: true };
+  } catch(error) {
+    return { success: false, message: error.toString() };
   }
 }
