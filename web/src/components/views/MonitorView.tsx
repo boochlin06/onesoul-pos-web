@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Radio, Loader2, User, Clock, ShoppingCart, Package } from 'lucide-react';
 import { apiGetDrafts } from '../../services/api';
 import type { Branch } from '../../types';
+import { useStickyState } from '../../hooks/useStickyState';
 
 interface DraftSession {
   sessionId: string;
@@ -28,7 +29,7 @@ function formatAgo(seconds: number): string {
 }
 
 export function MonitorView({ branch }: MonitorViewProps) {
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useStickyState(false, 'os_monitor_enabled');
   const [drafts, setDrafts] = useState<DraftSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastFetch, setLastFetch] = useState<number | null>(null);
