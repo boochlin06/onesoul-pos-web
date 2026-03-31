@@ -302,22 +302,21 @@ function apiCloseDay(payload, callerEmail) {
           logSheet.appendRow(['關帳時間', '門市', '操作人員', '開櫃準備金', '應收現金', '實收現金', '現金差異', '信用卡總額', '匯款總額', '本日營業額', '交易筆數', '備註']);
         }
         logSheet.appendRow([
-          Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss"), // A 關帳時間
-          branch,                                                            // B 門市
-          callerEmail || '',                                                 // C 操作人員
-          openingCash,                                                       // D 開櫃準備金
-          expectedCash,                                                      // E 應收現金
-          actualCash,                                                        // F 實收現金
-          discrepancy,                                                       // G 現金差異
-          Math.round(totalCreditCard),                                       // H 信用卡總額
-          Math.round(totalRemittance),                                       // I 匯款總額
-          Math.round(totalRevenue),                                          // J 本日營業額
-          txCount,                                                           // K 交易筆數
-          note                                                               // L 備註
+          Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss"),
+          branch,
+          callerEmail || '',
+          openingCash,
+          expectedCash,
+          actualCash,
+          discrepancy,
+          Math.round(totalCreditCard),
+          Math.round(totalRemittance),
+          Math.round(totalRevenue),
+          txCount,
+          note
         ]);
       }
     } catch(logErr) {
-      // 紀錄失敗不影響關帳結果，靜默忽略
       console.error('開關帳紀錄寫入失敗: ' + logErr.toString());
     }
 
@@ -327,47 +326,40 @@ function apiCloseDay(payload, callerEmail) {
       if (schedSheet) {
         var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'M/d');
         var schedData = schedSheet.getDataRange().getValues();
-        var clockOutCol = (branch === '竹北') ? 4 : 7; // E=4(竹北下班), H=7(金山下班)
-        var hoursCol   = (branch === '竹北') ? 5 : 8; // F=5(竹北工時), I=8(金山工時)
-        var clockInCol = (branch === '竹北') ? 3 : 6; // D=3(竹北上班), G=6(金山上班)
-        var remarkCol  = 9; // J
-        // 讀設定區 Row 3 (index 2) 的規定工時
+        var schedDisplay = schedSheet.getDataRange().getDisplayValues();
+        var clockOutCol = (branch === '竹北') ? 4 : 7;
+        var hoursCol   = (branch === '竹北') ? 5 : 8;
+        var clockInCol = (branch === '竹北') ? 3 : 6;
+        var remarkCol  = 9;
         var configCol = (branch === '竹北') ? 1 : 2;
-        var standardHours = Number(schedData[2][configCol]) || (branch === '竹北' ? 8 : 6);
+        var standardHours = Number(schedDisplay[2][configCol]) || (branch === '竹北' ? 8 : 6);
+
+        console.log('班表關帳 — 今天: ' + today + ', branch: ' + branch + ', clockInCol: ' + clockInCol);
 
         for (var r = 5; r < schedData.length; r++) {
-          var cellDate = schedData[r][0];
-          var dateStr = '';
-          if (cellDate instanceof Date) {
-            dateStr = (cellDate.getMonth() + 1) + '/' + cellDate.getDate();
-          } else {
-            dateStr = String(cellDate).replace(/[^0-9\/]/g, '').replace(/^(\d+月)(\d+日).*/, function(_, m, d) { return parseInt(m) + '/' + parseInt(d); });
-            var match = String(cellDate).match(/(\d+)\/?(\d+)/);
-            if (!match) match = String(cellDate).match(/(\d+)月(\d+)/);
-            if (match) dateStr = parseInt(match[1]) + '/' + parseInt(match[2]);
-          }
+          var dateStr = parseScheduleDate_(schedData[r][0]);
           if (dateStr === today) {
-            var clockInVal = schedData[r][clockInCol];
-            if (!clockInVal) break; // 沒打卡就不寫下班
+            var clockInVal = schedDisplay[r][clockInCol];
+            console.log('班表關帳 — 找到 row ' + (r + 1) + ', clockInVal: [' + clockInVal + ']');
+            if (!clockInVal) break;
             var nowStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'HH:mm');
             schedSheet.getRange(r + 1, clockOutCol + 1).setValue(nowStr);
 
-            // 計算實際工時
             var inParts = String(clockInVal).split(':');
             var outParts = nowStr.split(':');
             var inMin = parseInt(inParts[0]) * 60 + parseInt(inParts[1]);
             var outMin = parseInt(outParts[0]) * 60 + parseInt(outParts[1]);
-            var actualHours = Math.round((outMin - inMin) / 30) * 0.5; // 四捨五入到 0.5hr
+            var actualHours = Math.round((outMin - inMin) / 30) * 0.5;
             schedSheet.getRange(r + 1, hoursCol + 1).setValue(actualHours);
 
-            // 備註差異
             var diff = actualHours - standardHours;
             if (diff !== 0) {
-              var existingRemark = schedData[r][remarkCol] || '';
+              var existingRemark = schedDisplay[r][remarkCol] || '';
               var hourNote = diff > 0 ? '加班' + diff + 'hr' : '早退' + Math.abs(diff) + 'hr';
               var newRemark = existingRemark ? existingRemark + '、' + hourNote : hourNote;
               schedSheet.getRange(r + 1, remarkCol + 1).setValue(newRemark);
             }
+            console.log('班表關帳 — 寫入成功: 下班=' + nowStr + ', 工時=' + actualHours);
             break;
           }
         }
