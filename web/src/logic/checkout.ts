@@ -56,7 +56,8 @@ export function applyLotteryUpdate(
   }
   if (field === 'prize') {
     const wasPointsSet = item.remark === '點數套';
-    const prizeEntry = prizes.find(p => p.setId === updated.id && p.prize === String(value));
+    const normalizedPrize = String(value).trim().toLowerCase();
+    const prizeEntry = prizes.find(p => p.setId === updated.id && String(p.prize).trim().toLowerCase() === normalizedPrize);
     if (prizeEntry) { updated.prizeId = prizeEntry.prizeId; updated.prizeName = prizeEntry.prizeName; updated.unitPoints = prizeEntry.points; }
     else { updated.prizeId = ''; updated.prizeName = ''; updated.unitPoints = 0; updated.draws = 0; updated.amount = 0; updated.totalPoints = 0; }
     if (!wasPointsSet) {
@@ -68,7 +69,7 @@ export function applyLotteryUpdate(
   }
   // 抽數防呆：不可超過該獎項的總抽數
   if (field === 'draws') {
-    const prizeEntry = prizes.find(p => p.setId === updated.id && p.prize === updated.prize);
+    const prizeEntry = prizes.find(p => p.setId === updated.id && String(p.prize).trim().toLowerCase() === String(updated.prize).trim().toLowerCase());
     if (prizeEntry && Number(value) > prizeEntry.draws) {
       updated.draws = prizeEntry.draws;
     }
@@ -161,6 +162,7 @@ export interface ValidationInput {
   customer: { phoneName: string; name: string; currentPoints: number };
   payment: { cash: number; remittance: number; creditCard: number; pointsUsed: number };
   summary: { dueAmount: number; pointsChange: number };
+  orderNote?: string;
 }
 
 export function validateCheckout(input: ValidationInput): string | null {
@@ -171,6 +173,12 @@ export function validateCheckout(input: ValidationInput): string | null {
   if (filteredLotteries.length === 0 && filteredMerch.length === 0) return MSG.validation.emptyCart;
   if (!customer.phoneName) return MSG.validation.noPhone;
   if (!customer.name) return MSG.validation.noMemberLookup;
+
+  // 88888 / 99999 必須填備註
+  const rawPhone = customer.phoneName.split(/[- ]/)[0].trim();
+  if ((rawPhone === '88888' || rawPhone === '99999') && !(input.orderNote?.trim())) {
+    return `使用 ${rawPhone} 結帳時，必須在備註欄填寫原因`;
+  }
 
   for (let i = 0; i < filteredLotteries.length; i++) {
     const l = filteredLotteries[i];

@@ -113,7 +113,11 @@ export function PrizeLibraryView({ branch, prizes, isLoading, onDeletePrize, onC
     const q = search.toLowerCase();
     return prizes.filter(p => {
       const matchBranch = filterBranch === 'all' || !p.branch || p.branch === filterBranch;
-      const matchSearch = !q || p.setName.toLowerCase().includes(q) || p.setId.includes(q) || p.prizeName.toLowerCase().includes(q) || p.prizeId.includes(q);
+      const matchSearch = !q
+        || (p.setName || '').toLowerCase().includes(q)
+        || (p.setId || '').includes(q)
+        || (p.prizeName || '').toLowerCase().includes(q)
+        || (p.prizeId || '').includes(q);
       return matchBranch && matchSearch;
     });
   }, [prizes, search, filterBranch]);

@@ -118,7 +118,7 @@ export function useCheckout({
     const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName || l.amount > 0);
     const filteredMerch = merchandises.filter(m => m.id || m.name || m.quantity > 1);
 
-    const error = validateCheckout({ lotteries, merchandises, customer, payment, summary });
+    const error = validateCheckout({ lotteries, merchandises, customer, payment, summary, orderNote });
     if (error) { showBanner(error, 'err'); return; }
 
     if (isSubmitting) return;

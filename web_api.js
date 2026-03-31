@@ -413,7 +413,7 @@ function apiGetPrizeLibrary(branch) {
       if (branch && colJ && colJ.indexOf(branch) === -1) continue;
       var isPointsSet = colJ.indexOf('點數') !== -1;
       var parsedBranch = colJ.replace('點數', '').trim() || '';
-      results.push({ setId: row[0].toString(), setName: row[1]||'', unitPrice: row[2]||0, prize: row[3]||'', prizeId: row[4]||'', prizeName: row[5]||'', points: row[6]||0, draws: row[7]||1, branch: parsedBranch, isPointsSet: isPointsSet, drawnCount: Number(row[10]) || 0 });
+      results.push({ setId: row[0].toString(), setName: row[1]||'', unitPrice: row[2]||0, prize: (row[3]||'').toString().trim(), prizeId: (row[4]||'').toString(), prizeName: row[5]||'', points: row[6]||0, draws: row[7]||1, branch: parsedBranch, isPointsSet: isPointsSet, drawnCount: Number(row[10]) || 0 });
     }
     return { success: true, data: results };
   } catch(error) { return { success: false, message: error.toString() }; }
