@@ -11,7 +11,8 @@ interface DraftSession {
     customer?: { phoneName?: string; name?: string };
     lotteries?: { id?: string; setName?: string; prize?: string; draws?: number; amount?: number }[];
     merchandises?: { id?: string; name?: string; quantity?: number; actualAmount?: number }[];
-    payment?: { cash?: number; creditCard?: number; remittance?: number };
+    payment?: { cash?: number; creditCard?: number; remittance?: number; pointsUsed?: number };
+    summary?: { dueAmount?: number; pointsChange?: number };
     orderNote?: string;
   };
   ts: number;
@@ -106,10 +107,12 @@ export function MonitorView({ branch }: MonitorViewProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {drafts.map(d => {
-            const { customer, lotteries, merchandises, payment, orderNote } = d.data;
+            const { customer, lotteries, merchandises, payment, summary, orderNote } = d.data;
             const activeLotteries = (lotteries || []).filter(l => l.id || l.prize);
             const activeMerch = (merchandises || []).filter(m => m.id || m.name);
             const totalAmount = (payment?.cash || 0) + (payment?.creditCard || 0) + (payment?.remittance || 0);
+            const pointsUsed = payment?.pointsUsed || 0;
+            const due = summary?.dueAmount || 0;
 
             return (
               <div key={d.sessionId} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -168,14 +171,18 @@ export function MonitorView({ branch }: MonitorViewProps) {
                   )}
 
                   {/* Payment summary */}
-                  {totalAmount > 0 && (
+                  {(totalAmount > 0 || due > 0 || pointsUsed > 0) && (
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                       <span className="text-xs text-slate-400 w-12">金額</span>
-                      <span className="text-sm font-bold text-slate-800">NT$ {totalAmount.toLocaleString()}</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        應收 ${due.toLocaleString()} 
+                        {totalAmount > 0 ? ` / 已收 $${totalAmount.toLocaleString()}` : ''}
+                      </span>
                       <span className="text-xs text-slate-400 ml-auto">
-                        {payment?.cash ? `現${payment.cash}` : ''}
-                        {payment?.creditCard ? ` 卡${payment.creditCard}` : ''}
-                        {payment?.remittance ? ` 匯${payment.remittance}` : ''}
+                        {payment?.cash ? `現${payment.cash} ` : ''}
+                        {payment?.creditCard ? `卡${payment.creditCard} ` : ''}
+                        {payment?.remittance ? `匯${payment.remittance} ` : ''}
+                        {pointsUsed > 0 ? `扣點${pointsUsed}` : ''}
                       </span>
                     </div>
                   )}

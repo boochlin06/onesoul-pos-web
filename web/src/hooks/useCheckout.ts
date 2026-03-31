@@ -55,15 +55,15 @@ export function useCheckout({
 
   // ── Draft monitoring: debounce 3s, only send on change ──
   useEffect(() => {
-    const snapshot = JSON.stringify({ customer, lotteries, merchandises, payment, orderNote });
+    const snapshot = JSON.stringify({ customer, lotteries, merchandises, payment, summary, orderNote });
     const timer = setTimeout(() => {
       if (snapshot !== lastDraftRef.current && email) {
         lastDraftRef.current = snapshot;
-        apiSaveDraft(branch, sessionIdRef.current, email, { customer, lotteries, merchandises, payment, orderNote }).catch(() => {});
+        apiSaveDraft(branch, sessionIdRef.current, email, { customer, lotteries, merchandises, payment, summary, orderNote }).catch(() => {});
       }
     }, 3000);
     return () => clearTimeout(timer);
-  }, [customer, lotteries, merchandises, payment, orderNote, branch, email]);
+  }, [customer, lotteries, merchandises, payment, summary, orderNote, branch, email]);
 
   // ── Clear draft on tab close ──
   useEffect(() => {
