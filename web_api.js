@@ -256,43 +256,46 @@ function apiCloseDay(payload, callerEmail) {
     var sourceSheet = tempApp.getSheetByName(sourceSheetName);
     var targetSheet = tempApp.getSheetByName(targetSheetName);
     var lastRowSource = sourceSheet.getLastRow();
-    
-    if (lastRowSource <= 5) return { success: true, message: '無資料需要關帳（但仍可記錄盤點）' };
-    
-    var numToMove = lastRowSource - 5;
-    var srcCols = sourceSheet.getLastColumn();
-    var dataToMove = sourceSheet.getRange(6, 1, numToMove, srcCols).getValues();
-    
-    var dataWithBranch = dataToMove.map(function(row) {
-      while (row.length < 25) row.push('');
-      if (!row[24]) row[24] = branch;
-      return row;
-    });
+    var noData = (lastRowSource <= 5);
 
-    var lastRowTarget = targetSheet.getLastRow();
-    var targetCols = Math.max(srcCols, 25);
-    targetSheet.getRange(lastRowTarget + 1, 1, dataWithBranch.length, targetCols).setValues(dataWithBranch);
-    sourceSheet.getRange(6, 1, numToMove, srcCols).clearContent();
+    var dataToMove = [];
+    var txCount = 0, totalRevenue = 0, totalCreditCard = 0, totalRemittance = 0;
+
+    if (!noData) {
+      var numToMove = lastRowSource - 5;
+      var srcCols = sourceSheet.getLastColumn();
+      dataToMove = sourceSheet.getRange(6, 1, numToMove, srcCols).getValues();
+
+      var dataWithBranch = dataToMove.map(function(row) {
+        while (row.length < 25) row.push('');
+        if (!row[24]) row[24] = branch;
+        return row;
+      });
+
+      var lastRowTarget = targetSheet.getLastRow();
+      var targetCols = Math.max(srcCols, 25);
+      targetSheet.getRange(lastRowTarget + 1, 1, dataWithBranch.length, targetCols).setValues(dataWithBranch);
+      sourceSheet.getRange(6, 1, numToMove, srcCols).clearContent();
+
+      // 統計交易資料
+      var uidSet = {};
+      dataToMove.forEach(function(row) {
+        var uid = (row[14] || '').toString().trim();
+        if (uid && !uidSet[uid]) {
+          uidSet[uid] = true;
+          totalRevenue += Number(row[15]) || 0;
+          totalCreditCard += Number(row[17]) || 0;
+          totalRemittance += Number(row[18]) || 0;
+        }
+      });
+      txCount = Object.keys(uidSet).length;
+    }
 
     var props = PropertiesService.getScriptProperties();
     props.deleteProperty('openingCash_' + branch);
 
     // ── 寫入「開關帳紀錄」──
     try {
-      // 計算交易筆數（unique checkoutUID）和各金額統計
-      var uidSet = {};
-      var totalRevenue = 0, totalCreditCard = 0, totalRemittance = 0;
-      dataToMove.forEach(function(row) {
-        var uid = (row[14] || '').toString().trim();
-        if (uid && !uidSet[uid]) {
-          uidSet[uid] = true;
-          totalRevenue += Number(row[15]) || 0;     // P 欄 receivedAmount
-          totalCreditCard += Number(row[17]) || 0;  // R 欄 creditCard
-          totalRemittance += Number(row[18]) || 0;  // S 欄 remittance
-        }
-      });
-      var txCount = Object.keys(uidSet).length;
-
       var logSheet = tempApp.getSheetByName(sheetCloseDayLog);
       if (logSheet) {
         if (logSheet.getLastRow() === 0) {
