@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Radio, Loader2, User, Clock, ShoppingCart, Package, RefreshCw } from 'lucide-react';
+import { Radio, Loader2, User, Clock, ShoppingCart, Package } from 'lucide-react';
 import { apiGetDrafts } from '../../services/api';
 import type { Branch } from '../../types';
 import { useStickyState } from '../../hooks/useStickyState';
+import { RefreshButton } from '../ui/RefreshButton';
 
 interface DraftSession {
   sessionId: string;
@@ -62,8 +63,9 @@ export function MonitorView({ branch }: MonitorViewProps) {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <Radio className={`w-5 h-5 ${enabled ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
+            <Radio className={`w-6 h-6 ${enabled ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
             <h2 className="text-xl font-bold text-slate-800">即時結帳監控</h2>
+            {enabled && <RefreshButton onClick={fetchDrafts} isLoading={loading} />}
           </div>
           <p className="text-sm text-slate-500 mt-1">
             查看店員目前正在輸入的結帳資料（{branch}）
@@ -75,42 +77,34 @@ export function MonitorView({ branch }: MonitorViewProps) {
               上次更新：{new Date(lastFetch).toLocaleTimeString()}
             </span>
           )}
-          {enabled && (
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-slate-100">
+            <span className={`text-sm font-bold ${enabled ? 'text-emerald-600' : 'text-slate-400'}`}>
+              {enabled ? '監控中' : '已關閉'}
+            </span>
             <button
-              onClick={fetchDrafts}
-              disabled={loading}
-              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors disabled:opacity-50"
-              title="重新整理"
+              onClick={() => setEnabled(e => !e)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
-          )}
-          <button
-            onClick={() => setEnabled(e => !e)}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
-          >
-            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-          </button>
-          <span className={`text-sm font-bold ${enabled ? 'text-emerald-600' : 'text-slate-400'}`}>
-            {enabled ? '監控中' : '已關閉'}
-          </span>
+          </div>
         </div>
       </div>
 
       {!enabled ? (
-        <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
-          <Radio className="w-8 h-8 mx-auto mb-3 opacity-40" />
+        <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100 shadow-sm">
+          <Radio className="w-10 h-10 mx-auto mb-3 opacity-20" />
           <p>點擊右上角開關啟動監控</p>
           <p className="text-xs mt-1">啟動後可點擊重新整理獲取最新畫面</p>
         </div>
       ) : loading && drafts.length === 0 ? (
-        <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
-          <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-emerald-500" />
-          <p>載入中...</p>
+        <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100 shadow-sm">
+          <Loader2 className="w-10 h-10 mx-auto mb-3 animate-spin text-emerald-500 opacity-80" />
+          <p>載入資料中...</p>
         </div>
       ) : drafts.length === 0 ? (
-        <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100">
-          <ShoppingCart className="w-8 h-8 mx-auto mb-3 opacity-40" />
+        <div className="bg-white rounded-2xl p-16 text-center text-slate-400 border border-slate-100 shadow-sm">
+          <ShoppingCart className="w-10 h-10 mx-auto mb-3 opacity-20" />
           <p>目前沒有進行中的結帳</p>
         </div>
       ) : (
@@ -124,7 +118,7 @@ export function MonitorView({ branch }: MonitorViewProps) {
             const due = summary?.dueAmount || 0;
 
             return (
-              <div key={d.sessionId} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div key={d.sessionId} className="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative group flex flex-col">
                 {/* Header */}
                 <div className="px-5 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
