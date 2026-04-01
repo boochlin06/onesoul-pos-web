@@ -542,11 +542,11 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
 
     // ── 先掃描銷售紀錄與當日銷售建立 counts map ──
     var drawCounts = {};
-    // 銷售紀錄
+    // 銷售紀錄 — ★ 只讀 A-E 欄 (setId/prize/draws/舊格式判斷)，不讀完整 22 欄
     var salesSheet = tempApp.getSheetByName(sheetSalesRecord);
     var salesLastRow = salesSheet.getLastRow();
     if (salesLastRow > 1) {
-      var salesData = salesSheet.getRange(2, 1, salesLastRow - 1, salesSheet.getLastColumn()).getValues();
+      var salesData = salesSheet.getRange(2, 1, salesLastRow - 1, 5).getValues();
       for (var si = 0; si < salesData.length; si++) {
         var sRow = salesData[si];
         var sIsOld = sRow[4] && !isNaN(Number(sRow[4])) && sRow[4].toString().trim() !== '';
@@ -561,13 +561,13 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
         }
       }
     }
-    // 當日銷售
+    // 當日銷售 — ★ 只讀到 W 欄 (23 欄)，不讀完整寬度
     var dailySheetNames = [sheetTodaySalesRecordChupei, sheetTodaySalesRecordJinsang];
     for (var ds = 0; ds < dailySheetNames.length; ds++) {
       var dSheet = tempApp.getSheetByName(dailySheetNames[ds]);
       var dLastRow = dSheet.getLastRow();
       if (dLastRow <= 5) continue;
-      var dData = dSheet.getRange(6, 1, dLastRow - 5, dSheet.getLastColumn()).getValues();
+      var dData = dSheet.getRange(6, 1, dLastRow - 5, 23).getValues();
       for (var dj = 0; dj < dData.length; dj++) {
         var dRow = dData[dj];
         if (dRow[22] && dRow[22].toString().trim() !== '') continue;
@@ -596,9 +596,23 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
       details.push(prize + ':' + prizeName + ':' + points + ':已抽' + drawn);
     });
     
-    rowsToDelete.sort(function(a, b) { return b - a; }); // 確保大→小，避免行號偏移
-    for (var r = 0; r < rowsToDelete.length; r++) {
-       sheet.deleteRow(rowsToDelete[r]);
+    rowsToDelete.sort(function(a, b) { return a - b; }); // 小→大排序，方便合併連續區段
+    
+    // ★ 批次刪除：合併連續行號為區段，從底部往上一次刪整段
+    var groups = [];
+    var gStart = rowsToDelete[0], gEnd = rowsToDelete[0];
+    for (var r = 1; r < rowsToDelete.length; r++) {
+      if (rowsToDelete[r] === gEnd + 1) {
+        gEnd = rowsToDelete[r];
+      } else {
+        groups.push({ start: gStart, count: gEnd - gStart + 1 });
+        gStart = gEnd = rowsToDelete[r];
+      }
+    }
+    groups.push({ start: gStart, count: gEnd - gStart + 1 });
+    
+    for (var g = groups.length - 1; g >= 0; g--) {
+      sheet.deleteRows(groups[g].start, groups[g].count);
     }
     SpreadsheetApp.flush();
 
