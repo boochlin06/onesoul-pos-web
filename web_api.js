@@ -94,8 +94,11 @@ function doPost(e) {
       case "getBlindBoxList":
         result = apiGetBlindBoxList();
         break;
-      case "deletePrizeLibrary":
-        result = apiDeletePrizeLibrary(payload.branch, payload.setId, tokenEmail);
+      case "deletePrizeLibraryFast":
+        result = apiDeletePrizeLibraryFast(payload.branch, payload.setId, tokenEmail);
+        break;
+      case "calculateVoidLog":
+        result = apiCalculateVoidLog(payload.branch, payload.setId, payload.matchedRows, tokenEmail);
         break;
       case "setOpeningCash":
         result = apiSetOpeningCash(payload.branch, payload.amount);
@@ -510,7 +513,7 @@ function apiGetPrizeLibrary(branch) {
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 
-function apiDeletePrizeLibrary(branch, setId, callerEmail) {
+function apiDeletePrizeLibraryFast(branch, setId, callerEmail) {
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(15000);
@@ -523,18 +526,15 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
     var sheet = tempApp.getSheetByName(sheetLotteryDB);
     var data = sheet.getDataRange().getValues();
     var rowsToDelete = [];
-    var matchedRows = []; // 收集獎項明細用
+    var matchedRows = []; 
     
-    // 從後面往前找，這樣刪除列時 Index 才不會跑到錯亂
+    // 從後面往前找
     for (var i = data.length - 1; i >= 1; i--) {
       var row = data[i];
       if (row[0] && row[0].toString().trim() === setId.toString().trim()) {
-        
-        // 如果有傳 branch，進一步確認 branch 相符才刪除 (防誤刪其他店同編號獎項)
         if (branch && row[9] && row[9].toString().trim() !== branch.toString().trim()) {
            continue; 
         }
-        
         rowsToDelete.push(i + 1);
         matchedRows.push(row);
       }
@@ -544,23 +544,57 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
       return { success: false, message: '找不到此編號對應的任何獎項' };
     }
 
-    // 在刪除前先收集紀錄資訊
-    var firstRow = matchedRows[matchedRows.length - 1]; // matchedRows 是反向的，最後一個 = 第一筆
+    rowsToDelete.sort(function(a, b) { return a - b; }); 
+    var groups = [];
+    var gStart = rowsToDelete[0], gEnd = rowsToDelete[0];
+    for (var r = 1; r < rowsToDelete.length; r++) {
+      if (rowsToDelete[r] === gEnd + 1) {
+        gEnd = rowsToDelete[r];
+      } else {
+        groups.push({ start: gStart, count: gEnd - gStart + 1 });
+        gStart = gEnd = rowsToDelete[r];
+      }
+    }
+    groups.push({ start: gStart, count: gEnd - gStart + 1 });
+    
+    for (var g = groups.length - 1; g >= 0; g--) {
+      sheet.deleteRows(groups[g].start, groups[g].count);
+    }
+    SpreadsheetApp.flush();
+
+    // ── 【極速版】只做刪除，不掃描銷售明細 ──
+    // 回傳 matchedRows 給前端，讓前端第二階段發 API 計算明細寫入 Log
+    return { 
+      success: true, 
+      message: '已成功作廢整套福袋',
+      data: { matchedRows: matchedRows }
+    };
+    
+  } catch(error) { 
+    return { success: false, message: error.toString() }; 
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function apiCalculateVoidLog(branch, setId, matchedRows, callerEmail) {
+  try {
+    if (!matchedRows || matchedRows.length === 0) return { success: true };
+    
+    var tempApp = SpreadsheetApp.openById(appBackground);
+    var firstRow = matchedRows[matchedRows.length - 1]; // matchedRows 是反向的
     var setName = firstRow[1] || '';
     var unitPrice = firstRow[2] || 0;
     var colJ = (firstRow[9] || '').toString().trim();
     var isPointsSet = colJ.indexOf('點數') !== -1;
-    var originalDate = firstRow[8] || ''; // I 欄 date
+    var originalDate = firstRow[8] || ''; 
     if (originalDate instanceof Date) originalDate = Utilities.formatDate(originalDate, "GMT+8", "yyyy/MM/dd");
     
-    // 計算總抽數 + 獎項明細 + 已抽數（交叉比對銷售紀錄+當日銷售）
     var totalDraws = 0;
     var totalDrawn = 0;
     var details = [];
-
-    // ── 先掃描銷售紀錄與當日銷售建立 counts map ──
     var drawCounts = {};
-    // 銷售紀錄 — ★ 只讀 A-E 欄 (setId/prize/draws/舊格式判斷)，不讀完整 22 欄
+
     var salesSheet = tempApp.getSheetByName(sheetSalesRecord);
     var salesLastRow = salesSheet.getLastRow();
     if (salesLastRow > 1) {
@@ -569,7 +603,7 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
         var sRow = salesData[si];
         var sIsOld = sRow[4] && !isNaN(Number(sRow[4])) && sRow[4].toString().trim() !== '';
         var sSetId = (sRow[1] || '').toString().trim();
-        if (sIsOld) continue; // 舊格式商品無獎項代號
+        if (sIsOld) continue; 
         var sPrize = String(sRow[2] || '').trim().toLowerCase();
         var sDraws = Number(sRow[3]) || 0;
         if (!sDraws && sSetId && sPrize) sDraws = 1;
@@ -579,7 +613,7 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
         }
       }
     }
-    // 當日銷售 — ★ 只讀到 W 欄 (23 欄)，不讀完整寬度
+    
     var dailySheetNames = [sheetTodaySalesRecordChupei, sheetTodaySalesRecordJinsang];
     for (var ds = 0; ds < dailySheetNames.length; ds++) {
       var dSheet = tempApp.getSheetByName(dailySheetNames[ds]);
@@ -614,58 +648,29 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
       details.push(prize + ':' + prizeName + ':' + points + ':已抽' + drawn);
     });
     
-    rowsToDelete.sort(function(a, b) { return a - b; }); // 小→大排序，方便合併連續區段
-    
-    // ★ 批次刪除：合併連續行號為區段，從底部往上一次刪整段（1-2 次 API call 取代 N 次）
-    var groups = [];
-    var gStart = rowsToDelete[0], gEnd = rowsToDelete[0];
-    for (var r = 1; r < rowsToDelete.length; r++) {
-      if (rowsToDelete[r] === gEnd + 1) {
-        gEnd = rowsToDelete[r]; // 連續，延伸區段
-      } else {
-        groups.push({ start: gStart, count: gEnd - gStart + 1 });
-        gStart = gEnd = rowsToDelete[r];
+    var logSheet = tempApp.getSheetByName(sheetVoidSetLog);
+    if (logSheet) {
+      if (logSheet.getLastRow() === 0) {
+        logSheet.appendRow(['作廢時間', '門市', '操作人員', '套號', '套名', '單抽價', '獎項數', '總抽數', '已抽總數', '獎項明細', '是否點數套', '原始建套日期']);
       }
+      logSheet.appendRow([
+        Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss"), 
+        branch || '',                                                      
+        callerEmail || '',                                                 
+        setId,                                                             
+        setName,                                                           
+        unitPrice,                                                         
+        matchedRows.length,                                                
+        totalDraws,                                                        
+        totalDrawn,                                                        
+        sanitizeForSheet(details.join(';')),                               
+        isPointsSet ? 'TRUE' : 'FALSE',                                    
+        originalDate                                                       
+      ]);
     }
-    groups.push({ start: gStart, count: gEnd - gStart + 1 });
-    
-    // 從底部往上刪，避免行號偏移
-    for (var g = groups.length - 1; g >= 0; g--) {
-      sheet.deleteRows(groups[g].start, groups[g].count);
-    }
-    SpreadsheetApp.flush();
-
-    // ── 寫入「廢套紀錄」──
-    try {
-      var logSheet = tempApp.getSheetByName(sheetVoidSetLog);
-      if (logSheet) {
-        if (logSheet.getLastRow() === 0) {
-          logSheet.appendRow(['作廢時間', '門市', '操作人員', '套號', '套名', '單抽價', '獎項數', '總抽數', '已抽總數', '獎項明細', '是否點數套', '原始建套日期']);
-        }
-        logSheet.appendRow([
-          Utilities.formatDate(new Date(), "GMT+8", "yyyy/MM/dd HH:mm:ss"), // A 作廢時間
-          branch || '',                                                      // B 門市
-          callerEmail || '',                                                 // C 操作人員
-          setId,                                                             // D 套號
-          setName,                                                           // E 套名
-          unitPrice,                                                         // F 單抽價
-          matchedRows.length,                                                // G 獎項數
-          totalDraws,                                                        // H 總抽數
-          totalDrawn,                                                        // I 已抽總數
-          sanitizeForSheet(details.join(';')),                               // J 獎項明細
-          isPointsSet ? 'TRUE' : 'FALSE',                                    // K 是否點數套
-          originalDate                                                       // L 原始建套日期
-        ]);
-      }
-    } catch(logErr) {
-      console.error('廢套紀錄寫入失敗: ' + logErr.toString());
-    }
-
-    return { success: true, message: '已成功作廢整套福袋' };
-    
-  } catch(error) { return { success: false, message: error.toString() }; 
-  } finally {
-    lock.releaseLock();
+    return { success: true };
+  } catch(error) { 
+    return { success: false, message: error.toString() }; 
   }
 }
 
