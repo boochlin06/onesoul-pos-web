@@ -313,7 +313,7 @@ function setupUnclockedTrigger() {
 /**
  * 關帳完成通知 — 從 apiCloseDay 呼叫
  */
-function notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy) {
+function notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems) {
   var cashRevenue = totalRevenue - totalCreditCard - totalRemittance;
   var lines = [
     '📊 ' + branch + ' 今日關帳完成',
@@ -327,6 +327,40 @@ function notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRem
   if (discrepancy !== 0) {
     lines.push('⚠️ 現金差異：$' + discrepancy);
   }
+  if (note) {
+    lines.push('📝 備註：' + note);
+  }
+
+  // GK 確認清單
+  if (gkItems && gkItems.length > 0) {
+    lines.push('');
+    lines.push('📋 GK 確認清單');
+    lines.push('─────────────');
+
+    var taken = gkItems.filter(function(g) { return g.category === '帶走'; });
+    var toPoints = gkItems.filter(function(g) { return g.category === '換點數'; });
+    var pointsBuy = gkItems.filter(function(g) { return g.category === '點數直購'; });
+
+    if (taken.length > 0) {
+      lines.push('👉 帶走');
+      taken.forEach(function(g) {
+        lines.push('  • ' + g.name + ' (' + g.prizeId + ') — ' + (g.phone || '散客'));
+      });
+    }
+    if (toPoints.length > 0) {
+      lines.push('🔄 換點數');
+      toPoints.forEach(function(g) {
+        lines.push('  • ' + g.name + ' → 返' + g.points + '點 — ' + (g.phone || '散客'));
+      });
+    }
+    if (pointsBuy.length > 0) {
+      lines.push('🛒 點數直購');
+      pointsBuy.forEach(function(g) {
+        lines.push('  • ' + g.name + ' (' + g.prizeId + ') 扣' + g.points + '點 — ' + (g.phone || '散客'));
+      });
+    }
+  }
+
   sendNotify('all', lines.join('\n'));
 }
 

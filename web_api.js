@@ -397,7 +397,42 @@ function apiCloseDay(payload, callerEmail) {
 
     // ── LINE 關帳通知 ──
     try {
-      notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy);
+      // 提取 GK 確認清單
+      var gkItems = [];
+      if (dataToMove.length > 0) {
+        dataToMove.forEach(function(row) {
+          var lotteryId = (row[1] || '').toString().trim();
+          var type = (row[4] || '').toString().trim();
+          var prizeId = (row[7] || '').toString().trim();
+          var prizeName = (row[8] || '').toString().trim();
+          var phone = (row[0] || '').toString().trim();
+          var points = Number(row[10]) || 0;
+          var merchId = (row[2] || '').toString().trim();
+
+          // 福袋帶走
+          if (lotteryId && type === '帶走' && prizeId) {
+            var iStr = prizeName.toLowerCase();
+            if (!iStr.includes('非gk') && !iStr.includes('盲盒')) {
+              gkItems.push({ category: '帶走', phone: phone, name: prizeName, prizeId: prizeId });
+            }
+          }
+          // 福袋換點數
+          else if (lotteryId && type === '點數' && prizeId) {
+            var iStr2 = prizeName.toLowerCase();
+            if (!iStr2.includes('非gk') && !iStr2.includes('盲盒')) {
+              gkItems.push({ category: '換點數', phone: phone, name: prizeName, prizeId: prizeId, points: Math.abs(points) });
+            }
+          }
+          // 點數直購（非抽獎、有 prize 編號、合理範圍）
+          else if (!lotteryId) {
+            var cNum = Number(merchId);
+            if (merchId && !isNaN(cNum) && cNum < 100000 && merchId !== '88888' && merchId !== '99999') {
+              gkItems.push({ category: '點數直購', phone: phone, name: prizeName, prizeId: merchId, points: Math.abs(points) });
+            }
+          }
+        });
+      }
+      notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems);
     } catch(notifyErr) {
       console.error('關帳 LINE 通知失敗: ' + notifyErr.toString());
     }
