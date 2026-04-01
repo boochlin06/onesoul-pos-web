@@ -134,6 +134,12 @@ function doPost(e) {
       case "clearDraft":
         result = apiClearDraft(payload.sessionId, payload.branch);
         break;
+      case "sendLineMessage":
+        result = apiSendLineMessage(payload, tokenEmail);
+        break;
+      case "getLineChannels":
+        result = apiGetLineChannels(tokenEmail);
+        break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
     }
@@ -1532,3 +1538,61 @@ function apiClearDraft(sessionId, branch) {
     return { success: false, message: error.toString() };
   }
 }
+
+// ── LINE 訊息 API（大師專用）────────────────────────────────
+
+/**
+ * 取得「LINE通知設定」Sheet 的所有 channel 清單
+ */
+function apiGetLineChannels(callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限' };
+  }
+  try {
+    var sheet = SpreadsheetApp.openById(appBackground).getSheetByName('LINE通知設定');
+    if (!sheet) return { success: true, data: [] };
+    var data = sheet.getDataRange().getValues();
+    var channelMap = {};
+    for (var i = 1; i < data.length; i++) {
+      var ch = String(data[i][0] || '').trim();
+      var desc = String(data[i][3] || '').trim();
+      if (ch && !channelMap[ch]) {
+        channelMap[ch] = desc || ch;
+      }
+    }
+    var channels = [];
+    for (var key in channelMap) {
+      channels.push({ value: key, label: channelMap[key] });
+    }
+    return { success: true, data: channels };
+  } catch(e) {
+    return { success: false, message: e.toString() };
+  }
+}
+
+/**
+ * 發送 LINE 訊息到指定 channel
+ */
+function apiSendLineMessage(payload, callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限發送 LINE 訊息' };
+  }
+  var channel = (payload.channel || '').trim();
+  var message = (payload.message || '').trim();
+  if (!channel) return { success: false, message: '請選擇發送目標' };
+  if (!message) return { success: false, message: '訊息內容不可為空' };
+
+  try {
+    sendNotify(channel, message);
+    logAudit({
+      branch: 'System',
+      email: callerEmail,
+      action: 'SEND_LINE_MESSAGE',
+      details: { channel: channel, message: message.substring(0, 100) }
+    });
+    return { success: true, message: '已發送到 [' + channel + ']' };
+  } catch(e) {
+    return { success: false, message: '發送失敗: ' + e.toString() };
+  }
+}
+

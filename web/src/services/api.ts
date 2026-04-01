@@ -139,3 +139,12 @@ export async function apiClearDraft(sessionId: string, branch: string) {
 export async function apiGetDrafts(branch: string) {
   return gasPost('getDrafts', { branch });
 }
+
+// ── LINE 訊息 ──
+export async function apiGetLineChannels(): Promise<{ success: boolean; data?: { value: string; label: string }[] }> {
+  return gasPost('getLineChannels');
+}
+export async function apiSendLineMessage(channel: string, message: string) {
+  return gasPost('sendLineMessage', { channel, message });
+}
+
