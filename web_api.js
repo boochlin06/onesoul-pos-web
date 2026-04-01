@@ -1,3 +1,13 @@
+/**
+ * 預防 CSV/Spreadsheet 注入攻擊 (OWASP A03)
+ * 若字串開頭為 = + - @ ，加上單引號保護
+ */
+function sanitizeForSheet(val) {
+  if (typeof val === 'string' && /^[=+\-@]/.test(val)) {
+    return "'" + val;
+  }
+  return val;
+}
 
 /**
  * 處理 Web POS 傳過來的 POST 請求
@@ -226,6 +236,11 @@ function apiCheckout(payload) {
       return index === 0 ? row.concat(saleMethodValues).concat(pointsDelta) : row.concat(["","","","","","",""]);
     });
     
+    // ★ 防護 Spreadsheet Formula Injection
+    newData = newData.map(function(row) {
+      return row.map(sanitizeForSheet);
+    });
+    
     if (newData.length > 0) {
        dailySheet.getRange(lastRow + 1, 1, newData.length, newData[0].length).setValues(newData);
        dailySheet.getRange(lastRow + 1, 1, newData.length, newData[0].length).setBorder(true, false, true, false, false, false);
@@ -340,7 +355,7 @@ function apiCloseDay(payload, callerEmail) {
           Math.round(totalRemittance),
           Math.round(totalRevenue),
           txCount,
-          note
+          sanitizeForSheet(note)
         ]);
       }
     } catch(logErr) {
@@ -619,7 +634,7 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
           matchedRows.length,                                                // G 獎項數
           totalDraws,                                                        // H 總抽數
           totalDrawn,                                                        // I 已抽總數
-          details.join(';'),                                                 // J 獎項明細
+          sanitizeForSheet(details.join(';')),                               // J 獎項明細
           isPointsSet ? 'TRUE' : 'FALSE',                                    // K 是否點數套
           originalDate                                                       // L 原始建套日期
         ]);
@@ -1061,6 +1076,11 @@ function apiCreateSet(payload) {
       [nextId, itemName, actualPrice, "Z", "0p", "非GK", "0", totalDraws - 1, formattedDate, branch]
     ];
     
+    // ★ 防護 Spreadsheet Formula Injection
+    newData = newData.map(function(row) {
+      return row.map(sanitizeForSheet);
+    });
+    
     dbSheet.getRange(lastRow + 1, 1, 2, 10).setValues(newData);
     
     return { success: true, message: '📦 [' + branch + '] 開套成功！編號 #' + nextId + ' 已入庫', setId: nextId.toString() };
@@ -1082,13 +1102,14 @@ function verifyGoogleIdToken_(idToken) {
     var parts = idToken.split('.');
     if (parts.length !== 3) return null;
     
-    // Base64url → Base64（加 padding）
-    var base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    while (base64.length % 4 !== 0) base64 += '=';
+    // ★ 透過 Google 官方 endpoint 驗證 JWT 簽章與有效性 (防範偽造權限)
+    var response = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + idToken, { muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) {
+      Logger.log('Token verification failed: ' + response.getContentText());
+      return null;
+    }
     
-    var decoded = Utilities.base64Decode(base64);
-    var jsonStr = Utilities.newBlob(decoded).getDataAsString('UTF-8');
-    var payload = JSON.parse(jsonStr);
+    var payload = JSON.parse(response.getContentText());
     
     // 檢查 token 是否過期
     var now = Math.floor(new Date().getTime() / 1000);
