@@ -113,7 +113,7 @@ export function ClosingModal({
                   </div>
                   <span className="font-bold text-slate-600 px-2 py-0.5 bg-slate-100 rounded flex-shrink-0">{customerName}</span>
                 </div>
-                <span className="font-bold flex-1 truncate">{item.setName || item.prizeName || item.name} <span className="text-slate-400 font-normal ml-1">({item.prize || ''}) {item.draws > 1 ? `x${item.draws}` : ''}</span></span>
+                <span className="font-bold flex-1 truncate">{item.prizeName || item.setName || item.name} <span className="text-slate-400 font-normal ml-1">({item.prizeId || item.prize || ''}) {item.draws > 1 ? `x${item.draws}` : ''}</span></span>
                 {renderExtra?.(item)}
               </label>
             );

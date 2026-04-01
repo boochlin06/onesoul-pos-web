@@ -3,8 +3,17 @@
  * 處理 Web POS 傳過來的 POST 請求
  */
 function doPost(e) {
+  _countGasCall();
   try {
     var params = JSON.parse(e.postData.contents);
+
+    // ★ LINE Webhook — bot 被加入群組時自動擷取 groupId
+    if (Array.isArray(params.events)) {
+      params.events.forEach(function(event) {
+        handleLineWebhookEvent(event);
+      });
+      return ContentService.createTextOutput('OK');
+    }
 
     // ★ API Key 驗證 — 擋掉未授權存取
     var storedKey = PropertiesService.getScriptProperties().getProperty('API_KEY');
@@ -125,6 +134,15 @@ function doPost(e) {
         break;
       case "clearDraft":
         result = apiClearDraft(payload.sessionId, payload.branch);
+        break;
+      case "sendLineMessage":
+        result = apiSendLineMessage(payload, tokenEmail);
+        break;
+      case "getLineChannels":
+        result = apiGetLineChannels(tokenEmail);
+        break;
+      case "getQuotaUsage":
+        result = apiGetQuotaUsage(tokenEmail);
         break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
@@ -375,6 +393,57 @@ function apiCloseDay(payload, callerEmail) {
       }
     } catch(schedErr) {
       console.error('班表出勤寫入失敗: ' + schedErr.toString());
+    }
+
+    // ── LINE 關帳通知 ──
+    try {
+      // 建立 phone → 姓名 對照表
+      var memberMap = {};
+      try {
+        var memberData = tempApp.getSheetByName(sheetMemberList).getDataRange().getValues();
+        for (var mi = 1; mi < memberData.length; mi++) {
+          var mPhone = String(memberData[mi][2] || '').trim().replace(/^0+/, '');
+          var mName = String(memberData[mi][1] || '').trim();
+          if (mPhone && mName) memberMap[mPhone] = mName;
+        }
+      } catch(e) { /* 查不到就用電話 */ }
+
+      var gkItems = [];
+      if (dataToMove.length > 0) {
+        dataToMove.forEach(function(row) {
+          var lotteryId = (row[1] || '').toString().trim();
+          var type = (row[4] || '').toString().trim();
+          var prizeId = (row[7] || '').toString().trim();
+          var prizeName = (row[8] || '').toString().trim();
+          var phone = (row[0] || '').toString().trim();
+          var points = Number(row[10]) || 0;
+          var merchId = (row[2] || '').toString().trim();
+          var cleanPhone = phone.replace(/^0+/, '');
+          var customerName = memberMap[cleanPhone] || phone || '散客';
+
+          if (lotteryId && type === '帶走' && prizeId) {
+            var iStr = prizeName.toLowerCase();
+            if (!iStr.includes('非gk') && !iStr.includes('盲盒')) {
+              gkItems.push({ category: '帶走', customer: customerName, name: prizeName, prizeId: prizeId });
+            }
+          }
+          else if (lotteryId && type === '點數' && prizeId) {
+            var iStr2 = prizeName.toLowerCase();
+            if (!iStr2.includes('非gk') && !iStr2.includes('盲盒')) {
+              gkItems.push({ category: '換點數', customer: customerName, name: prizeName, prizeId: prizeId, points: Math.abs(points) });
+            }
+          }
+          else if (!lotteryId) {
+            var cNum = Number(merchId);
+            if (merchId && !isNaN(cNum) && cNum < 100000 && merchId !== '88888' && merchId !== '99999') {
+              gkItems.push({ category: '點數直購', customer: customerName, name: prizeName, prizeId: merchId, points: Math.abs(points) });
+            }
+          }
+        });
+      }
+      notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems);
+    } catch(notifyErr) {
+      console.error('關帳 LINE 通知失敗: ' + notifyErr.toString());
     }
 
     return { success: true, message: branch + ' 關帳與結算紀錄成功' };
@@ -1516,4 +1585,83 @@ function apiClearDraft(sessionId, branch) {
   } catch(error) {
     return { success: false, message: error.toString() };
   }
+}
+
+// ── LINE 訊息 API（大師專用）────────────────────────────────
+
+/**
+ * 取得「LINE通知設定」Sheet 的所有 channel 清單
+ */
+function apiGetLineChannels(callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限' };
+  }
+  try {
+    var sheet = SpreadsheetApp.openById(appBackground).getSheetByName('LINE通知設定');
+    if (!sheet) return { success: true, data: [] };
+    var data = sheet.getDataRange().getValues();
+    var channelMap = {};
+    for (var i = 1; i < data.length; i++) {
+      var ch = String(data[i][0] || '').trim();
+      var desc = String(data[i][3] || '').trim();
+      if (ch && !channelMap[ch]) {
+        channelMap[ch] = desc || ch;
+      }
+    }
+    var channels = [];
+    for (var key in channelMap) {
+      channels.push({ value: key, label: channelMap[key] });
+    }
+    return { success: true, data: channels };
+  } catch(e) {
+    return { success: false, message: e.toString() };
+  }
+}
+
+/**
+ * 發送 LINE 訊息到指定 channel
+ */
+function apiSendLineMessage(payload, callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限發送 LINE 訊息' };
+  }
+  var channel = (payload.channel || '').trim();
+  var message = (payload.message || '').trim();
+  if (!channel) return { success: false, message: '請選擇發送目標' };
+  if (!message) return { success: false, message: '訊息內容不可為空' };
+
+  try {
+    sendNotify(channel, message);
+    console.log('[LINE Send] channel=' + channel + ', by=' + callerEmail + ', msg=' + message.substring(0, 100));
+    return { success: true, message: '已發送到 [' + channel + ']' };
+  } catch(e) {
+    return { success: false, message: '發送失敗: ' + e.toString() };
+  }
+}
+
+/**
+ * 取得 GAS / LINE 用量（大師專用）
+ */
+function apiGetQuotaUsage(callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限' };
+  }
+  var props = PropertiesService.getScriptProperties();
+  var now = new Date();
+  var today = Utilities.formatDate(now, 'Asia/Taipei', 'yyyyMMdd');
+  var month = today.substring(0, 6);
+
+  return {
+    success: true,
+    data: {
+      gasApiToday: parseInt(props.getProperty('gas_api_' + today) || '0'),
+      gasApiMonth: parseInt(props.getProperty('gas_api_month_' + month) || '0'),
+      linePushToday: parseInt(props.getProperty('uf_push_' + today) || '0'),
+      lineReplyToday: parseInt(props.getProperty('uf_reply_' + today) || '0'),
+      urlFetchToday: parseInt(props.getProperty('uf_total_' + today) || '0'),
+      linePushMonth: parseInt(props.getProperty('uf_push_month_' + month) || '0'),
+      linePushLimit: 200,
+      urlFetchLimit: 20000
+    }
+  };
 }
