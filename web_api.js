@@ -3,6 +3,7 @@
  * 處理 Web POS 傳過來的 POST 請求
  */
 function doPost(e) {
+  _countGasCall();
   try {
     var params = JSON.parse(e.postData.contents);
 
