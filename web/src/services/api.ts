@@ -57,7 +57,7 @@ export async function apiGetPrizeLibrary(): Promise<PrizeEntry[]> {
 }
 
 export async function apiDeletePrizeLibrary(branch: Branch, setId: string) {
-  return gasPost('deletePrizeLibraryFast', { branch, setId });
+  return gasPost('deletePrizeLibrary', { branch, setId });
 }
 
 // ── Stock ──────────────────────────────────────────────
