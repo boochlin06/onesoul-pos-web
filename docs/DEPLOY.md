@@ -3,7 +3,7 @@
 > 📖 **這份手冊寫給完全不懂程式的人！**
 > 只要你會用電腦打字、會用 Google 帳號登入，照著下面的步驟做就對了。
 >
-> 最後更新：2026-03-29
+> 最後更新：2026-04-02
 
 ---
 
@@ -24,6 +24,7 @@
 | [11. 指令懶人包](#11-快速指令速查表) | 忘記指令的時候 |
 | [12. 多環境是什麼？](#12-多環境配置-dev-vs-prod) | 想了解 Dev/Prod 差別 |
 | [13. 安全性](#13-安全性注意事項) | 想了解安全措施 |
+| [14. LINE 通知系統](#14-line-通知系統) | 設定 LINE 通知 |
 
 ---
 
@@ -53,6 +54,15 @@
 │                                       │
 │  會驗證你的帳號，然後                  │
 │  把資料寫進 Google 試算表（當資料庫）  │
+└────────────────┬─────────────────────┘
+                 │  遲到/關帳/手動 → 自動發通知
+                 ▼
+┌──────────────────────────────────────┐
+│  💬 LINE 通知 = 自動推送訊息          │
+│  透過 LINE Messaging API              │
+│                                       │
+│  關帳結果、遲到打卡、手動發送          │
+│  →  推送到 LINE 群組或個人             │
 └──────────────────────────────────────┘
 ```
 
@@ -64,6 +74,7 @@
 | 密碼設定 | `web/.env` | 像保險箱密碼，不會上傳到網路 |
 | 帳號/門市設定 | `web/src/config.ts` | 誰可以用、可以看哪家店 |
 | API 程式碼 | `web_api.js` | 後端收到請求後怎麼處理 |
+| LINE 通知 | `notify.js` | LINE 推送、Webhook、用量追蹤 |
 | 業務邏輯 | `services.js` | 後端的計算和處理規則 |
 | 技術文件 | `docs/` | 你現在在看的東西 |
 | Wiki 頁面 | `wiki/` | GitHub Wiki 的內容來源 |
@@ -199,6 +210,7 @@ git checkout main && git merge dev && git push origin main && git checkout dev
 ### 什麼時候需要做？
 
 - ✅ 改了 `web_api.js`（API 程式碼）
+- ✅ 改了 `notify.js`（LINE 通知邏輯）
 - ✅ 改了 `services.js`（業務邏輯）
 - ✅ 改了 `main.js`
 - ✅ 新增了任何 API 功能
@@ -333,6 +345,7 @@ export const NOTICE_POLL_MS = 2 * 60 * 1000;
 | `GOOGLE_CLIENT_ID` | `380448115278-xxx.apps.googleusercontent.com` | Google 登入要用的 ID |
 | `ALLOWED_EMAILS` | `a@gmail.com,b@gmail.com` | 允許使用的帳號，用**逗號**分隔，**不要有空格** |
 | `APP_BACKGROUND_ID` | `1Dc_vjy...` | 正式版 Google Sheet 的 ID（只有正式版需要設） |
+| `LINE_CHANNEL_ACCESS_TOKEN` | `xB3k...` | LINE Messaging API 的 Channel Access Token（[第 14 節](#14-line-通知系統)） |
 
 > ⚠️ **重要提醒**：
 > - `API_KEY` 要和 `web/.env` 裡的 `VITE_API_KEY` **一模一樣**
@@ -505,3 +518,62 @@ git checkout main && git merge dev && git push origin main && git checkout dev
 | 🔴 中 | API Key 在前端可以被看到 | 但光有 Key 沒用，還需要 Google 帳號才能做操作 |
 | 🟡 低 | 客人只靠手機號碼登入 | 知道手機號就能查到點數（但不能改），而且有速率限制 |
 | 🟢 極低 | 帳號列表在前端原始碼可見 | 看得到 email 但還是需要 Google 密碼才能登入 |
+
+---
+
+## 14. 💬 LINE 通知系統
+
+### 14.1 系統概述
+
+系統會在以下事件自動推送 LINE 訊息：
+
+| 事件 | Channel | 訊息內容 |
+|------|---------|--------|
+| 關帳完成 | `all` | 營業額、筆數、現金/信用卡/匯款、GK 確認清單 |
+| 遲到打卡 | `all` | 哪家店遲到幾分鐘、打卡人 |
+| 大師手動發送 | 自選 | 自訂內容 |
+| ID 指令 | Reply | 回覆群組/個人 ID |
+
+### 14.2 Google Sheet 設定
+
+在你的 Google Sheet 新增一個分頁叫「**LINE通知設定**」，格式如下：
+
+| channel | targetId | type | 說明 |
+|---------|----------|------|------|
+| all | `C1234567890abcdef...` | group | 全體通知群 |
+| admin | `U1234567890abcdef...` | user | 老闆 |
+| 竹北 | `C9876543210abcdef...` | group | 竹北門市群 |
+| 金山 | `Cabcdef1234567890...` | group | 金山門市群 |
+
+> 💡 **怎麼拿到 targetId？** 在 LINE 群組裡輸入「**ID**」（大寫），bot 會自動回覆 GroupId。
+
+### 14.3 LINE Developers Console 設定
+
+1. 打開 [LINE Developers Console](https://developers.line.biz/)
+2. 你的 Provider → Channel → Messaging API
+3. 設定 **Webhook URL** 為正式版 GAS 的 URL：
+   ```
+   https://script.google.com/macros/s/AKfycbz7G3Vz5.../exec
+   ```
+4. 確認「**Use webhook**」是開啟的
+5. 在 Channel access token 區塊，複製你的 token
+6. 貼到 GAS 的 **Script Properties** → `LINE_CHANNEL_ACCESS_TOKEN`
+
+### 14.4 用量限制
+
+| 項目 | 額度 |
+|------|------|
+| LINE Push（免費方案） | **200 則/月** |
+| GAS UrlFetchApp | 20,000 次/天 |
+
+查看用量：
+- **前端**：大師 tab 底部「GAS / LINE 用量」區塊
+- **GAS 編輯器**：執行 `checkQuotaUsage()` 函式
+
+### 14.5 部署 Checklist
+
+- [ ] Google Sheet 有「LINE通知設定」分頁，且已填入目標
+- [ ] GAS Script Properties 有 `LINE_CHANNEL_ACCESS_TOKEN`
+- [ ] LINE Developers Console 的 Webhook URL 指向正式版 GAS
+- [ ] 執行 `testLineNotify()` 確認推送正常
+- [ ] 執行 `checkQuotaUsage()` 確認計數器運作
