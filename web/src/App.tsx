@@ -29,6 +29,7 @@ import { EmergencyNoticeModal } from './components/ui/EmergencyNoticeModal';
 import { ClockInModal } from './components/ui/ClockInModal';
 import { LateReminderModal } from './components/ui/LateReminderModal';
 import CustomerApp from './pages/customer/CustomerApp';
+import { ScrollToTop } from './components/ui/ScrollToTop';
 
 /** 判斷是否為客戶面路由 */
 function isCustomerRoute(): boolean {
@@ -255,6 +256,8 @@ function PosApp() {
           onClear={emergencyNotice.clearNotice}
         />
       )}
+      {/* ── Back to Top ── */}
+      <ScrollToTop />
     </div>
   );
 }
