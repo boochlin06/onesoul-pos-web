@@ -344,19 +344,19 @@ function notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRem
     if (taken.length > 0) {
       lines.push('👉 帶走');
       taken.forEach(function(g) {
-        lines.push('  • ' + g.name + ' (' + g.prizeId + ') — ' + (g.phone || '散客'));
+        lines.push('  • ' + g.name + ' (' + g.prizeId + ') — ' + g.customer);
       });
     }
     if (toPoints.length > 0) {
       lines.push('🔄 換點數');
       toPoints.forEach(function(g) {
-        lines.push('  • ' + g.name + ' → 返' + g.points + '點 — ' + (g.phone || '散客'));
+        lines.push('  • ' + g.name + ' → 返' + g.points + '點 — ' + g.customer);
       });
     }
     if (pointsBuy.length > 0) {
       lines.push('🛒 點數直購');
       pointsBuy.forEach(function(g) {
-        lines.push('  • ' + g.name + ' (' + g.prizeId + ') 扣' + g.points + '點 — ' + (g.phone || '散客'));
+        lines.push('  • ' + g.name + ' (' + g.prizeId + ') 扣' + g.points + '點 — ' + g.customer);
       });
     }
   }

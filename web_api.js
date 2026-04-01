@@ -397,7 +397,17 @@ function apiCloseDay(payload, callerEmail) {
 
     // ── LINE 關帳通知 ──
     try {
-      // 提取 GK 確認清單
+      // 建立 phone → 姓名 對照表
+      var memberMap = {};
+      try {
+        var memberData = tempApp.getSheetByName(sheetMemberList).getDataRange().getValues();
+        for (var mi = 1; mi < memberData.length; mi++) {
+          var mPhone = String(memberData[mi][2] || '').trim().replace(/^0+/, '');
+          var mName = String(memberData[mi][1] || '').trim();
+          if (mPhone && mName) memberMap[mPhone] = mName;
+        }
+      } catch(e) { /* 查不到就用電話 */ }
+
       var gkItems = [];
       if (dataToMove.length > 0) {
         dataToMove.forEach(function(row) {
@@ -408,26 +418,25 @@ function apiCloseDay(payload, callerEmail) {
           var phone = (row[0] || '').toString().trim();
           var points = Number(row[10]) || 0;
           var merchId = (row[2] || '').toString().trim();
+          var cleanPhone = phone.replace(/^0+/, '');
+          var customerName = memberMap[cleanPhone] || phone || '散客';
 
-          // 福袋帶走
           if (lotteryId && type === '帶走' && prizeId) {
             var iStr = prizeName.toLowerCase();
             if (!iStr.includes('非gk') && !iStr.includes('盲盒')) {
-              gkItems.push({ category: '帶走', phone: phone, name: prizeName, prizeId: prizeId });
+              gkItems.push({ category: '帶走', customer: customerName, name: prizeName, prizeId: prizeId });
             }
           }
-          // 福袋換點數
           else if (lotteryId && type === '點數' && prizeId) {
             var iStr2 = prizeName.toLowerCase();
             if (!iStr2.includes('非gk') && !iStr2.includes('盲盒')) {
-              gkItems.push({ category: '換點數', phone: phone, name: prizeName, prizeId: prizeId, points: Math.abs(points) });
+              gkItems.push({ category: '換點數', customer: customerName, name: prizeName, prizeId: prizeId, points: Math.abs(points) });
             }
           }
-          // 點數直購（非抽獎、有 prize 編號、合理範圍）
           else if (!lotteryId) {
             var cNum = Number(merchId);
             if (merchId && !isNaN(cNum) && cNum < 100000 && merchId !== '88888' && merchId !== '99999') {
-              gkItems.push({ category: '點數直購', phone: phone, name: prizeName, prizeId: merchId, points: Math.abs(points) });
+              gkItems.push({ category: '點數直購', customer: customerName, name: prizeName, prizeId: merchId, points: Math.abs(points) });
             }
           }
         });
