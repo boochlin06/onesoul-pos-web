@@ -611,9 +611,24 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
       details.push(prize + ':' + prizeName + ':' + points + ':已抽' + drawn);
     });
     
-    rowsToDelete.sort(function(a, b) { return b - a; }); // 確保大→小，避免行號偏移
-    for (var r = 0; r < rowsToDelete.length; r++) {
-       sheet.deleteRow(rowsToDelete[r]);
+    rowsToDelete.sort(function(a, b) { return a - b; }); // 小→大排序，方便合併連續區段
+    
+    // ★ 批次刪除：合併連續行號為區段，從底部往上一次刪整段（1-2 次 API call 取代 N 次）
+    var groups = [];
+    var gStart = rowsToDelete[0], gEnd = rowsToDelete[0];
+    for (var r = 1; r < rowsToDelete.length; r++) {
+      if (rowsToDelete[r] === gEnd + 1) {
+        gEnd = rowsToDelete[r]; // 連續，延伸區段
+      } else {
+        groups.push({ start: gStart, count: gEnd - gStart + 1 });
+        gStart = gEnd = rowsToDelete[r];
+      }
+    }
+    groups.push({ start: gStart, count: gEnd - gStart + 1 });
+    
+    // 從底部往上刪，避免行號偏移
+    for (var g = groups.length - 1; g >= 0; g--) {
+      sheet.deleteRows(groups[g].start, groups[g].count);
     }
     SpreadsheetApp.flush();
 
