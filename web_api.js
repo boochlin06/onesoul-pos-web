@@ -141,6 +141,9 @@ function doPost(e) {
       case "getLineChannels":
         result = apiGetLineChannels(tokenEmail);
         break;
+      case "getQuotaUsage":
+        result = apiGetQuotaUsage(tokenEmail);
+        break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
     }
@@ -1592,3 +1595,29 @@ function apiSendLineMessage(payload, callerEmail) {
   }
 }
 
+/**
+ * 取得 GAS / LINE 用量（大師專用）
+ */
+function apiGetQuotaUsage(callerEmail) {
+  if (!callerEmail || ADMIN_EMAILS.indexOf(callerEmail.toLowerCase()) === -1) {
+    return { success: false, message: '無權限' };
+  }
+  var props = PropertiesService.getScriptProperties();
+  var now = new Date();
+  var today = Utilities.formatDate(now, 'Asia/Taipei', 'yyyyMMdd');
+  var month = today.substring(0, 6);
+
+  return {
+    success: true,
+    data: {
+      gasApiToday: parseInt(props.getProperty('gas_api_' + today) || '0'),
+      gasApiMonth: parseInt(props.getProperty('gas_api_month_' + month) || '0'),
+      linePushToday: parseInt(props.getProperty('uf_push_' + today) || '0'),
+      lineReplyToday: parseInt(props.getProperty('uf_reply_' + today) || '0'),
+      urlFetchToday: parseInt(props.getProperty('uf_total_' + today) || '0'),
+      linePushMonth: parseInt(props.getProperty('uf_push_month_' + month) || '0'),
+      linePushLimit: 200,
+      urlFetchLimit: 20000
+    }
+  };
+}

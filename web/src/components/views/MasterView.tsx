@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Crown, Send, Trash2, AlertTriangle, Loader2, MessageSquare } from 'lucide-react';
+import { Crown, Send, Trash2, AlertTriangle, Loader2, MessageSquare, BarChart3 } from 'lucide-react';
 import type { EmergencyNotice } from '../../hooks/useEmergencyNotice';
-import { apiGetLineChannels, apiSendLineMessage } from '../../services/api';
+import { apiGetLineChannels, apiSendLineMessage, apiGetQuotaUsage } from '../../services/api';
 
 interface MasterViewProps {
   notice: EmergencyNotice | null;
@@ -21,12 +21,19 @@ export function MasterView({ notice, isSending, onSend, onClear }: MasterViewPro
   const [lineSending, setLineSending] = useState(false);
   const [lineFeedback, setLineFeedback] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
 
+  // Quota state
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [quota, setQuota] = useState<any>(null);
+
   useEffect(() => {
     apiGetLineChannels().then(res => {
       if (res.success && res.data) {
         setLineChannels(res.data);
         if (res.data.length > 0) setLineChannel(res.data[0].value);
       }
+    });
+    apiGetQuotaUsage().then(res => {
+      if (res.success && res.data) setQuota(res.data);
     });
   }, []);
 
@@ -209,6 +216,45 @@ export function MasterView({ notice, isSending, onSend, onClear }: MasterViewPro
           </>
         )}
       </div>
+
+      {/* ── 用量儀表板 ── */}
+      {quota && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <BarChart3 className="w-5 h-5 text-blue-600" />
+            <h3 className="font-bold text-slate-700">GAS / LINE 用量</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* GAS API */}
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-xs text-slate-500 mb-1">今日 GAS API</p>
+              <p className="text-2xl font-bold text-slate-800">{quota.gasApiToday}</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-xs text-slate-500 mb-1">本月 GAS API</p>
+              <p className="text-2xl font-bold text-slate-800">{quota.gasApiMonth}</p>
+            </div>
+            {/* UrlFetchApp */}
+            <div className="bg-blue-50 rounded-xl p-4">
+              <p className="text-xs text-blue-500 mb-1">今日 UrlFetchApp</p>
+              <p className="text-2xl font-bold text-blue-800">{quota.urlFetchToday}<span className="text-sm font-normal text-blue-400"> / {quota.urlFetchLimit.toLocaleString()}</span></p>
+            </div>
+            {/* LINE Push */}
+            <div className="bg-emerald-50 rounded-xl p-4">
+              <p className="text-xs text-emerald-500 mb-1">本月 LINE Push</p>
+              <p className="text-2xl font-bold text-emerald-800">{quota.linePushMonth}<span className="text-sm font-normal text-emerald-400"> / {quota.linePushLimit}</span></p>
+              <div className="w-full bg-emerald-200 rounded-full h-2 mt-2">
+                <div
+                  className={`h-2 rounded-full transition-all ${
+                    quota.linePushMonth / quota.linePushLimit > 0.8 ? 'bg-red-500' : 'bg-emerald-500'
+                  }`}
+                  style={{ width: `${Math.min(100, (quota.linePushMonth / quota.linePushLimit) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

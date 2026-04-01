@@ -147,4 +147,7 @@ export async function apiGetLineChannels(): Promise<{ success: boolean; data?: {
 export async function apiSendLineMessage(channel: string, message: string) {
   return gasPost('sendLineMessage', { channel, message });
 }
+export async function apiGetQuotaUsage() {
+  return gasPost('getQuotaUsage');
+}
 

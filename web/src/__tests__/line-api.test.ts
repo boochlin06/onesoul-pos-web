@@ -107,3 +107,39 @@ describe('apiSendLineMessage', () => {
     await expect(apiSendLineMessage('all', 'test')).rejects.toThrow('Network Error');
   });
 });
+
+// ═══════════════════════════════════════════════════
+// apiGetQuotaUsage
+// ═══════════════════════════════════════════════════
+import { apiGetQuotaUsage } from '../services/api';
+
+describe('apiGetQuotaUsage', () => {
+  it('成功回傳用量數據', async () => {
+    const quotaData = {
+      gasApiToday: 142,
+      gasApiMonth: 3200,
+      linePushToday: 3,
+      lineReplyToday: 1,
+      urlFetchToday: 4,
+      linePushMonth: 15,
+      linePushLimit: 200,
+      urlFetchLimit: 20000,
+    };
+    mockJsonResponse({ success: true, data: quotaData });
+
+    const result = await apiGetQuotaUsage();
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(quotaData);
+    expect(result.data.linePushLimit).toBe(200);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.action).toBe('getQuotaUsage');
+  });
+
+  it('無權限 → 回傳失敗', async () => {
+    mockJsonResponse({ success: false, message: '無權限' });
+
+    const result = await apiGetQuotaUsage();
+    expect(result.success).toBe(false);
+  });
+});
