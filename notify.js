@@ -106,9 +106,61 @@ function _getChannelTargets(channel) {
 // ── LINE API 底層 ─────────────────────────────────────────
 
 /**
+ * 記錄每次 UrlFetchApp 呼叫（push / reply）
+ * @param {string} type - 'push' 或 'reply'
+ */
+function _countUrlFetch(type) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd');
+    var month = today.substring(0, 6);
+    // 分類計數
+    var typeDay = 'uf_' + type + '_' + today;
+    props.setProperty(typeDay, String(parseInt(props.getProperty(typeDay) || '0') + 1));
+    // UrlFetchApp 每日總計
+    var totalDay = 'uf_total_' + today;
+    props.setProperty(totalDay, String(parseInt(props.getProperty(totalDay) || '0') + 1));
+    // LINE Push 每月總計（reply 不算 LINE 額度）
+    if (type === 'push') {
+      var pushMonth = 'uf_push_month_' + month;
+      props.setProperty(pushMonth, String(parseInt(props.getProperty(pushMonth) || '0') + 1));
+    }
+  } catch(e) { /* 計數失敗不影響推送 */ }
+}
+
+/**
+ * 查看用量 — 在 GAS 編輯器跑此函式
+ */
+function checkQuotaUsage() {
+  var props = PropertiesService.getScriptProperties();
+  var now = new Date();
+  var today = Utilities.formatDate(now, 'Asia/Taipei', 'yyyyMMdd');
+  var month = today.substring(0, 6);
+
+  var pushToday = props.getProperty('uf_push_' + today) || '0';
+  var replyToday = props.getProperty('uf_reply_' + today) || '0';
+  var totalToday = props.getProperty('uf_total_' + today) || '0';
+  var pushMonth = props.getProperty('uf_push_month_' + month) || '0';
+
+  console.log('══════════════════════════════════');
+  console.log('📊 UrlFetchApp / LINE 用量');
+  console.log('──────────────────────────────────');
+  console.log('【今日 UrlFetchApp】');
+  console.log('  Push:  ' + pushToday + ' 次');
+  console.log('  Reply: ' + replyToday + ' 次（免費不算額度）');
+  console.log('  合計:  ' + totalToday + ' / 20,000');
+  console.log('──────────────────────────────────');
+  console.log('【本月 LINE Push】');
+  console.log('  已用:  ' + pushMonth + ' / 200 則');
+  console.log('  餘額:  ' + (200 - parseInt(pushMonth)) + ' 則');
+  console.log('══════════════════════════════════');
+}
+
+/**
  * LINE Push Message
  */
 function _linePush(token, to, message) {
+  _countUrlFetch('push');
   try {
     var res = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
       method: 'post',
@@ -135,6 +187,7 @@ function _linePush(token, to, message) {
 function _lineReply(replyToken, message) {
   var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
   if (!token) return;
+  _countUrlFetch('reply');
   try {
     UrlFetchApp.fetch('https://api.line.me/v2/bot/message/reply', {
       method: 'post',
