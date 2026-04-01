@@ -1093,7 +1093,7 @@ function apiCreateSet(payload) {
 
 /**
  * 驗證 Google ID Token — 回傳 email 或 null
- * 直接解碼 JWT payload (Base64url)，檢查 exp 和 aud
+ * 透過 Google 官方 tokeninfo endpoint 驗證簽章 + CacheService 快取避免重複 HTTP
  */
 function verifyGoogleIdToken_(idToken) {
   try {
@@ -1101,6 +1101,12 @@ function verifyGoogleIdToken_(idToken) {
     
     var parts = idToken.split('.');
     if (parts.length !== 3) return null;
+    
+    // ★ 快取：同一 token 5 分鐘內不重複驗證（用 token 末 40 字元當 key，避免超過 key 長度限制）
+    var cache = CacheService.getScriptCache();
+    var cacheKey = 'jwt_' + idToken.substring(idToken.length - 40);
+    var cachedEmail = cache.get(cacheKey);
+    if (cachedEmail) return cachedEmail;
     
     // ★ 透過 Google 官方 endpoint 驗證 JWT 簽章與有效性 (防範偽造權限)
     var response = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + idToken, { muteHttpExceptions: true });
@@ -1131,7 +1137,12 @@ function verifyGoogleIdToken_(idToken) {
       return null;
     }
     
-    return payload.email || null;
+    // ★ 驗證通過，寫入快取（2700 秒 = 45 分鐘）
+    var email = payload.email || null;
+    if (email) {
+      cache.put(cacheKey, email, 2700);
+    }
+    return email;
   } catch (e) {
     Logger.log('Token verification error: ' + e.toString());
     return null;
