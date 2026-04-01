@@ -1,44 +1,112 @@
 /**
- * notify.js — LINE Messaging API 推送通知
+ * notify.js — LINE Messaging API 推送通知（Sheet-based channel 制）
  *
- * ScriptProperties 需設定：
+ * 通知目標設定在後台 Sheet「LINE通知設定」分頁：
+ *   A 欄: channel（如 all, admin, 竹北, 金山）
+ *   B 欄: targetId（groupId 或 userId）
+ *   C 欄: type（group / user）
+ *   D 欄: 說明
+ *
+ * ScriptProperties 只需設定：
  *   LINE_CHANNEL_ACCESS_TOKEN — Channel Access Token (long-lived)
- *   LINE_GROUP_ID             — 通知目標群組 ID
+ *
+ * 用法：
+ *   sendNotify('all', '📊 關帳通知');      → 發到 channel=all 的所有目標
+ *   sendNotify('admin', '⚠️ 作廢訂單');    → 只發給 admin
+ *   sendNotify('竹北', '⏰ 竹北未打卡');    → 只發竹北群
  */
 
+var LINE_CONFIG_SHEET = 'LINE通知設定';
+
+// ── 核心通知 API ──────────────────────────────────────────
+
 /**
- * 推送通知到 LINE 群組
+ * 發送通知到指定 channel 的所有目標
+ * @param {string} channel - channel 名稱（對應 Sheet A 欄）
+ * @param {string} message - 通知內容
+ */
+function sendNotify(channel, message) {
+  var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+  if (!token) {
+    console.log('[Notify] (TOKEN 未設定) [' + channel + '] ' + message);
+    return;
+  }
+
+  var targets = _getChannelTargets(channel);
+  if (targets.length === 0) {
+    console.log('[Notify] channel "' + channel + '" 無對應目標，略過');
+    return;
+  }
+
+  for (var i = 0; i < targets.length; i++) {
+    _linePush(token, targets[i], message);
+  }
+}
+
+/**
+ * 向下相容：發到 'all' channel（取代舊的 sendNotification）
  * @param {string} message - 通知內容
  */
 function sendNotification(message) {
-  var props = PropertiesService.getScriptProperties();
-  var token = props.getProperty('LINE_CHANNEL_ACCESS_TOKEN');
-  var groupId = props.getProperty('LINE_GROUP_ID');
-
-  if (!token || !groupId) {
-    console.log('[Notification] (LINE 未設定) ' + message);
-    return;
-  }
-
-  _linePush(token, groupId, message);
+  sendNotify('all', message);
 }
 
 /**
- * 推送通知到特定使用者
- * @param {string} userId - LINE userId
+ * 向下相容：發給管理員（取代舊的 sendAdminNotification）
  * @param {string} message - 通知內容
  */
-function sendNotificationToUser(userId, message) {
-  var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
-  if (!token || !userId) {
-    console.log('[Notification] (LINE 未設定) ' + message);
-    return;
-  }
-  _linePush(token, userId, message);
+function sendAdminNotification(message) {
+  sendNotify('admin', message);
 }
 
+// ── Sheet 設定讀取 ────────────────────────────────────────
+
 /**
- * LINE Push Message 底層
+ * 從「LINE通知設定」Sheet 讀取指定 channel 的 targetId 列表
+ * 支援 5 分鐘快取，避免每次通知都讀 Sheet
+ * @param {string} channel
+ * @returns {string[]} targetId 陣列
+ */
+function _getChannelTargets(channel) {
+  // 先查 cache
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'line_ch_' + channel;
+  var cached = cache.get(cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch(e) { /* cache corrupt */ }
+  }
+
+  // 讀 Sheet
+  try {
+    var sheet = SpreadsheetApp.openById(appBackground).getSheetByName(LINE_CONFIG_SHEET);
+    if (!sheet) {
+      console.error('[Notify] 找不到「' + LINE_CONFIG_SHEET + '」分頁');
+      return [];
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var targets = [];
+    for (var i = 1; i < data.length; i++) { // 跳標題
+      var ch = String(data[i][0] || '').trim();
+      var targetId = String(data[i][1] || '').trim();
+      if (ch === channel && targetId) {
+        targets.push(targetId);
+      }
+    }
+
+    // 寫入 cache（5 分鐘）
+    try { cache.put(cacheKey, JSON.stringify(targets), 300); } catch(e) {}
+    return targets;
+  } catch(e) {
+    console.error('[Notify] 讀取 Sheet 失敗: ' + e.toString());
+    return [];
+  }
+}
+
+// ── LINE API 底層 ─────────────────────────────────────────
+
+/**
+ * LINE Push Message
  */
 function _linePush(token, to, message) {
   try {
@@ -52,10 +120,9 @@ function _linePush(token, to, message) {
       }),
       muteHttpExceptions: true
     });
-
     var code = res.getResponseCode();
     if (code !== 200) {
-      console.error('[LINE Push] HTTP ' + code + ': ' + res.getContentText());
+      console.error('[LINE Push] → ' + to.substring(0, 8) + '... HTTP ' + code + ': ' + res.getContentText());
     }
   } catch (e) {
     console.error('[LINE Push Error] ' + e.toString());
@@ -63,22 +130,52 @@ function _linePush(token, to, message) {
 }
 
 /**
- * Webhook 處理 — 自動擷取 groupId
- * bot 被加入群組時，LINE 會送 event，從中取得 groupId 存入 ScriptProperties
- * @param {Object} event - LINE webhook event
+ * LINE Reply Message（回覆用，免費不算 Push 額度）
  */
-function handleLineWebhookEvent(event) {
-  if (event.source && event.source.groupId) {
-    var gid = event.source.groupId;
-    PropertiesService.getScriptProperties().setProperty('LINE_GROUP_ID', gid);
-    console.log('[LINE] Saved groupId: ' + gid);
+function _lineReply(replyToken, message) {
+  var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+  if (!token) return;
+  try {
+    UrlFetchApp.fetch('https://api.line.me/v2/bot/message/reply', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + token },
+      payload: JSON.stringify({
+        replyToken: replyToken,
+        messages: [{ type: 'text', text: message }]
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (e) {
+    console.error('[LINE Reply Error] ' + e.toString());
   }
 }
 
+// ── Webhook 處理 ──────────────────────────────────────────
+
+/**
+ * 處理 LINE webhook event
+ * - 收到「ID」指令 → 回覆 groupId / userId（方便設定 Sheet）
+ * @param {Object} event - LINE webhook event
+ */
+function handleLineWebhookEvent(event) {
+  // 「ID」指令 — 回覆 groupId 和 userId
+  if (event.type === 'message' && event.message && event.message.type === 'text') {
+    var text = event.message.text.trim();
+    if (text === 'ID' || text === 'id') {
+      var info = ['📋 LINE ID 資訊'];
+      if (event.source.groupId) info.push('GroupId: ' + event.source.groupId);
+      if (event.source.userId) info.push('UserId: ' + event.source.userId);
+      info.push('', '請將上方 ID 貼到後台「LINE通知設定」分頁');
+      _lineReply(event.replyToken, info.join('\n'));
+    }
+  }
+}
+
+// ── 出勤通知 ──────────────────────────────────────────────
+
 /**
  * 定時檢查未打卡 — 每小時自動執行
- * 動態讀取各店開店時間，開店後 30 分鐘仍未打卡才通知
- * 用 CacheService 避免同一天重複通知
  */
 function checkUnclocked() {
   var branches = ['竹北', '金山'];
@@ -90,19 +187,15 @@ function checkUnclocked() {
   for (var i = 0; i < branches.length; i++) {
     var branch = branches[i];
     try {
-      // 已通知過今天這家店就跳過
       var cacheKey = 'unclocked_' + branch + '_' + todayKey;
       if (cache.get(cacheKey)) continue;
 
-      // 讀取開店時間
       var config = apiGetBranchConfig(branch);
       if (!config.success || !config.data) continue;
       var parts = config.data.startTime.split(':');
       var startMin = parseInt(parts[0]) * 60 + parseInt(parts[1]);
 
-      // 還沒到開店後 30 分鐘 → 不檢查
       if (nowMin < startMin + 30) continue;
-      // 超過開店後 3 小時 → 不再提醒（避免深夜誤觸）
       if (nowMin > startMin + 180) continue;
 
       var sched = apiGetTodaySchedule(branch);
@@ -110,11 +203,12 @@ function checkUnclocked() {
 
       var att = apiGetTodayAttendance(branch);
       if (att.success && att.data && !att.data.clocked) {
-        sendNotification(
+        // 發到對應門市的 channel，沒有就發 all
+        var ch = _getChannelTargets(branch).length > 0 ? branch : 'all';
+        sendNotify(ch,
           '⏰ ' + branch + ' 店開店時間已過，尚未打卡！\n' +
           '👤 今日值班：' + sched.data.staff
         );
-        // 標記已通知，6 小時內不重複
         cache.put(cacheKey, '1', 21600);
       }
     } catch (e) {
@@ -125,17 +219,14 @@ function checkUnclocked() {
 
 /**
  * 自動安裝未打卡檢查觸發器 — 只需執行一次
- * 會先清除舊的同名 trigger，再建一個每小時執行的
  */
 function setupUnclockedTrigger() {
-  // 清除舊 trigger
   var triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++) {
     if (triggers[i].getHandlerFunction() === 'checkUnclocked') {
       ScriptApp.deleteTrigger(triggers[i]);
     }
   }
-  // 建立每小時執行
   ScriptApp.newTrigger('checkUnclocked')
     .timeBased()
     .everyHours(1)
@@ -143,14 +234,10 @@ function setupUnclockedTrigger() {
   console.log('[Setup] checkUnclocked trigger installed (every 1 hour)');
 }
 
+// ── 關帳通知 ──────────────────────────────────────────────
+
 /**
  * 關帳完成通知 — 從 apiCloseDay 呼叫
- * @param {string} branch - 門市
- * @param {number} txCount - 交易筆數
- * @param {number} totalRevenue - 營業額
- * @param {number} totalCreditCard - 信用卡總額
- * @param {number} totalRemittance - 匯款總額
- * @param {number} discrepancy - 現金差異
  */
 function notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy) {
   var cashRevenue = totalRevenue - totalCreditCard - totalRemittance;
@@ -166,12 +253,15 @@ function notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRem
   if (discrepancy !== 0) {
     lines.push('⚠️ 現金差異：$' + discrepancy);
   }
-  sendNotification(lines.join('\n'));
+  sendNotify('all', lines.join('\n'));
 }
 
-/**
- * 測試用 — 驗證 LINE 推送是否正常
- */
+// ── 測試 ──────────────────────────────────────────────────
+
 function testLineNotify() {
-  sendNotification('🧪 Dev 測試通知 — LINE 串接成功！');
+  sendNotify('all', '🧪 測試通知 — channel 制串接成功！');
+}
+
+function testAdminNotify() {
+  sendNotify('admin', '🔒 管理員測試 — 只有你看得到');
 }
