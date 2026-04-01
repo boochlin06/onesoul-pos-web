@@ -1584,12 +1584,7 @@ function apiSendLineMessage(payload, callerEmail) {
 
   try {
     sendNotify(channel, message);
-    logAudit({
-      branch: 'System',
-      email: callerEmail,
-      action: 'SEND_LINE_MESSAGE',
-      details: { channel: channel, message: message.substring(0, 100) }
-    });
+    console.log('[LINE Send] channel=' + channel + ', by=' + callerEmail + ', msg=' + message.substring(0, 100));
     return { success: true, message: '已發送到 [' + channel + ']' };
   } catch(e) {
     return { success: false, message: '發送失敗: ' + e.toString() };
