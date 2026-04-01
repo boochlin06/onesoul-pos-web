@@ -456,7 +456,10 @@ function apiCloseDay(payload, callerEmail) {
           }
         });
       }
-      notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems);
+      // 讀班表取得今日值班人員
+      var sched = apiGetTodaySchedule(branch);
+      var staffName = (sched.success && sched.data && sched.data.staff) ? sched.data.staff : '';
+      notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems, staffName);
     } catch(notifyErr) {
       console.error('關帳 LINE 通知失敗: ' + notifyErr.toString());
     }
@@ -1495,7 +1498,18 @@ function apiClockIn(payload, callerEmail) {
           remark = '遲到' + diffMin + '分鐘';
           // 超過寬限才通知
           if (diffMin > lateGrace) {
-            sendNotification('⚠️ ' + branch + '店遲到 ' + diffMin + ' 分鐘打卡（' + (callerEmail || '') + '）');
+            // 讀班表取得值班人員名字
+            var sched = apiGetTodaySchedule(branch);
+            var staffName = (sched.success && sched.data && sched.data.staff) ? sched.data.staff : '';
+            var lateMsg = [
+              '⚠️ ' + branch + ' 遲到打卡',
+              '─────────────',
+              staffName ? '👤 值班人員：' + staffName : '',
+              '⏰ 遲到：' + diffMin + ' 分鐘',
+              '📧 打卡帳號：' + (callerEmail || ''),
+              '🕐 打卡時間：' + nowStr
+            ].filter(function(l) { return l; }).join('\n');
+            sendNotification(lateMsg);
           }
         } else if (diffMin < 0) {
           remark = '提早' + Math.abs(diffMin) + '分鐘';

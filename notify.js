@@ -313,17 +313,22 @@ function setupUnclockedTrigger() {
 /**
  * 關帳完成通知 — 從 apiCloseDay 呼叫
  */
-function notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems) {
+function notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems, staff) {
   var cashRevenue = totalRevenue - totalCreditCard - totalRemittance;
   var lines = [
     '📊 ' + branch + ' 今日關帳完成',
     '─────────────',
+  ];
+  if (staff) {
+    lines.push('👤 值班人員：' + staff);
+  }
+  lines.push(
     '💰 營業額：$' + Math.round(totalRevenue),
     '📝 交易筆數：' + txCount + ' 筆',
     '💵 現金：$' + Math.round(cashRevenue),
     '💳 信用卡：$' + Math.round(totalCreditCard),
-    '🏦 匯款：$' + Math.round(totalRemittance),
-  ];
+    '🏦 匯款：$' + Math.round(totalRemittance)
+  );
   if (discrepancy !== 0) {
     lines.push('⚠️ 現金差異：$' + discrepancy);
   }
