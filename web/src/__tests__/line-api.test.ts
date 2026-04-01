@@ -143,3 +143,54 @@ describe('apiGetQuotaUsage', () => {
     expect(result.success).toBe(false);
   });
 });
+
+// ═══════════════════════════════════════════════════
+// apiCloseDay — 關帳通知會自動觸發 LINE push
+// ═══════════════════════════════════════════════════
+import { apiCloseDay } from '../services/api';
+
+describe('apiCloseDay（含關帳通知觸發）', () => {
+  it('關帳成功 → 後端自動推送 LINE 通知', async () => {
+    mockJsonResponse({ success: true, message: '竹北 關帳與結算紀錄成功' });
+
+    const result = await apiCloseDay({
+      branch: '竹北',
+      openingCash: 5000,
+      expectedCash: 8000,
+      actualCash: 8000,
+      discrepancy: 0,
+      note: '一切正常',
+    });
+    expect(result.success).toBe(true);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.action).toBe('closeDay');
+    expect(body.payload.branch).toBe('竹北');
+    expect(body.payload.note).toBe('一切正常');
+    expect(body.payload.discrepancy).toBe(0);
+  });
+
+  it('關帳帶現金差異 → payload 含 discrepancy', async () => {
+    mockJsonResponse({ success: true, message: '金山 關帳與結算紀錄成功' });
+
+    await apiCloseDay({
+      branch: '金山',
+      openingCash: 3000,
+      expectedCash: 5000,
+      actualCash: 4800,
+      discrepancy: -200,
+      note: '',
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.discrepancy).toBe(-200);
+  });
+
+  it('關帳失敗 → 回傳錯誤', async () => {
+    mockJsonResponse({ success: false, message: '關帳異常: error' });
+
+    const result = await apiCloseDay({ branch: '竹北' });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('關帳異常');
+  });
+});
