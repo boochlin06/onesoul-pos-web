@@ -1,3 +1,13 @@
+/**
+ * 預防 CSV/Spreadsheet 注入攻擊 (OWASP A03)
+ * 若字串開頭為 = + - @ ，加上單引號保護
+ */
+function sanitizeForSheet(val) {
+  if (typeof val === 'string' && /^[=+\-@]/.test(val)) {
+    return "'" + val;
+  }
+  return val;
+}
 
 /**
  * 處理 Web POS 傳過來的 POST 請求
@@ -226,6 +236,11 @@ function apiCheckout(payload) {
       return index === 0 ? row.concat(saleMethodValues).concat(pointsDelta) : row.concat(["","","","","","",""]);
     });
     
+    // ★ 防護 Spreadsheet Formula Injection
+    newData = newData.map(function(row) {
+      return row.map(sanitizeForSheet);
+    });
+    
     if (newData.length > 0) {
        dailySheet.getRange(lastRow + 1, 1, newData.length, newData[0].length).setValues(newData);
        dailySheet.getRange(lastRow + 1, 1, newData.length, newData[0].length).setBorder(true, false, true, false, false, false);
@@ -340,7 +355,7 @@ function apiCloseDay(payload, callerEmail) {
           Math.round(totalRemittance),
           Math.round(totalRevenue),
           txCount,
-          note
+          sanitizeForSheet(note)
         ]);
       }
     } catch(logErr) {
@@ -598,12 +613,12 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
     
     rowsToDelete.sort(function(a, b) { return a - b; }); // 小→大排序，方便合併連續區段
     
-    // ★ 批次刪除：合併連續行號為區段，從底部往上一次刪整段
+    // ★ 批次刪除：合併連續行號為區段，從底部往上一次刪整段（1-2 次 API call 取代 N 次）
     var groups = [];
     var gStart = rowsToDelete[0], gEnd = rowsToDelete[0];
     for (var r = 1; r < rowsToDelete.length; r++) {
       if (rowsToDelete[r] === gEnd + 1) {
-        gEnd = rowsToDelete[r];
+        gEnd = rowsToDelete[r]; // 連續，延伸區段
       } else {
         groups.push({ start: gStart, count: gEnd - gStart + 1 });
         gStart = gEnd = rowsToDelete[r];
@@ -611,6 +626,7 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
     }
     groups.push({ start: gStart, count: gEnd - gStart + 1 });
     
+    // 從底部往上刪，避免行號偏移
     for (var g = groups.length - 1; g >= 0; g--) {
       sheet.deleteRows(groups[g].start, groups[g].count);
     }
@@ -633,7 +649,7 @@ function apiDeletePrizeLibrary(branch, setId, callerEmail) {
           matchedRows.length,                                                // G 獎項數
           totalDraws,                                                        // H 總抽數
           totalDrawn,                                                        // I 已抽總數
-          details.join(';'),                                                 // J 獎項明細
+          sanitizeForSheet(details.join(';')),                               // J 獎項明細
           isPointsSet ? 'TRUE' : 'FALSE',                                    // K 是否點數套
           originalDate                                                       // L 原始建套日期
         ]);
@@ -1075,6 +1091,11 @@ function apiCreateSet(payload) {
       [nextId, itemName, actualPrice, "Z", "0p", "非GK", "0", totalDraws - 1, formattedDate, branch]
     ];
     
+    // ★ 防護 Spreadsheet Formula Injection
+    newData = newData.map(function(row) {
+      return row.map(sanitizeForSheet);
+    });
+    
     dbSheet.getRange(lastRow + 1, 1, 2, 10).setValues(newData);
     
     return { success: true, message: '📦 [' + branch + '] 開套成功！編號 #' + nextId + ' 已入庫', setId: nextId.toString() };
@@ -1087,7 +1108,7 @@ function apiCreateSet(payload) {
 
 /**
  * 驗證 Google ID Token — 回傳 email 或 null
- * 直接解碼 JWT payload (Base64url)，檢查 exp 和 aud
+ * 透過 Google 官方 tokeninfo endpoint 驗證簽章 + CacheService 快取避免重複 HTTP
  */
 function verifyGoogleIdToken_(idToken) {
   try {
@@ -1096,13 +1117,20 @@ function verifyGoogleIdToken_(idToken) {
     var parts = idToken.split('.');
     if (parts.length !== 3) return null;
     
-    // Base64url → Base64（加 padding）
-    var base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    while (base64.length % 4 !== 0) base64 += '=';
+    // ★ 快取：同一 token 5 分鐘內不重複驗證（用 token 末 40 字元當 key，避免超過 key 長度限制）
+    var cache = CacheService.getScriptCache();
+    var cacheKey = 'jwt_' + idToken.substring(idToken.length - 40);
+    var cachedEmail = cache.get(cacheKey);
+    if (cachedEmail) return cachedEmail;
     
-    var decoded = Utilities.base64Decode(base64);
-    var jsonStr = Utilities.newBlob(decoded).getDataAsString('UTF-8');
-    var payload = JSON.parse(jsonStr);
+    // ★ 透過 Google 官方 endpoint 驗證 JWT 簽章與有效性 (防範偽造權限)
+    var response = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + idToken, { muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) {
+      Logger.log('Token verification failed: ' + response.getContentText());
+      return null;
+    }
+    
+    var payload = JSON.parse(response.getContentText());
     
     // 檢查 token 是否過期
     var now = Math.floor(new Date().getTime() / 1000);
@@ -1124,7 +1152,12 @@ function verifyGoogleIdToken_(idToken) {
       return null;
     }
     
-    return payload.email || null;
+    // ★ 驗證通過，寫入快取（2700 秒 = 45 分鐘）
+    var email = payload.email || null;
+    if (email) {
+      cache.put(cacheKey, email, 2700);
+    }
+    return email;
   } catch (e) {
     Logger.log('Token verification error: ' + e.toString());
     return null;

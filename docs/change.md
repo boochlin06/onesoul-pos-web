@@ -1,4 +1,30 @@
-# 2026-03-29 (v2.5) 更新內容
+# 2026-04-02 (v2.8) 更新內容
+
+### 💬 LINE Messaging API 整合
+- **Sheet-based Channel 制**：通知目標改為讀取 Google Sheet「LINE通知設定」分頁，支援多 channel（`all`、`admin`、`竹北`、`金山`）與多目標推送。
+- **LINE Push / Reply API**：新增 `_linePush()` 推送函式和 `_lineReply()` 回覆函式。Reply 免費不佔 Push 額度。
+- **ID 指令**：在 LINE 群組輸入「ID」，bot 自動回覆 `groupId` 或 `userId`，方便設定 Sheet。
+- **Webhook 整合**：`doPost()` 新增 LINE Webhook 事件偵測。
+- **Channel 快取**：`CacheService` 快取 300 秒。
+- **關帳通知加強**：新增 GK 確認清單（帶走/換點數/點數直購）+ 客戶姓名 + 備註。
+- **用量追蹤**：`_countUrlFetch()` + `_countGasCall()` 追蹤每日/每月用量，前端儀表板 + `checkQuotaUsage()` GAS 函式。
+- **大師 Tab LINE 發送**：管理員可選擇 channel 一鍵推送 LINE 訊息。
+- **14 個 LINE UT**：涵蓋 API 呼叫格式、權限、錯誤處理。
+- **DEPLOY.md**：新增第 14 節 LINE 通知系統部署指南。
+
+---
+
+# 2026-04-01 (v2.7) 更新內容
+
+### 📡 即時結帳監控系統
+- **MonitorView**：新增「監控」分頁，即時顯示各門市結帳活動。
+- **ScriptProperties 草稿**：結帳時自動寫入草稿，關帳時清除。
+- **手動重新整理**：取代自動 polling，減少 API 呼叫。
+- **21 個監控 UT** + Playwright e2e 測試。
+
+---
+
+
 
 ### 🌍 多環境部署架構 (Dev / Prod Separation)
 - **後端資料庫分離**：GAS 後端 (`config.js`) 全面改用 `ScriptProperties` 動態讀取 `APP_BACKGROUND_ID`。開發環境將自動 fallback 至測試用 Google Sheet，正式環境只需設定屬性即可，程式碼雙邊 100% 一致無須手動改 ID。
