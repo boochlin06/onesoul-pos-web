@@ -6,6 +6,14 @@ function doPost(e) {
   try {
     var params = JSON.parse(e.postData.contents);
 
+    // ★ LINE Webhook — bot 被加入群組時自動擷取 groupId
+    if (Array.isArray(params.events)) {
+      params.events.forEach(function(event) {
+        handleLineWebhookEvent(event);
+      });
+      return ContentService.createTextOutput('OK');
+    }
+
     // ★ API Key 驗證 — 擋掉未授權存取
     var storedKey = PropertiesService.getScriptProperties().getProperty('API_KEY');
     if (storedKey && params.apiKey !== storedKey) {
@@ -375,6 +383,13 @@ function apiCloseDay(payload, callerEmail) {
       }
     } catch(schedErr) {
       console.error('班表出勤寫入失敗: ' + schedErr.toString());
+    }
+
+    // ── LINE 關帳通知 ──
+    try {
+      notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy);
+    } catch(notifyErr) {
+      console.error('關帳 LINE 通知失敗: ' + notifyErr.toString());
     }
 
     return { success: true, message: branch + ' 關帳與結算紀錄成功' };
