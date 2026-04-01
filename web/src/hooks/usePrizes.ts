@@ -42,24 +42,9 @@ export function usePrizes({ branch, showBanner }: UsePrizesDeps) {
     const { setId } = voidConfirmPrize[0];
     setVoidingPrizeLoading(true);
     showBanner(MSG.prizes.voiding, 'loading', false);
-    gasPost('deletePrizeLibraryFast', { branch, setId })
+    gasPost('deletePrizeLibrary', { branch, setId })
       .then(res => {
-        if (res.success) { 
-          showBanner('作廢成功，正在背景彙整廢套紀錄...', 'loading', false); 
-          fetchLibrary(); 
-          setVoidConfirmPrize(null); 
-          
-          if (res.data?.matchedRows) {
-            gasPost('calculateVoidLog', { branch, setId, matchedRows: res.data.matchedRows })
-              .then(logRes => {
-                if (logRes.success) showBanner('廢套紀錄彙整完成', 'ok');
-                else console.error('背景彙整失敗:', logRes.message);
-              })
-              .catch(e => console.error('背景彙整異常:', e));
-          } else {
-            showBanner(MSG.prizes.voidSuccess, 'ok');
-          }
-        }
+        if (res.success) { showBanner(MSG.prizes.voidSuccess, 'ok'); fetchLibrary(); setVoidConfirmPrize(null); }
         else { showBanner(MSG.prizes.voidFail(res.message), 'err'); }
       })
       .catch(e => { console.error('[usePrizes] executeVoidPrize failed:', e); showBanner(MSG.prizes.voidNetworkFail, 'err'); })
