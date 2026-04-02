@@ -62,20 +62,11 @@ function sendAdminNotification(message) {
 // ── Sheet 設定讀取 ────────────────────────────────────────
 
 /**
- * 從「LINE通知設定」Sheet 讀取指定 channel 的 targetId 列表
- * 支援 5 分鐘快取，避免每次通知都讀 Sheet
+ * 從「API設定」Sheet 讀取指定 channel 的 targetId 列表
  * @param {string} channel
  * @returns {string[]} targetId 陣列
  */
 function _getChannelTargets(channel) {
-  // 先查 cache
-  var cache = CacheService.getScriptCache();
-  var cacheKey = 'line_ch_' + channel;
-  var cached = cache.get(cacheKey);
-  if (cached) {
-    try { return JSON.parse(cached); } catch(e) { /* cache corrupt */ }
-  }
-
   // 讀 Sheet
   try {
     var sheet = SpreadsheetApp.openById(appBackground).getSheetByName(LINE_CONFIG_SHEET);
@@ -84,9 +75,12 @@ function _getChannelTargets(channel) {
       return [];
     }
 
-    var data = sheet.getDataRange().getValues();
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+
+    var data = sheet.getRange('A2:D' + lastRow).getValues();
     var targets = [];
-    for (var i = 1; i < data.length; i++) { // 跳標題
+    for (var i = 0; i < data.length; i++) { // 從第一筆(原本第二行)開始
       var ch = String(data[i][0] || '').trim();
       var targetId = String(data[i][1] || '').trim();
       if (ch === channel && targetId) {
@@ -94,8 +88,6 @@ function _getChannelTargets(channel) {
       }
     }
 
-    // 寫入 cache（5 分鐘）
-    try { cache.put(cacheKey, JSON.stringify(targets), 300); } catch(e) {}
     return targets;
   } catch(e) {
     console.error('[Notify] 讀取 Sheet 失敗: ' + e.toString());
