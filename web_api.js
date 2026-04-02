@@ -1659,11 +1659,16 @@ function apiGetLineChannels(callerEmail) {
     return { success: false, message: '無權限' };
   }
   try {
-    var sheet = SpreadsheetApp.openById(appBackground).getSheetByName('LINE通知設定');
+    var sheetName = typeof LINE_CONFIG_SHEET !== 'undefined' ? LINE_CONFIG_SHEET : 'API設定';
+    var sheet = SpreadsheetApp.openById(appBackground).getSheetByName(sheetName);
     if (!sheet) return { success: true, data: [] };
-    var data = sheet.getDataRange().getValues();
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { success: true, data: [] };
+
+    var data = sheet.getRange('A2:D' + lastRow).getValues();
     var channelMap = {};
-    for (var i = 1; i < data.length; i++) {
+    for (var i = 0; i < data.length; i++) {
       var ch = String(data[i][0] || '').trim();
       var desc = String(data[i][3] || '').trim();
       if (ch && !channelMap[ch]) {
