@@ -460,8 +460,9 @@ function apiCloseDay(payload, callerEmail) {
       var sched = apiGetTodaySchedule(branch);
       var staffName = (sched.success && sched.data && sched.data.staff) ? sched.data.staff : '';
       notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems, staffName);
+      createTrelloCardOnCloseDay(branch, staffName, gkItems);
     } catch(notifyErr) {
-      console.error('關帳 LINE 通知失敗: ' + notifyErr.toString());
+      console.error('關帳通知/建卡失敗: ' + notifyErr.toString());
     }
 
     return { success: true, message: branch + ' 關帳與結算紀錄成功' };

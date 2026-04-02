@@ -534,10 +534,8 @@ git checkout main && git merge dev && git push origin main && git checkout dev
 | 大師手動發送 | 自選 | 自訂內容 |
 | ID 指令 | Reply | 回覆群組/個人 ID |
 
-### 14.2 Google Sheet 設定
-
-在你的 Google Sheet 新增一個分頁叫「**LINE通知設定**」，格式如下：
-
+### 14.2 Google Sheet API設定
+在你的 Google Sheet 新增一個分頁叫「**API設定**」（原先版本稱為「LINE通知設定」），針對 LINE 的通知格式如下（欄位 A~D）：
 | channel | targetId | type | 說明 |
 |---------|----------|------|------|
 | all | `C1234567890abcdef...` | group | 全體通知群 |
@@ -577,3 +575,16 @@ git checkout main && git merge dev && git push origin main && git checkout dev
 - [ ] LINE Developers Console 的 Webhook URL 指向正式版 GAS
 - [ ] 執行 `testLineNotify()` 確認推送正常
 - [ ] 執行 `checkQuotaUsage()` 確認計數器運作
+
+### 14.6 Trello 自動追蹤帶走清單設定
+
+如果需要在「關帳」時，將客人選擇帶走/待寄送的商品自動紀錄到 Trello（建立獨立卡片與打勾清單），請在上述同一個「**API設定**」分頁中，針對 **G 欄** 設定以下資訊：
+
+| 儲存格 | 內容定義 | 填寫範例 |
+|--------|---------|---------|
+| **G2** | Trello API Key | `3c5b6a0cf38a0c5c8623f807a5c...` |
+| **G3** | Trello API Token | `ATTA02cf3c77f10cc1ec68b891c...` |
+| **G4** | 指定存放卡片的 List ID | `6612d75d6792f7a36bf29...` |
+| **G5** | Trello 總開關 (TRUE/FALSE) | `TRUE` (設為 TRUE 才會建卡) |
+
+> 💡 **List ID 怎麼拿？** 在 Trello 看板標址列後方加上 `.json`，搜尋你想存放的列表名稱（例如「待出貨」），找到它對應的24字元 `id`。

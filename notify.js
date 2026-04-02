@@ -16,7 +16,7 @@
  *   sendNotify('竹北', '⏰ 竹北未打卡');    → 只發竹北群
  */
 
-var LINE_CONFIG_SHEET = 'LINE通知設定';
+var LINE_CONFIG_SHEET = 'API設定';
 
 // ── 核心通知 API ──────────────────────────────────────────
 
