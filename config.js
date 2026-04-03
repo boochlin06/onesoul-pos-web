@@ -22,6 +22,7 @@ const sheetBlindBoxDB = "盲盒資料庫";
 const sheetCloseDayLog = "開關帳紀錄";
 const sheetVoidSetLog = "廢套紀錄";
 const sheetSchedule = "班表";
+const sheetInventoryCheck = "庫存盤點單";
 
 // ── 監控草稿過期時間（3 小時）──
 const DRAFT_EXPIRE_MS = 3 * 60 * 60 * 1000;

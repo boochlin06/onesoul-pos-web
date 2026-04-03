@@ -10,6 +10,7 @@ import { useMembers, useMemberHistory } from './hooks/useMembers';
 import { usePrizes } from './hooks/usePrizes';
 import { useDailySales, useSalesRecords } from './hooks/useSales';
 import { useStocks, useAllStocks, useBlindBoxes } from './hooks/useInventory';
+import { useInventoryCheck } from './hooks/useInventoryCheck';
 import { StatusBanner } from './components/ui/StatusBanner';
 import { ClosingModal } from './components/checkout/ClosingModal';
 import { VoidPrizeModal } from './components/checkout/VoidPrizeModal';
@@ -23,6 +24,7 @@ import { BlindBoxView } from './components/views/BlindBoxView';
 import { MemberHistoryView } from './components/views/MemberHistoryView';
 import { MasterView } from './components/views/MasterView';
 import { MonitorView } from './components/views/MonitorView';
+import { InventoryCheckView } from './components/views/InventoryCheckView';
 import { useEmergencyNotice } from './hooks/useEmergencyNotice';
 import { useClockIn } from './hooks/useClockIn';
 import { EmergencyNoticeModal } from './components/ui/EmergencyNoticeModal';
@@ -74,6 +76,7 @@ function PosApp() {
   const history = useMemberHistory({ showBanner });
   const emergencyNotice = useEmergencyNotice(auth.isAuthenticated);
   const clockIn = useClockIn({ branch, email: auth.user?.email, isAuthenticated: auth.isAuthenticated, showBanner });
+  const inventoryCheck = useInventoryCheck(branch);
 
   // ── Initial data load（登入後才發請求）──
   useEffect(() => {
@@ -194,7 +197,11 @@ function PosApp() {
         </div>
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6">
           <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {TABS.filter(t => (t.key !== 'master' && t.key !== 'monitor') || isAdmin).map(t => (
+            {TABS.filter(t => {
+              if (t.key === 'master' || t.key === 'monitor') return isAdmin;
+              if (t.key === 'inventory_check') return inventoryCheck.enabled === true;
+              return true;
+            }).map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key as Tab)}
                 className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-t-lg transition-all border-b-2 ${activeTab === t.key ? 'bg-slate-50 text-slate-700 border-transparent shadow-inner' : 'text-white/70 border-transparent hover:text-white hover:bg-white/10'}`}>
                 {t.icon}{t.label}
@@ -236,6 +243,21 @@ function PosApp() {
         )}
         {activeTab === 'monitor' && isAdmin && (
           <MonitorView branch={branch} />
+        )}
+        {activeTab === 'inventory_check' && inventoryCheck.enabled && (
+          <InventoryCheckView
+            branch={branch}
+            setBranch={setBranch}
+            items={inventoryCheck.items}
+            loading={inventoryCheck.loading}
+            submitting={inventoryCheck.submitting}
+            onRefresh={inventoryCheck.fetchList}
+            onUpdateQty={inventoryCheck.updateActualQty}
+            onAddNew={inventoryCheck.addNewItem}
+            onRemoveNew={inventoryCheck.removeNewItem}
+            onSubmit={inventoryCheck.submitCheck}
+            userEmail={auth.user?.email || ''}
+          />
         )}
 
         {daily.isClosingModalOpen && (
