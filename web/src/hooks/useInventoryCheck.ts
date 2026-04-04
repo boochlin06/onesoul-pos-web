@@ -28,8 +28,10 @@ export function useInventoryCheck(branch: Branch) {
         if (res.success && res.data) {
           setItems(res.data.map((it: Omit<InventoryCheckItem, 'actualQty'>) => ({
             ...it,
-            actualQty: it.systemQty, // 預設帶入系統數量
+            actualQty: it.systemQty,
             isNew: false,
+            checked: false,
+            itemRemark: '',
           })));
         }
       })
@@ -42,10 +44,28 @@ export function useInventoryCheck(branch: Branch) {
     setItems(prev => prev.map((it, i) => i === index ? { ...it, actualQty: qty } : it));
   }, []);
 
+  // 切換勾選狀態（checklist）
+  const toggleCheck = useCallback((index: number) => {
+    setItems(prev => prev.map((it, i) => i === index ? { ...it, checked: !it.checked } : it));
+  }, []);
+
+  // 重置所有品項（actualQty 回到 systemQty、取消勾選、清除備註）
+  const resetAll = useCallback(() => {
+    setItems(prev => prev
+      .filter(it => !it.isNew)
+      .map(it => ({ ...it, actualQty: it.systemQty, checked: false, itemRemark: '' }))
+    );
+  }, []);
+
+  // 更新某筆的備註
+  const updateItemRemark = useCallback((index: number, remark: string) => {
+    setItems(prev => prev.map((it, i) => i === index ? { ...it, itemRemark: remark } : it));
+  }, []);
+
   // 新增額外品項（系統沒有但店裡有）
   const addNewItem = useCallback((id: string, name: string, qty: number) => {
     setItems(prev => [...prev, {
-      id, name, category: '(新增)', systemQty: 0, actualQty: qty, branch, isNew: true,
+      id, name, category: '(新增)', systemQty: 0, actualQty: qty, branch, isNew: true, checked: true,
     }]);
   }, [branch]);
 
@@ -56,7 +76,6 @@ export function useInventoryCheck(branch: Branch) {
 
   // 提交盤點
   const submitCheck = useCallback(async (staff: string, note: string) => {
-    // 只送有差異的或新增的
     const changed = items.filter(it => it.isNew || it.actualQty !== it.systemQty);
     if (changed.length === 0) {
       return { success: false, message: '沒有任何差異項目需要提交' };
@@ -74,6 +93,7 @@ export function useInventoryCheck(branch: Branch) {
 
   return {
     items, loading, submitting, enabled,
-    fetchList, updateActualQty, addNewItem, removeNewItem, submitCheck, checkEnabled,
+    fetchList, updateActualQty, toggleCheck, resetAll, updateItemRemark,
+    addNewItem, removeNewItem, submitCheck, checkEnabled,
   };
 }

@@ -199,7 +199,7 @@ function PosApp() {
           <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {TABS.filter(t => {
               if (t.key === 'master' || t.key === 'monitor') return isAdmin;
-              if (t.key === 'inventory_check') return inventoryCheck.enabled === true;
+              if (t.key === 'inventory_check') return isAdmin || inventoryCheck.enabled === true;
               return true;
             }).map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key as Tab)}
@@ -244,7 +244,7 @@ function PosApp() {
         {activeTab === 'monitor' && isAdmin && (
           <MonitorView branch={branch} />
         )}
-        {activeTab === 'inventory_check' && inventoryCheck.enabled && (
+        {activeTab === 'inventory_check' && (isAdmin || inventoryCheck.enabled) && (
           <InventoryCheckView
             branch={branch}
             setBranch={setBranch}
@@ -253,6 +253,9 @@ function PosApp() {
             submitting={inventoryCheck.submitting}
             onRefresh={inventoryCheck.fetchList}
             onUpdateQty={inventoryCheck.updateActualQty}
+            onToggleCheck={inventoryCheck.toggleCheck}
+            onReset={inventoryCheck.resetAll}
+            onUpdateRemark={inventoryCheck.updateItemRemark}
             onAddNew={inventoryCheck.addNewItem}
             onRemoveNew={inventoryCheck.removeNewItem}
             onSubmit={inventoryCheck.submitCheck}

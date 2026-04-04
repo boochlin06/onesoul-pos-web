@@ -128,4 +128,6 @@ export interface InventoryCheckItem {
   actualQty: number;
   branch: string;
   isNew?: boolean;
+  checked?: boolean;
+  itemRemark?: string;
 }

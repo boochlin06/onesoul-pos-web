@@ -1807,7 +1807,7 @@ function apiSubmitInventoryCheck(payload, callerEmail) {
     var sheet = ss.getSheetByName(sheetInventoryCheck);
     if (!sheet) {
       sheet = ss.insertSheet(sheetInventoryCheck);
-      sheet.appendRow(['盤點日期', '門市', '盤點人', '貨號', '品名', '系統數量', '實際數量', '差異', '狀態', '備註']);
+      sheet.appendRow(['盤點日期', '門市', '盤點人', '貨號', '品名', '系統數量', '實際數量', '差異', '狀態', '總備註', '品項備註']);
     }
 
     var dateStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy/MM/dd HH:mm');
@@ -1826,7 +1826,8 @@ function apiSubmitInventoryCheck(payload, callerEmail) {
         actQty,
         actQty - sysQty,
         '待審核',
-        note
+        note,
+        it.itemRemark || ''
       ]);
     }
     if (rows.length > 0) {
