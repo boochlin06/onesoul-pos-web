@@ -112,10 +112,22 @@ export interface BlindBoxEntry {
   remark: string;          // 備註
 }
 
-export type Tab = 'checkout' | 'daily' | 'members' | 'sales' | 'library' | 'stock' | 'blindbox' | 'member_history' | 'master' | 'monitor';
+export type Tab = 'checkout' | 'daily' | 'members' | 'sales' | 'library' | 'stock' | 'blindbox' | 'member_history' | 'master' | 'monitor' | 'inventory_check';
 export type Branch = '竹北' | '金山';
 
 export interface BannerState {
   msg: string;
   type: 'ok' | 'err' | 'loading';
+}
+
+export interface InventoryCheckItem {
+  id: string;
+  name: string;
+  category: string;
+  systemQty: number;
+  actualQty: number;
+  branch: string;
+  isNew?: boolean;
+  checked?: boolean;
+  itemRemark?: string;
 }
