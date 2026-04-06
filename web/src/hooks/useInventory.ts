@@ -22,14 +22,21 @@ export function useStocks(branch: Branch) {
 
 export function useAllStocks() {
   const [allStocks, setAllStocks] = useState<StockEntry[]>([]);
+  const [loadingAllStocks, setLoadingAllStocks] = useState(false);
 
   const fetchAllStocks = useCallback(() => {
+    setLoadingAllStocks(true);
     gasPost('getStockList', { branch: '全部' })
       .then(res => { if (res.success && res.data) setAllStocks(res.data); })
-      .catch(e => console.error('[useAllStocks] fetch failed:', e));
+      .catch(e => console.error('[useAllStocks] fetch failed:', e))
+      .finally(() => setLoadingAllStocks(false));
   }, []);
 
-  return { allStocks, fetchAllStocks };
+  useEffect(() => {
+    fetchAllStocks();
+  }, [fetchAllStocks]);
+
+  return { allStocks, loadingAllStocks, fetchAllStocks };
 }
 
 export function useBlindBoxes() {

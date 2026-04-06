@@ -112,7 +112,7 @@ export interface BlindBoxEntry {
   remark: string;          // 備註
 }
 
-export type Tab = 'checkout' | 'daily' | 'members' | 'sales' | 'library' | 'stock' | 'blindbox' | 'member_history' | 'master' | 'monitor' | 'inventory_check';
+export type Tab = 'checkout' | 'daily' | 'members' | 'sales' | 'library' | 'stock' | 'blindbox' | 'member_history' | 'master' | 'monitor' | 'inventory_check' | 'in_stock';
 export type Branch = '竹北' | '金山';
 
 export interface BannerState {

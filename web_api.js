@@ -919,7 +919,7 @@ function apiGetStockList(branch) {
             name: row[1] ? row[1].toString() : '',     // b 行
             points: Number(row[4]) || 0,               // e 行
             category: row[9] ? row[9].toString() : '', // j 行
-            quantity: Number(row[13]) || 0,            // n 行
+            quantity: Number(row[15]) || 0,            // p 行
             remark: '',
             branch: rowBranch
         });
@@ -1774,7 +1774,7 @@ function apiGetInventoryCheckList(branch) {
       var row = data[i];
       var id = row[0] ? row[0].toString().trim() : '';
       if (!id) continue;
-      var qty = Number(row[13]) || 0; // N 欄
+      var qty = Number(row[15]) || 0; // 改為 P 欄
       if (qty < 1) continue;
       var rowBranch = row[16] ? row[16].toString().trim() : ''; // Q 欄
       if (branch && branch !== '全部' && rowBranch && rowBranch !== branch) continue;

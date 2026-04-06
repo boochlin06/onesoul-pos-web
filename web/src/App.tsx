@@ -12,6 +12,7 @@ import { useDailySales, useSalesRecords } from './hooks/useSales';
 import { useStocks, useAllStocks, useBlindBoxes } from './hooks/useInventory';
 import { useInventoryCheck } from './hooks/useInventoryCheck';
 import { StatusBanner } from './components/ui/StatusBanner';
+import { InStockView } from './components/views/InStockView';
 import { ClosingModal } from './components/checkout/ClosingModal';
 import { VoidPrizeModal } from './components/checkout/VoidPrizeModal';
 import { CheckoutView } from './components/checkout/CheckoutView';
@@ -70,7 +71,7 @@ function PosApp() {
   const prizes = usePrizes({ branch, showBanner });
   const { stocks, loadingStocks, fetchStocks } = useStocks(branch);
   const { blindBoxes, loadingBlindBox, fetchBlindBoxes } = useBlindBoxes();
-  const { allStocks, fetchAllStocks } = useAllStocks();
+  const { allStocks, loadingAllStocks, fetchAllStocks } = useAllStocks();
   const daily = useDailySales({ branch, showBanner, fetchMembers });
   const sales = useSalesRecords({ showBanner });
   const history = useMemberHistory({ showBanner });
@@ -261,6 +262,10 @@ function PosApp() {
             onSubmit={inventoryCheck.submitCheck}
             userEmail={auth.user?.email || ''}
           />
+        )}
+        
+        {activeTab === 'in_stock' && (
+          <InStockView stocks={allStocks} isLoading={loadingAllStocks} onRefresh={fetchAllStocks} />
         )}
 
         {daily.isClosingModalOpen && (

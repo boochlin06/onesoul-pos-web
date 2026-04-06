@@ -1,6 +1,6 @@
 import {
   Receipt, ClipboardList, Users, History,
-  BarChart3, BookOpen, Package, Box, Crown, Radio, ClipboardCheck
+  BarChart3, BookOpen, Package, Box, Crown, Radio, ClipboardCheck, PackageSearch
 } from 'lucide-react';
 import type { Tab } from '../types';
 
@@ -38,4 +38,5 @@ export const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'master', label: '大師', icon: <Crown className="w-4 h-4" /> },
   { key: 'monitor', label: '監控', icon: <Radio className="w-4 h-4" /> },
   { key: 'inventory_check', label: '庫存盤點', icon: <ClipboardCheck className="w-4 h-4" /> },
+  { key: 'in_stock', label: '現貨查詢', icon: <PackageSearch className="w-4 h-4" /> },
 ];

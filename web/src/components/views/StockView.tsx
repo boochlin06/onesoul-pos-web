@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Package, ChevronDown, Loader2 } from 'lucide-react';
+import { Search, Package, ChevronDown, Loader2, ArrowUpDown } from 'lucide-react';
 import { RefreshButton } from '../ui/RefreshButton';
 import { useStickyState } from '../../hooks/useStickyState';
 import type { Branch, StockEntry } from '../../types';
@@ -12,21 +12,67 @@ interface StockViewProps {
   setBranch: (b: Branch) => void;
 }
 
+type SortField = 'id' | 'name' | 'points' | 'category' | 'quantity' | 'branch';
+type SortOrder = 'asc' | 'desc';
+
 export function StockView({ branch, records, isLoading, onRefresh, setBranch }: StockViewProps) {
   const [search, setSearch] = useState('');
   const [uiMode, setUiMode] = useStickyState<'classic' | 'cards'>('cards', 'pos_stock_ui_mode');
+  const [sortField, setSortField] = useState<SortField>('id');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-  const filtered = useMemo(() => {
+  const filteredAndSorted = useMemo(() => {
     let result = records.filter(r => r.name && String(r.name).trim() !== '');
-    result.sort((a, b) => String(b.id).localeCompare(String(a.id), undefined, { numeric: true, sensitivity: 'base' }));
+    
+    // 搜尋
     const q = search.toLowerCase();
-    if (!q) return result;
-    return result.filter(r =>
-      r.name.toLowerCase().includes(q) ||
-      (r.category && r.category.toLowerCase().includes(q)) ||
-      String(r.id).toLowerCase().includes(q)
-    );
-  }, [records, search]);
+    if (q) {
+      result = result.filter(r =>
+        r.name.toLowerCase().includes(q) ||
+        (r.category && r.category.toLowerCase().includes(q)) ||
+        String(r.id).toLowerCase().includes(q)
+      );
+    }
+
+    // 排序
+    return result.sort((a, b) => {
+      let valA = a[sortField];
+      let valB = b[sortField];
+
+      if (sortField === 'id') {
+        const strA = String(valA);
+        const strB = String(valB);
+        return sortOrder === 'asc' 
+             ? strA.localeCompare(strB, undefined, { numeric: true, sensitivity: 'base' })
+             : strB.localeCompare(strA, undefined, { numeric: true, sensitivity: 'base' });
+      }
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortOrder === 'asc' ? valA - valB : valB - valA;
+      }
+      return 0;
+    });
+  }, [records, search, sortField, sortOrder]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc'); // 切換欄位時預設數字大/字母後的在前
+    }
+  };
+
+  const SortIcon = ({ field, label, extra, justify = 'left' }: { field: SortField, label: string, extra?: React.ReactNode, justify?: 'left' | 'center' | 'right' }) => (
+    <button onClick={() => handleSort(field)} className={`inline-flex items-center gap-1 hover:text-indigo-600 transition-colors focus:outline-none w-full uppercase tracking-wider ${justify === 'left' ? 'justify-start' : justify === 'right' ? 'justify-end' : 'justify-center'}`}>
+      {label}
+      {extra}
+      <ArrowUpDown className={`w-3.5 h-3.5 shrink-0 ${sortField === field ? 'text-indigo-500' : 'text-slate-300 opacity-0 group-hover:opacity-100'}`} />
+    </button>
+  );
 
   return (
     <div className="flex flex-col gap-6 mb-24 max-w-7xl mx-auto w-full">
@@ -80,7 +126,7 @@ export function StockView({ branch, records, isLoading, onRefresh, setBranch }: 
             <Loader2 className="w-10 h-10 mb-4 animate-spin text-indigo-500" />
             <span className="font-bold tracking-wider">正在讀取庫存資料...</span>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filteredAndSorted.length === 0 ? (
           <div className="p-24 flex flex-col items-center justify-center text-slate-400">
             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
               <Package className="w-8 h-8 text-slate-300" />
@@ -90,7 +136,7 @@ export function StockView({ branch, records, isLoading, onRefresh, setBranch }: 
         ) : uiMode === 'cards' ? (
           <div className="p-5 bg-slate-50/50">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filtered.map((r, i) => (
+              {filteredAndSorted.map((r, i) => (
                 <div key={i} className={`bg-white rounded-2xl p-5 border transition-all hover:shadow-lg hover:-translate-y-1 flex flex-col gap-4 relative overflow-hidden ${r.quantity <= 1 ? 'border-rose-200 ring-1 ring-rose-50 shadow-sm' : 'border-slate-200'}`}>
                   <div className="flex items-start justify-between">
                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-[10px] font-bold text-slate-500 tracking-widest">{r.category || '未分類'}</span>
@@ -120,16 +166,28 @@ export function StockView({ branch, records, isLoading, onRefresh, setBranch }: 
             <table className="w-full text-sm text-slate-700 whitespace-nowrap">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 sticky top-0 z-10">
                 <tr>
-                  <th className="px-5 py-3.5 text-left font-extrabold uppercase tracking-wider text-xs">貨號</th>
-                  <th className="px-5 py-3.5 text-left font-extrabold uppercase tracking-wider text-xs">商品名稱 <span className="ml-2 font-bold text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full lowercase tracking-normal">非指定人士請勿進入</span></th>
-                  <th className="px-5 py-3.5 text-right font-extrabold uppercase tracking-wider text-xs">販售點數</th>
-                  <th className="px-5 py-3.5 text-left font-extrabold uppercase tracking-wider text-xs">類別</th>
-                  <th className="px-5 py-3.5 text-right font-extrabold uppercase tracking-wider text-xs">剩餘數量</th>
-                  <th className="px-5 py-3.5 text-center font-extrabold uppercase tracking-wider text-xs">地點</th>
+                  <th className="px-5 py-3.5 text-left font-extrabold text-xs group">
+                    <SortIcon field="id" label="貨號" />
+                  </th>
+                  <th className="px-5 py-3.5 text-left font-extrabold text-xs group">
+                    <SortIcon field="name" label="商品名稱" extra={<span className="ml-2 font-bold text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full lowercase tracking-normal">非指定人士請勿進入</span>} />
+                  </th>
+                  <th className="px-5 py-3.5 text-right font-extrabold text-xs group w-24">
+                    <SortIcon field="points" label="販售點數" justify="right" />
+                  </th>
+                  <th className="px-5 py-3.5 text-left font-extrabold text-xs group w-24">
+                    <SortIcon field="category" label="類別" />
+                  </th>
+                  <th className="px-5 py-3.5 text-right font-extrabold text-xs group w-32">
+                    <SortIcon field="quantity" label="剩餘數量" justify="right" />
+                  </th>
+                  <th className="px-5 py-3.5 text-center font-extrabold text-xs group w-24">
+                    <SortIcon field="branch" label="地點" justify="center" />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filtered.map((r, i) => (
+                {filteredAndSorted.map((r, i) => (
                   <tr key={i} className="hover:bg-indigo-50/50 transition-all bg-white group">
                     <td className="px-5 py-3 text-left font-mono font-bold text-slate-500">{r.id}</td>
                     <td className="px-5 py-3 font-bold text-slate-800 whitespace-normal min-w-[280px] leading-relaxed group-hover:text-indigo-900 transition-colors">
