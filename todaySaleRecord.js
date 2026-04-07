@@ -39,6 +39,7 @@ function deleteTodaySaleRecord() {
 
   // ★ 加鎖：標記刪除 + 退點必須是原子操作
   var lock = LockService.getScriptLock();
+  var alerts = [];
   try {
     lock.waitLock(30000);
 
@@ -54,18 +55,18 @@ function deleteTodaySaleRecord() {
       var delta = pointDeltas[phoneNumber];
       var currentPoint = _addPointsUnsafe(phoneNumber, -delta);
       if (currentPoint >= 0) {
-        showErrorMessage("刪除 ID " + deleteId + " 成功，點數修正為：" + currentPoint);
+        alerts.push("刪除 ID " + deleteId + " 成功，點數修正為：" + currentPoint);
       } else if (currentPoint === -2) {
-        showErrorMessage("刪除 ID " + deleteId + " 成功");
+        alerts.push("刪除 ID " + deleteId + " 成功");
       } else if (currentPoint === -1) {
-        showErrorMessage("刪除 ID " + deleteId + " 成功，但客戶點數變為負值");
+        alerts.push("刪除 ID " + deleteId + " 成功，但客戶點數變為負值");
       }
     }
 
     sourceSheet.getRange("F1").setValue("");
   } catch (error) {
     console.error(error);
-    showErrorMessage('刪除銷售紀錄時發生異常');
+    alerts.push('刪除銷售紀錄時發生異常');
 
     // 回復刪除標記
     for (var row in deletedRows) {
@@ -73,6 +74,10 @@ function deleteTodaySaleRecord() {
     }
   } finally {
     lock.releaseLock();
+    // 等鎖釋放後，再依序彈出通知，避免阻塞系統
+    for (var i = 0; i < alerts.length; i++) {
+       showErrorMessage(alerts[i]);
+    }
   }
 }
 

@@ -68,6 +68,7 @@ function 結帳() {
 
   var success = false;
   var newPoints = 0;
+  var errorMessage = '';
   var writeLock = LockService.getScriptLock();
   try {
     writeLock.waitLock(30000);
@@ -78,10 +79,10 @@ function 結帳() {
     if (newPoints >= 0) {
       success = true;
     } else if (newPoints == -2) {
-      showErrorMessage('客戶點數不足');
+      errorMessage = '客戶點數不足';
       return;
     } else {
-      showErrorMessage(phoneNumbers + '-結帳失敗');
+      errorMessage = phoneNumbers + '-結帳失敗';
       return;
     }
 
@@ -94,10 +95,13 @@ function 結帳() {
     tempTodaySalesSheet.getRange(lastRow + 1, 1, newData.length, newData[0].length).setBorder(true, false, true, false, false, false);
   } catch (error) {
     console.error(error);
-    showErrorMessage('結帳時發生異常: ' + error.toString());
+    errorMessage = '結帳時發生異常: ' + error.toString();
     return;
   } finally {
     writeLock.releaseLock();
+    if (errorMessage) {
+      showErrorMessage(errorMessage);
+    }
   }
 
   // 重置頁面
