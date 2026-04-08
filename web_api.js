@@ -337,9 +337,9 @@ function apiCloseDay(payload, callerEmail) {
         var uid = (row[14] || '').toString().trim();
         if (uid && !uidSet[uid]) {
           uidSet[uid] = true;
-          totalRevenue += Number(row[15]) || 0;
-          totalCreditCard += Number(row[17]) || 0;
-          totalRemittance += Number(row[18]) || 0;
+          totalRevenue += Number(row[15]) || 0;     // 實收總額 (receivedAmount)
+          totalCreditCard += Number(row[17]) || 0;  // 信用卡 (creditCard)
+          totalRemittance += Number(row[16]) || 0;  // 匯款 (remittance) (原先誤植為 18 現金)
         }
       });
       txCount = Object.keys(uidSet).length;
