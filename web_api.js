@@ -1952,7 +1952,7 @@ function _diagnoseLine() {
       result.botInfoError = e.toString();
     }
 
-    // 實際發送測試訊息
+    // 測試 1: 發到 group (allTargets[0])
     if (result.allTargets && result.allTargets.length > 0) {
       var testTarget = result.allTargets[0];
       try {
@@ -1962,14 +1962,42 @@ function _diagnoseLine() {
           headers: { 'Authorization': 'Bearer ' + token },
           payload: JSON.stringify({
             to: testTarget,
-            messages: [{ type: 'text', text: '🔧 LINE 診斷測試 — 如果你看到這條訊息，表示 LINE 通知功能正常' }]
+            messages: [{ type: 'text', text: '🔧 診斷: group push 測試' }]
           }),
           muteHttpExceptions: true
         });
-        result.pushTestStatus = pushRes.getResponseCode();
-        result.pushTestBody = pushRes.getContentText().substring(0, 300);
+        result.groupPushStatus = pushRes.getResponseCode();
+        result.groupPushBody = pushRes.getContentText().substring(0, 300);
       } catch(e) {
-        result.pushTestError = e.toString();
+        result.groupPushError = e.toString();
+      }
+    }
+
+    // 測試 2: 發到個人 (boss channel)
+    var bossTargets = [];
+    try {
+      var sheet2 = SpreadsheetApp.openById(appBackground).getSheetByName('API設定');
+      var data2 = sheet2.getRange('A2:D' + sheet2.getLastRow()).getValues();
+      bossTargets = data2.filter(function(r) { return String(r[0]).trim() === 'boss'; }).map(function(r) { return String(r[1]).trim(); });
+    } catch(e) {}
+    
+    if (bossTargets.length > 0) {
+      try {
+        var pushRes2 = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'post',
+          contentType: 'application/json',
+          headers: { 'Authorization': 'Bearer ' + token },
+          payload: JSON.stringify({
+            to: bossTargets[0],
+            messages: [{ type: 'text', text: '🔧 診斷: user push 測試' }]
+          }),
+          muteHttpExceptions: true
+        });
+        result.userPushStatus = pushRes2.getResponseCode();
+        result.userPushBody = pushRes2.getContentText().substring(0, 300);
+        result.userTarget = bossTargets[0].substring(0, 10) + '...';
+      } catch(e) {
+        result.userPushError = e.toString();
       }
     }
   }
