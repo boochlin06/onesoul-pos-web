@@ -170,6 +170,9 @@ function doPost(e) {
       case "applyInventoryCheck":
         result = apiApplyInventoryCheck(payload, tokenEmail);
         break;
+      case "_diagnoseLine":
+        result = _diagnoseLine();
+        break;
       default:
         result = { success: false, message: "未知的 Action: " + action };
     }
@@ -1903,4 +1906,52 @@ function apiApplyInventoryCheck(payload, callerEmail) {
   } catch(e) {
     return { success: false, message: e.toString() };
   }
+}
+
+// ── 臨時診斷用，確認 LINE 設定後移除 ──
+function _diagnoseLine() {
+  var result = {};
+  var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+  result.tokenSet = !!token;
+  result.tokenLen = token ? token.length : 0;
+  result.tokenPreview = token ? token.substring(0, 10) + '...' : '(null)';
+
+  // 讀取所有 channel targets
+  try {
+    var sheet = SpreadsheetApp.openById(appBackground).getSheetByName('API設定');
+    if (!sheet) {
+      result.sheetFound = false;
+    } else {
+      result.sheetFound = true;
+      var lastRow = sheet.getLastRow();
+      result.lastRow = lastRow;
+      if (lastRow >= 2) {
+        var data = sheet.getRange('A2:D' + lastRow).getValues();
+        result.allRows = data.map(function(r) {
+          return { channel: String(r[0]).trim(), targetId: String(r[1]).trim().substring(0, 10) + '...', type: String(r[2]).trim(), desc: String(r[3]).trim() };
+        });
+        // 找 'all' channel
+        result.allTargets = data.filter(function(r) { return String(r[0]).trim() === 'all'; }).map(function(r) { return String(r[1]).trim(); });
+      }
+    }
+  } catch(e) {
+    result.sheetError = e.toString();
+  }
+
+  // 嘗試呼叫 LINE API 驗證 token（用 bot info endpoint，不發訊息）
+  if (token) {
+    try {
+      var res = UrlFetchApp.fetch('https://api.line.me/v2/bot/info', {
+        method: 'get',
+        headers: { 'Authorization': 'Bearer ' + token },
+        muteHttpExceptions: true
+      });
+      result.botInfoStatus = res.getResponseCode();
+      result.botInfoBody = res.getContentText().substring(0, 200);
+    } catch(e) {
+      result.botInfoError = e.toString();
+    }
+  }
+
+  return { success: true, data: result };
 }
