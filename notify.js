@@ -28,11 +28,12 @@ var LINE_CONFIG_SHEET = 'API設定';
 function sendNotify(channel, message) {
   var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
   if (!token) {
-    console.log('[Notify] (TOKEN 未設定) [' + channel + '] ' + message);
+    console.log('[Notify] (TOKEN 未設定) [' + channel + '] ' + message.substring(0, 50));
     return;
   }
 
   var targets = _getChannelTargets(channel);
+  console.log('[Notify] channel="' + channel + '", targets=' + targets.length + ', tokenLen=' + token.length);
   if (targets.length === 0) {
     console.log('[Notify] channel "' + channel + '" 無對應目標，略過');
     return;
@@ -188,6 +189,8 @@ function _linePush(token, to, message) {
     var code = res.getResponseCode();
     if (code !== 200) {
       console.error('[LINE Push] → ' + to.substring(0, 8) + '... HTTP ' + code + ': ' + res.getContentText());
+    } else {
+      console.log('[LINE Push] ✓ → ' + to.substring(0, 8) + '... HTTP 200');
     }
   } catch (e) {
     console.error('[LINE Push Error] ' + e.toString());

@@ -3,8 +3,12 @@
  * 若字串開頭為 = + - @ ，加上單引號保護
  */
 function sanitizeForSheet(val) {
-  if (typeof val === 'string' && /^[=+\-@]/.test(val)) {
-    return "'" + val;
+  if (typeof val === 'number') return val;
+  if (val === null || val === undefined) return '';
+  var str = val.toString();
+  // 純數字（含負數如 '-500'）不跳脫，避免破壞後續 Number() 解析
+  if (/^[=+\-@]/.test(str) && isNaN(str)) {
+    return "'" + str;
   }
   return val;
 }
@@ -423,6 +427,7 @@ function apiCloseDay(payload, callerEmail) {
     }
 
     // ── LINE 關帳通知 ──
+    console.log('[CloseDay] ▶ 開始 LINE 通知流程, branch=' + branch + ', txCount=' + txCount + ', revenue=' + totalRevenue);
     try {
       // 建立 phone → 姓名 對照表
       var memberMap = {};
@@ -433,7 +438,10 @@ function apiCloseDay(payload, callerEmail) {
           var mName = String(memberData[mi][1] || '').trim();
           if (mPhone && mName) memberMap[mPhone] = mName;
         }
-      } catch(e) { /* 查不到就用電話 */ }
+        console.log('[CloseDay] memberMap 建立完成, 共 ' + Object.keys(memberMap).length + ' 筆');
+      } catch(e) {
+        console.error('[CloseDay] memberMap 建立失敗: ' + e.toString());
+      }
 
       var gkItems = [];
       if (dataToMove.length > 0) {
@@ -468,13 +476,20 @@ function apiCloseDay(payload, callerEmail) {
           }
         });
       }
+      console.log('[CloseDay] gkItems 收集完成, 共 ' + gkItems.length + ' 筆');
+
       // 讀班表取得今日值班人員
       var sched = apiGetTodaySchedule(branch);
       var staffName = (sched.success && sched.data && sched.data.staff) ? sched.data.staff : '';
+      console.log('[CloseDay] 值班人員: ' + (staffName || '(無)') + ', 準備呼叫 notifyCloseDay...');
+
       notifyCloseDay(branch, txCount, totalRevenue, totalCreditCard, totalRemittance, discrepancy, note, gkItems, staffName);
+      console.log('[CloseDay] ✓ notifyCloseDay 完成');
+
       createTrelloCardOnCloseDay(branch, staffName, gkItems);
+      console.log('[CloseDay] ✓ createTrelloCardOnCloseDay 完成');
     } catch(notifyErr) {
-      console.error('關帳通知/建卡失敗: ' + notifyErr.toString());
+      console.error('[CloseDay] ✗ 關帳通知/建卡失敗: ' + notifyErr.toString() + '\n' + notifyErr.stack);
     }
 
     return { success: true, message: branch + ' 關帳與結算紀錄成功' };
