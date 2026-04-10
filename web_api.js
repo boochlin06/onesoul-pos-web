@@ -1951,6 +1951,27 @@ function _diagnoseLine() {
     } catch(e) {
       result.botInfoError = e.toString();
     }
+
+    // 實際發送測試訊息
+    if (result.allTargets && result.allTargets.length > 0) {
+      var testTarget = result.allTargets[0];
+      try {
+        var pushRes = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'post',
+          contentType: 'application/json',
+          headers: { 'Authorization': 'Bearer ' + token },
+          payload: JSON.stringify({
+            to: testTarget,
+            messages: [{ type: 'text', text: '🔧 LINE 診斷測試 — 如果你看到這條訊息，表示 LINE 通知功能正常' }]
+          }),
+          muteHttpExceptions: true
+        });
+        result.pushTestStatus = pushRes.getResponseCode();
+        result.pushTestBody = pushRes.getContentText().substring(0, 300);
+      } catch(e) {
+        result.pushTestError = e.toString();
+      }
+    }
   }
 
   return { success: true, data: result };
