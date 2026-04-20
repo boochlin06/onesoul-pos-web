@@ -66,6 +66,20 @@ describe('Pagination', () => {
     expect(onChange).toHaveBeenCalledWith(10);
   });
 
+  it('點「第一頁」傳入 1', () => {
+    const onChange = vi.fn();
+    render(<Pagination currentPage={5} totalPages={10} onPageChange={onChange} />);
+    fireEvent.click(screen.getByTitle('第一頁'));
+    expect(onChange).toHaveBeenCalledWith(1);
+  });
+
+  it('點「上一頁」傳入 currentPage-1', () => {
+    const onChange = vi.fn();
+    render(<Pagination currentPage={3} totalPages={10} onPageChange={onChange} />);
+    fireEvent.click(screen.getByTitle('上一頁'));
+    expect(onChange).toHaveBeenCalledWith(2);
+  });
+
   it('大量頁數時顯示省略號', () => {
     render(<Pagination currentPage={5} totalPages={10} onPageChange={vi.fn()} />);
     const ellipses = screen.getAllByText('⋯');

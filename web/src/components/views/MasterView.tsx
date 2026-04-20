@@ -21,9 +21,16 @@ export function MasterView({ notice, isSending, onSend, onClear }: MasterViewPro
   const [lineSending, setLineSending] = useState(false);
   const [lineFeedback, setLineFeedback] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
 
-  // Quota state
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [quota, setQuota] = useState<any>(null);
+interface QuotaInfo {
+  gasApiToday: number;
+  gasApiMonth: number;
+  urlFetchToday: number;
+  urlFetchLimit: number;
+  linePushMonth: number;
+  linePushLimit: number;
+}
+
+  const [quota, setQuota] = useState<QuotaInfo | null>(null);
 
   useEffect(() => {
     apiGetLineChannels().then(res => {

@@ -155,7 +155,9 @@ function _diagnoseLine() {
       var sheet2 = SpreadsheetApp.openById(appBackground).getSheetByName('API設定');
       var data2 = sheet2.getRange('A2:D' + sheet2.getLastRow()).getValues();
       bossTargets = data2.filter(function(r) { return String(r[0]).trim() === 'boss'; }).map(function(r) { return String(r[1]).trim(); });
-    } catch(e) {}
+    } catch(e) {
+      console.warn("API設定檢索失敗: " + e.message);
+    }
     
     if (bossTargets.length > 0) {
       try {

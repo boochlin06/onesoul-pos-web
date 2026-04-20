@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Radio, Loader2, User, Clock, ShoppingCart, Package } from 'lucide-react';
+import { isOperatingHours } from '../../config';
 import { apiGetDrafts } from '../../services/api';
 import type { Branch } from '../../types';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -48,11 +49,19 @@ export function MonitorView({ branch }: MonitorViewProps) {
     finally { setLoading(false); }
   }, [branch]);
 
-  // Fetch when toggled ON
+  // Auto-poll when toggled ON
   useEffect(() => {
-    if (enabled) {
+    if (!enabled) return;
+
+    fetchDrafts(); // 第一次馬上拉取
+
+    const timer = setInterval(() => {
+      // 避免凌晨營業外時間大量消耗 Quota，且確保視窗在前台
+      if (!isOperatingHours() || document.visibilityState !== 'visible') return;
       fetchDrafts();
-    }
+    }, 10000); // 每 10 秒自動刷新
+
+    return () => clearInterval(timer);
   }, [enabled, fetchDrafts]);
 
   // Reset when branch changes

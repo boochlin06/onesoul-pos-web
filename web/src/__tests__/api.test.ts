@@ -80,6 +80,17 @@ import {
   apiGetOpeningCash,
   apiSetOpeningCash,
   apiCloseDay,
+  apiGetDrawCounts,
+  apiGetBranchConfig,
+  apiGetTodaySchedule,
+  apiClockIn,
+  apiGetTodayAttendance,
+  apiSaveDraft,
+  apiClearDraft,
+  apiGetDrafts,
+  apiGetLineChannels,
+  apiSendLineMessage,
+  apiGetQuotaUsage
 } from '../services/api';
 
 describe('API 回傳值轉換', () => {
@@ -229,5 +240,90 @@ describe('API wrapper 額外覆蓋', () => {
     mockJsonResponse({ success: false });
     const result = await apiGetBlindBoxList();
     expect(result).toEqual([]);
+  });
+
+  // ── 新覆蓋的 API ──
+  it('apiGetDrawCounts', async () => {
+    mockJsonResponse({ success: true, data: { 'A': 10 } });
+    const result = await apiGetDrawCounts();
+    expect(result.data?.['A']).toBe(10);
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.action).toBe('getDrawCounts');
+  });
+
+  it('apiGetBranchConfig', async () => {
+    mockJsonResponse({ success: true, data: {} });
+    await apiGetBranchConfig('林口');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.branch).toBe('林口');
+    expect(body.action).toBe('getBranchConfig');
+  });
+
+  it('apiGetTodaySchedule', async () => {
+    mockJsonResponse({ success: true, data: {} });
+    await apiGetTodaySchedule('竹北');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.branch).toBe('竹北');
+  });
+
+  it('apiClockIn', async () => {
+    mockJsonResponse({ success: true });
+    await apiClockIn('金山');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.branch).toBe('金山');
+  });
+
+  it('apiGetTodayAttendance', async () => {
+    mockJsonResponse({ success: true });
+    await apiGetTodayAttendance('金山');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.branch).toBe('金山');
+  });
+
+  it('apiSaveDraft', async () => {
+    mockJsonResponse({ success: true });
+    await apiSaveDraft('竹北', 'S1', 'test@test.com', { total: 100 });
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.branch).toBe('竹北');
+    expect(body.payload.sessionId).toBe('S1');
+    expect(body.payload.email).toBe('test@test.com');
+  });
+
+  it('apiClearDraft', async () => {
+    mockJsonResponse({ success: true });
+    await apiClearDraft('S2', '金山');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.sessionId).toBe('S2');
+    expect(body.payload.branch).toBe('金山');
+  });
+
+  it('apiGetDrafts', async () => {
+    mockJsonResponse({ success: true, data: [] });
+    await apiGetDrafts('竹北');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.branch).toBe('竹北');
+  });
+
+  it('apiGetLineChannels', async () => {
+    mockJsonResponse({ success: true, data: [] });
+    await apiGetLineChannels();
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.action).toBe('getLineChannels');
+  });
+
+  it('apiSendLineMessage', async () => {
+    mockJsonResponse({ success: true });
+    await apiSendLineMessage('CH1', 'Hello');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.payload.channel).toBe('CH1');
+    expect(body.payload.message).toBe('Hello');
+  });
+
+  it('apiGetQuotaUsage', async () => {
+    mockJsonResponse({ success: true, data: { total: 5 } });
+    const result = await apiGetQuotaUsage();
+    expect(result.data.total).toBe(5);
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.action).toBe('getQuotaUsage');
   });
 });

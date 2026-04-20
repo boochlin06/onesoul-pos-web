@@ -1,5 +1,6 @@
 import { Search, Users, Receipt, BookOpen, Plus, Trash2, Archive, ShoppingCart } from 'lucide-react';
-import type { Branch, LotteryItem, MerchItem } from '../../types';
+import type { Dispatch, SetStateAction } from 'react';
+import type { Branch, LotteryItem, MerchItem, MemberEntry, CustomerInfo, PaymentInfo, Tab } from '../../types';
 import { branchBadge, branchGradient } from '../../constants';
 
 
@@ -7,15 +8,15 @@ import { branchBadge, branchGradient } from '../../constants';
 
 interface CardCheckoutProps {
   branch: Branch;
-  customer: { phoneName: string; name: string; gender: string; birthday: string; currentPoints: number };
-  setCustomer: (fn: any) => void;
+  customer: CustomerInfo;
+  setCustomer: Dispatch<SetStateAction<CustomerInfo>>;
   showMemberDropdown: boolean;
   setShowMemberDropdown: (v: boolean) => void;
-  filteredCacheMembers: any[];
-  selectCacheMember: (m: any) => void;
+  filteredCacheMembers: MemberEntry[];
+  selectCacheMember: (m: MemberEntry) => void;
   handlePhoneKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  payment: { cash: number; remittance: number; creditCard: number };
-  setPayment: (fn: any) => void;
+  payment: PaymentInfo;
+  setPayment: Dispatch<SetStateAction<PaymentInfo>>;
   lotteries: LotteryItem[];
   addLotteryRow: () => void;
   removeLotteryRow: (i: number) => void;
@@ -29,7 +30,7 @@ interface CardCheckoutProps {
   setOrderNote: (v: string) => void;
   handleResetCheckout: () => void;
   handlePreCheckout: () => void;
-  setActiveTab: (t: string) => void;
+  setActiveTab: (t: Tab) => void;
 }
 
 export function CardCheckoutView({
@@ -65,7 +66,7 @@ export function CardCheckoutView({
                 className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 rounded-xl transition-all outline-none font-medium text-sm"
                 placeholder="輸入號碼或姓名 (Enter 遠端查詢)"
                 value={customer.phoneName}
-                onChange={e => { setCustomer((p: any) => ({ ...p, phoneName: e.target.value, name: '' })); setShowMemberDropdown(true); }}
+                onChange={e => { setCustomer(p => ({ ...p, phoneName: e.target.value, name: '' })); setShowMemberDropdown(true); }}
                 onFocus={() => setShowMemberDropdown(true)}
                 onBlur={() => setTimeout(() => setShowMemberDropdown(false), 200)}
                 onKeyDown={handlePhoneKeyDown}
@@ -121,7 +122,7 @@ export function CardCheckoutView({
                     type="number" min="0"
                     className={`w-full text-right px-3 py-2 bg-${color}-50/50 border border-${color}-100 focus:border-${color}-400 focus:ring-2 focus:ring-${color}-100 rounded-lg outline-none font-mono text-sm`}
                     value={payment[key]}
-                    onChange={e => setPayment((p: any) => ({ ...p, [key]: Number(e.target.value) }))}
+                    onChange={e => setPayment(p => ({ ...p, [key]: Number(e.target.value) }))}
                   />
                 </div>
               ))}

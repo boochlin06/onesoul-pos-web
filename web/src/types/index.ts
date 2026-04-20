@@ -131,3 +131,40 @@ export interface InventoryCheckItem {
   checked?: boolean;
   itemRemark?: string;
 }
+
+export interface MemberSalesRecord {
+  checkoutUID: string;
+  date: string;
+  branch: string;
+  receivedAmount?: number;
+  remittance?: number;
+  creditCard?: number;
+  cash?: number;
+  pointsUsed?: number;
+  pointDelta?: number;
+  lotteryId?: string;
+  draws?: number;
+  prize?: string;
+  type?: string;
+  prizeName?: string;
+  setName?: string;
+  amount?: number;
+  points?: number;
+  remark?: string;
+}
+
+export interface CustomerInfo {
+  phoneName: string;
+  name: string;
+  gender: string;
+  birthday: string;
+  currentPoints: number;
+}
+
+export interface PaymentInfo {
+  receivedAmount: number;
+  remittance: number;
+  creditCard: number;
+  cash: number;
+  pointsUsed: number;
+}

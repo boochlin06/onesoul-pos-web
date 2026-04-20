@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { gasPost } from '../services/api';
-import { NOTICE_POLL_MS } from '../constants';
+import { NOTICE_POLL_MS, isOperatingHours } from '../config';
 
 export interface EmergencyNotice {
   message: string;
@@ -28,7 +28,11 @@ export function useEmergencyNotice(isAuthenticated: boolean): UseEmergencyNotice
     if (!isAuthenticated) return;
 
     const poll = () => {
+      // 限制 1：只在畫面可見時輪詢
       if (document.visibilityState !== 'visible') return;
+      // 限制 2：只在營業時間內輪詢
+      if (!isOperatingHours()) return;
+
       gasPost('getEmergencyNotice').then(res => {
         if (res.success) {
           const n = res.notice as EmergencyNotice | null;

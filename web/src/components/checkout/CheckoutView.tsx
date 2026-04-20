@@ -1,5 +1,5 @@
 import { Search, Users, Receipt, BookOpen, Plus, Trash2, Archive, ShoppingCart, LayoutGrid, Table2 } from 'lucide-react';
-import type { Branch, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../../types';
+import type { Branch, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry, Tab } from '../../types';
 import { branchBadge, branchGradient } from '../../constants';
 import { useCheckout } from '../../hooks/useCheckout';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -24,7 +24,7 @@ export interface CheckoutViewProps {
   setMembers: React.Dispatch<React.SetStateAction<MemberEntry[]>>;
   fetchMembers: () => void;
   showBanner: (msg: string, type: BannerState['type'], autoDismiss?: boolean) => void;
-  setActiveTab: (t: string) => void;
+  setActiveTab: (t: Tab) => void;
   email?: string;
 }
 

@@ -225,7 +225,7 @@ function PosApp() {
             setMembers={setMembers}
             fetchMembers={fetchMembers}
             showBanner={showBanner}
-            setActiveTab={setActiveTab as any}
+            setActiveTab={setActiveTab}
             email={auth.user?.email}
           />
         )}

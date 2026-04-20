@@ -1,13 +1,26 @@
 import { useState, useMemo } from 'react';
 import { Search, Users, Receipt, Loader2 } from 'lucide-react';
+import type { MemberEntry, MemberSalesRecord } from '../../types';
 import { MEMBER_AUTOCOMPLETE_LIMIT } from '../../config';
-import type { MemberEntry } from '../../types';
+
+interface HistoryGroup {
+  uid: string;
+  date: string;
+  branch: string;
+  receivedAmount: number;
+  remittance: number;
+  creditCard: number;
+  cash: number;
+  pointsUsed: number;
+  pointDelta: number;
+  items: MemberSalesRecord[];
+}
 
 interface MemberHistoryViewProps {
   phone: string;
   setPhone: (p: string) => void;
   member: MemberEntry | null;
-  records: any[];
+  records: MemberSalesRecord[];
   isLoading: boolean;
   onSearch: () => void;
   allMembers: MemberEntry[];
@@ -17,17 +30,17 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
   const [showAutoComplete, setShowAutoComplete] = useState(false);
   const filteredCache = useMemo(() => {
     if (!phone) return [];
-    return allMembers.filter((m: any) => String(m.phone || '').includes(phone) || String(m.name || '').includes(phone)).slice(0, MEMBER_AUTOCOMPLETE_LIMIT);
+    return allMembers.filter(m => String(m.phone || '').includes(phone) || String(m.name || '').includes(phone)).slice(0, MEMBER_AUTOCOMPLETE_LIMIT);
   }, [phone, allMembers]);
 
-  const selectMember = (m: any) => {
+  const selectMember = (m: MemberEntry) => {
     setPhone(m.phone);
     setShowAutoComplete(false);
   };
 
   const groups = useMemo(() => {
-    const map = new Map();
-    records.forEach((r: any) => {
+    const map = new Map<string, HistoryGroup>();
+    records.forEach(r => {
       const gUID = r.checkoutUID || 'unknown';
       if (!map.has(gUID)) {
         map.set(gUID, {
@@ -43,7 +56,7 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
           items: []
         });
       } else {
-        const existing = map.get(gUID);
+        const existing = map.get(gUID)!;
         if (!existing.receivedAmount && r.receivedAmount) existing.receivedAmount = r.receivedAmount;
         if (!existing.remittance && r.remittance) existing.remittance = r.remittance;
         if (!existing.creditCard && r.creditCard) existing.creditCard = r.creditCard;
@@ -51,9 +64,9 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
         if (!existing.pointsUsed && r.pointsUsed) existing.pointsUsed = r.pointsUsed;
         if (!existing.pointDelta && r.pointDelta) existing.pointDelta = r.pointDelta;
       }
-      map.get(gUID).items.push(r);
+      map.get(gUID)!.items.push(r);
     });
-    return Array.from(map.values()).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [records]);
 
   return (
@@ -76,7 +89,7 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
             />
             {showAutoComplete && filteredCache.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden break-words">
-                {filteredCache.map((m: any, i: number) => (
+                {filteredCache.map((m: MemberEntry, i: number) => (
                   <div key={i} className="px-5 py-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 last:border-0" onClick={() => selectMember(m)}>
                     <div className="font-bold text-slate-800 text-lg">{m.name}</div>
                     <div className="text-slate-400 font-mono text-sm tracking-widest">{m.phone}</div>
@@ -132,7 +145,7 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
              這位會員還沒有任何消費紀錄喔！
           </div>
         ) : (
-          groups.map((g: any, i: number) => (
+          groups.map((g, i: number) => (
             <div key={i} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
               {/* Group Header */}
               <div className="bg-slate-50 border-b border-slate-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -174,8 +187,8 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {g.items.map((item: any, idx: number) => {
-                      const isMerch = !item.lotteryId || (String(item.prize).trim() === '' && String(item.setName).trim() === '');
+                    {g.items.map((item, idx: number) => {
+                      const isMerch = !item.lotteryId || (String(item.prize || '').trim() === '' && String(item.setName || '').trim() === '');
                       const isLottery = !isMerch;
                       
                       const actualDraws = Number(item.draws) || 1;
@@ -195,7 +208,7 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
                                   <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-black tracking-widest uppercase">福袋</span>
                                   <span className="font-bold text-slate-700">{item.lotteryId}</span>
                                 </span>
-                                <span className={`text-[10px] font-black tracking-widest px-1.5 py-0.5 rounded ${['點數', '換點數'].includes(item.type) ? 'text-indigo-700 bg-indigo-50 border border-indigo-100' : 'text-slate-500 bg-slate-100 border border-slate-200'}`}>
+                                <span className={`text-[10px] font-black tracking-widest px-1.5 py-0.5 rounded ${['點數', '換點數'].includes(item.type || '') ? 'text-indigo-700 bg-indigo-50 border border-indigo-100' : 'text-slate-500 bg-slate-100 border border-slate-200'}`}>
                                   {item.type}
                                 </span>
                               </div>
@@ -234,7 +247,7 @@ export function MemberHistoryView({ phone, setPhone, member, records, isLoading,
                                   {item.lotteryId === '88888' || merchName.includes('加點') || merchName.includes('隨便加') ? '送' : '扣'} {merchPoints} 點
                                 </span>
                               )}
-                              {isLottery && ['點數', '換點數'].includes(item.type) && (
+                              {isLottery && ['點數', '換點數'].includes(item.type || '') && (
                                 <span className="text-emerald-700 bg-emerald-50 border border-emerald-100 font-bold text-[11px] mt-1.5 px-2 py-0.5 rounded">
                                   換得 {item.points || 0} 點
                                 </span>

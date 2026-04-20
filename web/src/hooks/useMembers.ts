@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import type { MemberEntry } from '../types';
+import type { MemberEntry, MemberSalesRecord } from '../types';
 import { gasPost } from '../services/api';
 import type { BannerState } from './useBanner';
 import { MSG } from '../constants/messages';
@@ -46,7 +46,7 @@ export function useMembers({ showBanner }: UseMembersDeps) {
 export function useMemberHistory({ showBanner }: UseMembersDeps) {
   const [historySearchPhone, setHistorySearchPhone] = useState('');
   const [historyMember, setHistoryMember] = useState<MemberEntry | null>(null);
-  const [historyRecords, setHistoryRecords] = useState<any[]>([]);
+  const [historyRecords, setHistoryRecords] = useState<MemberSalesRecord[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   const fetchMemberHistory = useCallback(async () => {

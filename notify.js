@@ -110,7 +110,9 @@ function _countGasCall() {
     var monthKey = 'gas_api_month_' + month;
     props.setProperty(dayKey, String(parseInt(props.getProperty(dayKey) || '0') + 1));
     props.setProperty(monthKey, String(parseInt(props.getProperty(monthKey) || '0') + 1));
-  } catch(e) {}
+  } catch(e) {
+    console.warn("GAS 額度紀錄失敗: " + e.message);
+  }
 }
 
 /**
@@ -130,7 +132,9 @@ function _countUrlFetch(type) {
       var pushMonth = 'uf_push_month_' + month;
       props.setProperty(pushMonth, String(parseInt(props.getProperty(pushMonth) || '0') + 1));
     }
-  } catch(e) {}
+  } catch(e) {
+    console.warn("UrlFetch 額度紀錄失敗: " + e.message);
+  }
 }
 
 /**

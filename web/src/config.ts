@@ -59,8 +59,17 @@ export const CHECKOUT_SUGGESTION_LIMIT = 8;
 export const MEMBER_AUTOCOMPLETE_LIMIT = 10;
 
 // ─────────────────────────────────────────────────────
-// 🔔 緊急通知
+// 🔔 排程與緊急通知
 // ─────────────────────────────────────────────────────
+
+/** 
+ * 判斷目前是否在營業時間內 (例：早上 10:00 ~ 凌晨 02:59)
+ * 用於限制 Monitor 與緊急通知的心跳，避免於深夜大量消耗 API Quota
+ */
+export function isOperatingHours(): boolean {
+  const h = new Date().getHours();
+  return h >= 10 || h <= 2;
+}
 
 /** 大師帳號 — 可發送緊急通知、看到大師分頁 */
 export const ADMIN_EMAILS = [
