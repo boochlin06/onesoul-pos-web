@@ -1,0 +1,44 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - img "OneSoul" [ref=e7]
+    - generic [ref=e8]:
+      - heading "會員登入" [level=2] [ref=e9]
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]: 玩家電話 *
+          - generic [ref=e13]:
+            - img [ref=e14]
+            - textbox "0912345678" [ref=e16]
+          - paragraph [ref=e17]: 註冊時留下的電話
+        - generic [ref=e18]:
+          - generic [ref=e19]: 玩家生日 *
+          - generic [ref=e20]:
+            - img [ref=e21]
+            - textbox "19990401" [ref=e24]
+          - paragraph [ref=e25]: 格式：19990401（1999年4月1號）
+        - button "登入" [ref=e26] [cursor=pointer]
+    - generic [ref=e27]:
+      - heading "📋 注意事項" [level=4] [ref=e28]
+      - paragraph [ref=e29]:
+        - text: 當天遊玩點數，需等待隔天查詢，店員努力輸入系統中。如有急需或點數與想像的不同，請勿慌張，可以私訊
+        - 'link "IG: onesoul.zb" [ref=e30] [cursor=pointer]':
+          - /url: https://www.instagram.com/onesoul.zb
+        - text: ，小編會盡快確認。
+  - navigation [ref=e31]:
+    - generic [ref=e32]:
+      - link "會員" [ref=e33] [cursor=pointer]:
+        - /url: "#/member"
+        - img [ref=e34]
+        - generic [ref=e37]: 會員
+      - link "兌換清單" [ref=e38] [cursor=pointer]:
+        - /url: "#/stocklist"
+        - img [ref=e39]
+        - generic [ref=e43]: 兌換清單
+      - link "連結" [ref=e44] [cursor=pointer]:
+        - /url: "#/about"
+        - img [ref=e45]
+        - generic [ref=e48]: 連結
+```

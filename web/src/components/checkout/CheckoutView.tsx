@@ -4,6 +4,7 @@ import { branchBadge, branchGradient } from '../../constants';
 import { useCheckout } from '../../hooks/useCheckout';
 import { useStickyState } from '../../hooks/useStickyState';
 import { CardCheckoutView } from './CardCheckoutView';
+import { ConfirmCheckoutModal } from './ConfirmCheckoutModal';
 import type { BannerState } from '../../hooks/useBanner';
 
 // ── Shared input styles ──
@@ -39,7 +40,8 @@ export function CheckoutView({
     lotteries, addLotteryRow, removeLotteryRow, updateLottery,
     merchandises, addMerchRow, removeMerchRow, updateMerch,
     summary, orderNote, setOrderNote,
-    handleResetCheckout, handleCheckout,
+    handleResetCheckout, handlePreCheckout, handleCheckout,
+    isConfirmModalOpen, setIsConfirmModalOpen
   } = useCheckout({ branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner, email });
 
   const [viewMode, setViewMode] = useStickyState<'classic' | 'card'>('classic', 'os_checkout_viewmode');
@@ -68,7 +70,7 @@ export function CheckoutView({
           lotteries={lotteries} addLotteryRow={addLotteryRow} removeLotteryRow={removeLotteryRow} updateLottery={updateLottery}
           merchandises={merchandises} addMerchRow={addMerchRow} removeMerchRow={removeMerchRow} updateMerch={updateMerch}
           summary={summary} orderNote={orderNote} setOrderNote={setOrderNote}
-          handleResetCheckout={handleResetCheckout} handleCheckout={handleCheckout}
+          handleResetCheckout={handleResetCheckout} handlePreCheckout={handlePreCheckout}
           setActiveTab={setActiveTab}
         />
       </div>
@@ -77,6 +79,15 @@ export function CheckoutView({
 
   return (
     <div className="w-full mx-auto flex flex-col gap-6 pb-32">
+      <ConfirmCheckoutModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleCheckout}
+        lotteries={lotteries}
+        merchandises={merchandises}
+        summary={summary}
+        payment={payment}
+      />
 
       {/* View toggle */}
       <div className="flex justify-end">
@@ -327,7 +338,7 @@ export function CheckoutView({
             <button onClick={handleResetCheckout} className="bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-500 font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all active:scale-95 shadow-sm">
               <Trash2 className="w-5 h-5" /> 全新結帳
             </button>
-            <button onClick={handleCheckout} className={`bg-gradient-to-r ${branchGradient[branch]} hover:opacity-90 text-white px-10 py-3 rounded-xl font-bold text-base shadow-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95`}>
+            <button onClick={handlePreCheckout} className={`bg-gradient-to-r ${branchGradient[branch]} hover:opacity-90 text-white px-10 py-3 rounded-xl font-bold text-base shadow-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95`}>
               <ShoppingCart className="w-5 h-5" /> 送出結帳
             </button>
           </div>

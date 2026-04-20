@@ -1,0 +1,365 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img "OneSoul" [ref=e8]
+        - generic [ref=e9]:
+          - heading "OneSoul POS" [level=1] [ref=e10]
+          - paragraph [ref=e11]: 銷售管理系統
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - button "竹北門市" [ref=e14] [cursor=pointer]
+          - button "金山門市" [ref=e15] [cursor=pointer]
+        - generic [ref=e16]:
+          - generic [ref=e17]: gamejeffjeff@gmail.com
+          - button "登出" [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+    - generic [ref=e23]:
+      - button "結帳" [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+        - text: 結帳
+      - button "當日銷售" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - text: 當日銷售
+      - button "會員資料" [ref=e32] [cursor=pointer]:
+        - img [ref=e33]
+        - text: 會員資料
+      - button "消費紀錄" [ref=e38] [cursor=pointer]:
+        - img [ref=e39]
+        - text: 消費紀錄
+      - button "銷售紀錄" [ref=e43] [cursor=pointer]:
+        - img [ref=e44]
+        - text: 銷售紀錄
+      - button "獎項庫" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - text: 獎項庫
+      - button "貨品資料" [ref=e49] [cursor=pointer]:
+        - img [ref=e50]
+        - text: 貨品資料
+      - button "盲盒資料庫" [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - text: 盲盒資料庫
+      - button "大師" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - text: 大師
+      - button "監控" [ref=e61] [cursor=pointer]:
+        - img [ref=e62]
+        - text: 監控
+      - button "庫存盤點" [ref=e68] [cursor=pointer]:
+        - img [ref=e69]
+        - text: 庫存盤點
+      - button "現貨查詢" [ref=e73] [cursor=pointer]:
+        - img [ref=e74]
+        - text: 現貨查詢
+  - main [ref=e80]:
+    - generic [ref=e81]:
+      - generic [ref=e83]:
+        - button "經典" [ref=e84] [cursor=pointer]:
+          - img [ref=e85]
+          - text: 經典
+        - button "卡片" [ref=e87] [cursor=pointer]:
+          - img [ref=e88]
+          - text: 卡片
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - generic [ref=e97]: "1"
+              - generic [ref=e98]: 顧客資訊
+            - generic [ref=e99]: 竹北門市
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]: 電話號碼 (按 Enter 遠端查詢)
+              - generic [ref=e103]:
+                - img [ref=e104]
+                - textbox "輸入號碼或姓名尋找..." [ref=e107]
+            - generic [ref=e108]:
+              - generic [ref=e109]: 目前累積點數
+              - generic [ref=e110]:
+                - generic [ref=e111]: pts
+                - generic [ref=e112]: "0"
+        - generic [ref=e113]:
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - generic [ref=e116]: "2"
+              - generic [ref=e117]: 收款明細
+            - img [ref=e118]
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - generic [ref=e123]: 實收金額
+              - generic [ref=e124]:
+                - generic [ref=e125]: NT$
+                - generic [ref=e126]: "0"
+            - generic [ref=e127]:
+              - generic [ref=e128]: 現金 Cash
+              - spinbutton [ref=e129]: "0"
+            - generic [ref=e130]:
+              - generic [ref=e131]: 匯款 Transfer
+              - spinbutton [ref=e132]: "0"
+            - generic [ref=e133]:
+              - generic [ref=e134]: 信用卡 Card
+              - spinbutton [ref=e135]: "0"
+      - generic [ref=e136]:
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - generic [ref=e139]: "3"
+            - generic [ref=e140]: 抽獎與福袋清單
+          - generic [ref=e141]:
+            - button "獎項庫挑選" [ref=e142] [cursor=pointer]:
+              - img [ref=e143]
+              - text: 獎項庫挑選
+            - button "手動新增列" [ref=e145] [cursor=pointer]:
+              - img [ref=e146]
+              - text: 手動新增列
+        - table [ref=e148]:
+          - rowgroup [ref=e149]:
+            - row "單號 獎項 抽數 帶走/點數 套名 單抽價 名稱 單抽點 點數 金額 備註" [ref=e150]:
+              - columnheader "單號" [ref=e151]
+              - columnheader "獎項" [ref=e152]
+              - columnheader "抽數" [ref=e153]
+              - columnheader "帶走/點數" [ref=e154]
+              - columnheader "套名" [ref=e155]
+              - columnheader "單抽價" [ref=e156]
+              - columnheader "名稱" [ref=e157]
+              - columnheader "單抽點" [ref=e158]
+              - columnheader "點數" [ref=e159]
+              - columnheader "金額" [ref=e160]
+              - columnheader "備註" [ref=e161]
+              - columnheader [ref=e162]
+          - rowgroup [ref=e163]:
+            - row "1 帶走 0 0 0 0" [ref=e164]:
+              - cell [ref=e165]:
+                - textbox "單號" [ref=e166]
+              - cell [ref=e167]:
+                - textbox "A/1/Z" [ref=e168]
+              - cell "1" [ref=e169]:
+                - spinbutton [ref=e170]: "1"
+              - cell "帶走" [ref=e171]:
+                - combobox [ref=e172]:
+                  - option "帶走" [selected]
+                  - option "點數"
+              - cell [ref=e173]:
+                - textbox "大套名稱" [disabled] [ref=e174]
+              - cell "0" [ref=e175]:
+                - spinbutton [disabled] [ref=e176]: "0"
+              - cell [ref=e177]:
+                - textbox "獎品名稱" [disabled] [ref=e178]
+              - cell "0" [ref=e179]:
+                - spinbutton [disabled] [ref=e180]: "0"
+              - cell "0" [ref=e181]:
+                - generic [ref=e182]: "0"
+              - cell "0" [ref=e183]:
+                - spinbutton [ref=e184]: "0"
+              - cell [ref=e185]:
+                - textbox "備註..." [ref=e186]
+              - cell [ref=e187]:
+                - button [ref=e188] [cursor=pointer]:
+                  - img [ref=e189]
+            - row "1 帶走 0 0 0 0" [ref=e192]:
+              - cell [ref=e193]:
+                - textbox "單號" [ref=e194]
+              - cell [ref=e195]:
+                - textbox "A/1/Z" [ref=e196]
+              - cell "1" [ref=e197]:
+                - spinbutton [ref=e198]: "1"
+              - cell "帶走" [ref=e199]:
+                - combobox [ref=e200]:
+                  - option "帶走" [selected]
+                  - option "點數"
+              - cell [ref=e201]:
+                - textbox "大套名稱" [disabled] [ref=e202]
+              - cell "0" [ref=e203]:
+                - spinbutton [disabled] [ref=e204]: "0"
+              - cell [ref=e205]:
+                - textbox "獎品名稱" [disabled] [ref=e206]
+              - cell "0" [ref=e207]:
+                - spinbutton [disabled] [ref=e208]: "0"
+              - cell "0" [ref=e209]:
+                - generic [ref=e210]: "0"
+              - cell "0" [ref=e211]:
+                - spinbutton [ref=e212]: "0"
+              - cell [ref=e213]:
+                - textbox "備註..." [ref=e214]
+              - cell [ref=e215]:
+                - button [ref=e216] [cursor=pointer]:
+                  - img [ref=e217]
+            - row "1 帶走 0 0 0 0" [ref=e220]:
+              - cell [ref=e221]:
+                - textbox "單號" [ref=e222]
+              - cell [ref=e223]:
+                - textbox "A/1/Z" [ref=e224]
+              - cell "1" [ref=e225]:
+                - spinbutton [ref=e226]: "1"
+              - cell "帶走" [ref=e227]:
+                - combobox [ref=e228]:
+                  - option "帶走" [selected]
+                  - option "點數"
+              - cell [ref=e229]:
+                - textbox "大套名稱" [disabled] [ref=e230]
+              - cell "0" [ref=e231]:
+                - spinbutton [disabled] [ref=e232]: "0"
+              - cell [ref=e233]:
+                - textbox "獎品名稱" [disabled] [ref=e234]
+              - cell "0" [ref=e235]:
+                - spinbutton [disabled] [ref=e236]: "0"
+              - cell "0" [ref=e237]:
+                - generic [ref=e238]: "0"
+              - cell "0" [ref=e239]:
+                - spinbutton [ref=e240]: "0"
+              - cell [ref=e241]:
+                - textbox "備註..." [ref=e242]
+              - cell [ref=e243]:
+                - button [ref=e244] [cursor=pointer]:
+                  - img [ref=e245]
+            - row "1 帶走 0 0 0 0" [ref=e248]:
+              - cell [ref=e249]:
+                - textbox "單號" [ref=e250]
+              - cell [ref=e251]:
+                - textbox "A/1/Z" [ref=e252]
+              - cell "1" [ref=e253]:
+                - spinbutton [ref=e254]: "1"
+              - cell "帶走" [ref=e255]:
+                - combobox [ref=e256]:
+                  - option "帶走" [selected]
+                  - option "點數"
+              - cell [ref=e257]:
+                - textbox "大套名稱" [disabled] [ref=e258]
+              - cell "0" [ref=e259]:
+                - spinbutton [disabled] [ref=e260]: "0"
+              - cell [ref=e261]:
+                - textbox "獎品名稱" [disabled] [ref=e262]
+              - cell "0" [ref=e263]:
+                - spinbutton [disabled] [ref=e264]: "0"
+              - cell "0" [ref=e265]:
+                - generic [ref=e266]: "0"
+              - cell "0" [ref=e267]:
+                - spinbutton [ref=e268]: "0"
+              - cell [ref=e269]:
+                - textbox "備註..." [ref=e270]
+              - cell [ref=e271]:
+                - button [ref=e272] [cursor=pointer]:
+                  - img [ref=e273]
+            - row "1 帶走 0 0 0 0" [ref=e276]:
+              - cell [ref=e277]:
+                - textbox "單號" [ref=e278]
+              - cell [ref=e279]:
+                - textbox "A/1/Z" [ref=e280]
+              - cell "1" [ref=e281]:
+                - spinbutton [ref=e282]: "1"
+              - cell "帶走" [ref=e283]:
+                - combobox [ref=e284]:
+                  - option "帶走" [selected]
+                  - option "點數"
+              - cell [ref=e285]:
+                - textbox "大套名稱" [disabled] [ref=e286]
+              - cell "0" [ref=e287]:
+                - spinbutton [disabled] [ref=e288]: "0"
+              - cell [ref=e289]:
+                - textbox "獎品名稱" [disabled] [ref=e290]
+              - cell "0" [ref=e291]:
+                - spinbutton [disabled] [ref=e292]: "0"
+              - cell "0" [ref=e293]:
+                - generic [ref=e294]: "0"
+              - cell "0" [ref=e295]:
+                - spinbutton [ref=e296]: "0"
+              - cell [ref=e297]:
+                - textbox "備註..." [ref=e298]
+              - cell [ref=e299]:
+                - button [ref=e300] [cursor=pointer]:
+                  - img [ref=e301]
+      - generic [ref=e304]:
+        - generic [ref=e305]:
+          - generic [ref=e306]:
+            - generic [ref=e307]: "4"
+            - generic [ref=e308]: 直購商品清單
+          - button "手動新增列" [ref=e309] [cursor=pointer]:
+            - img [ref=e310]
+            - text: 手動新增列
+        - table [ref=e312]:
+          - rowgroup [ref=e313]:
+            - row "貨號 數量 付款 售價 名稱 扣點 點數 實收 備註" [ref=e314]:
+              - columnheader "貨號" [ref=e315]
+              - columnheader "數量" [ref=e316]
+              - columnheader "付款" [ref=e317]
+              - columnheader "售價" [ref=e318]
+              - columnheader "名稱" [ref=e319]
+              - columnheader "扣點" [ref=e320]
+              - columnheader "點數" [ref=e321]
+              - columnheader "實收" [ref=e322]
+              - columnheader "備註" [ref=e323]
+              - columnheader [ref=e324]
+          - rowgroup [ref=e325]:
+            - row "1 現金 0 0 0 0" [ref=e326]:
+              - cell [ref=e327]:
+                - textbox "輸入貨號" [ref=e328]
+              - cell "1" [ref=e329]:
+                - spinbutton [ref=e330]: "1"
+              - cell "現金" [ref=e331]:
+                - combobox [ref=e332]:
+                  - option "現金" [selected]
+                  - option "點數"
+                  - option "贈送"
+              - cell "0" [ref=e333]:
+                - spinbutton [disabled] [ref=e334]: "0"
+              - cell [ref=e335]:
+                - textbox "商品名稱" [disabled] [ref=e336]
+              - cell "0" [ref=e337]:
+                - spinbutton [disabled] [ref=e338]: "0"
+              - cell "0" [ref=e339]:
+                - generic [ref=e340]: "0"
+              - cell "0" [ref=e341]:
+                - spinbutton [ref=e342]: "0"
+              - cell [ref=e343]:
+                - textbox "備註..." [ref=e344]
+              - cell [ref=e345]:
+                - button [ref=e346] [cursor=pointer]:
+                  - img [ref=e347]
+            - row "1 現金 0 0 0 0" [ref=e350]:
+              - cell [ref=e351]:
+                - textbox "輸入貨號" [ref=e352]
+              - cell "1" [ref=e353]:
+                - spinbutton [ref=e354]: "1"
+              - cell "現金" [ref=e355]:
+                - combobox [ref=e356]:
+                  - option "現金" [selected]
+                  - option "點數"
+                  - option "贈送"
+              - cell "0" [ref=e357]:
+                - spinbutton [disabled] [ref=e358]: "0"
+              - cell [ref=e359]:
+                - textbox "商品名稱" [disabled] [ref=e360]
+              - cell "0" [ref=e361]:
+                - spinbutton [disabled] [ref=e362]: "0"
+              - cell "0" [ref=e363]:
+                - generic [ref=e364]: "0"
+              - cell "0" [ref=e365]:
+                - spinbutton [ref=e366]: "0"
+              - cell [ref=e367]:
+                - textbox "備註..." [ref=e368]
+              - cell [ref=e369]:
+                - button [ref=e370] [cursor=pointer]:
+                  - img [ref=e371]
+      - generic [ref=e374]:
+        - generic [ref=e375]:
+          - generic [ref=e376]: "5"
+          - generic [ref=e377]: 結帳單備註 (選填)
+        - textbox "請輸入這筆訂單的結帳備註，將會寫入銷售紀錄的 U 欄..." [ref=e378]
+      - generic [ref=e380]:
+        - generic [ref=e381]:
+          - generic [ref=e382]:
+            - generic [ref=e383]: 點數異動
+            - generic [ref=e384]: "0"
+          - generic [ref=e386]:
+            - generic [ref=e387]: 應收金額
+            - generic [ref=e388]: NT$ 0
+        - generic [ref=e389]:
+          - button "全新結帳" [ref=e390] [cursor=pointer]:
+            - img [ref=e391]
+            - text: 全新結帳
+          - button "送出結帳" [ref=e394] [cursor=pointer]:
+            - img [ref=e395]
+            - text: 送出結帳
+```

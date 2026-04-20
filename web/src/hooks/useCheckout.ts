@@ -132,20 +132,39 @@ export function useCheckout({
   }, [customer.phoneName, showBanner]);
 
   // ── Reset ──
-  const handleResetCheckout = useCallback(() => {
+  const resetFormValues = useCallback(() => {
     setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
     setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
     setLotteries(Array(5).fill(null).map(emptyLottery));
     setMerchandises(Array(2).fill(null).map(emptyMerch));
     setOrderNote('');
+  }, [setCustomer, setPayment, setLotteries, setMerchandises, setOrderNote]);
+
+  const handleResetCheckout = useCallback(() => {
+    resetFormValues();
     showBanner(MSG.checkout.cleared, 'ok');
-  }, [showBanner]);
+  }, [resetFormValues, showBanner]);
+
+  // ── Modal State ──
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  // ── Pre-Submit Validation ──
+  const handlePreCheckout = useCallback(() => {
+    const error = validateCheckout({ lotteries, merchandises, customer, payment, summary, orderNote });
+    if (error) { 
+      showBanner(error, 'err'); 
+      return; 
+    }
+    setIsConfirmModalOpen(true);
+  }, [lotteries, merchandises, customer, payment, summary, orderNote, showBanner]);
 
   // ── Submit Checkout ──
   const handleCheckout = useCallback(async () => {
+    setIsConfirmModalOpen(false);
     const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName || l.amount > 0);
     const filteredMerch = merchandises.filter(m => m.id || m.name || m.quantity > 1);
 
+    // Double check just in case
     const error = validateCheckout({ lotteries, merchandises, customer, payment, summary, orderNote });
     if (error) { showBanner(error, 'err'); return; }
 
@@ -164,11 +183,7 @@ export function useCheckout({
           setMembers(prev => prev.map(m => String(m.phone).trim() === rawPhone ? { ...m, points: res.newPoints } : m));
         }
         fetchMembers();
-        setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
-        setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
-        setLotteries(Array(5).fill(null).map(emptyLottery));
-        setMerchandises(Array(2).fill(null).map(emptyMerch));
-        setOrderNote('');
+        resetFormValues();
         // 清除監控草稿
         lastDraftRef.current = '';
         apiClearDraft(sessionIdRef.current, branch).catch(() => {});
@@ -186,6 +201,7 @@ export function useCheckout({
     merchandises, setMerchandises, addMerchRow, removeMerchRow, updateMerch,
     summary, orderNote, setOrderNote,
     isSubmitting,
-    handlePhoneKeyDown, handleResetCheckout, handleCheckout,
+    isConfirmModalOpen, setIsConfirmModalOpen,
+    handlePhoneKeyDown, handleResetCheckout, handlePreCheckout, handleCheckout,
   };
 }

@@ -9,8 +9,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "TMPDIR=/tmp npx vitest run --config /tmp/vitest.config.mjs",
-    "test:watch": "TMPDIR=/tmp npx vitest --config /tmp/vitest.config.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {

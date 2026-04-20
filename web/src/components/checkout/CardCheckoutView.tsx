@@ -28,7 +28,7 @@ interface CardCheckoutProps {
   orderNote: string;
   setOrderNote: (v: string) => void;
   handleResetCheckout: () => void;
-  handleCheckout: () => void;
+  handlePreCheckout: () => void;
   setActiveTab: (t: string) => void;
 }
 
@@ -40,7 +40,7 @@ export function CardCheckoutView({
   lotteries, addLotteryRow, removeLotteryRow, updateLottery,
   merchandises, addMerchRow, removeMerchRow, updateMerch,
   summary, orderNote, setOrderNote,
-  handleResetCheckout, handleCheckout, setActiveTab,
+  handleResetCheckout, handlePreCheckout, setActiveTab,
 }: CardCheckoutProps) {
   const totalReceived = payment.cash + payment.remittance + payment.creditCard;
 
@@ -312,7 +312,7 @@ export function CardCheckoutView({
             <button onClick={handleResetCheckout} className="bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-500 font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all active:scale-95 text-sm">
               <Trash2 className="w-4 h-4" /> 清空
             </button>
-            <button onClick={handleCheckout} className={`bg-gradient-to-r ${branchGradient[branch]} hover:opacity-90 text-white px-8 py-2.5 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95`}>
+            <button onClick={handlePreCheckout} className={`bg-gradient-to-r ${branchGradient[branch]} hover:opacity-90 text-white px-8 py-2.5 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95`}>
               <ShoppingCart className="w-4 h-4" /> 送出結帳
             </button>
           </div>
