@@ -71,6 +71,18 @@ export function ConfirmCheckoutModal({
       totalTakeawayCount += item.quantity || 1;
     }
   });
+  // 計算各套抽數總結
+  const setDrawsSummary = lotteries.reduce((acc, item) => {
+    if (item.id?.trim() || item.prize?.trim()) { // 確保該列有資料
+      if (item.remark !== '點數套') { // 排除點數套，點數套是直購不是抽
+        const key = item.setName?.trim() || '未命名商品';
+        acc[key] = (acc[key] || 0) + (item.draws || 1);
+      }
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const hasDraws = Object.keys(setDrawsSummary).length > 0;
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4 sm:p-6 animate-in fade-in duration-200">
@@ -93,6 +105,23 @@ export function ConfirmCheckoutModal({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
+          {/* 套組抽數總結 */}
+          {hasDraws && (
+            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 animate-in slide-in-from-top-2">
+              <p className="text-xs text-amber-600 font-bold tracking-wider mb-2 flex items-center gap-1.5">
+                <PackageSearch className="w-4 h-4" /> 本次抽賞清單
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(setDrawsSummary).map(([setName, draws]) => (
+                  <div key={setName} className="px-3 py-1.5 bg-white border border-amber-200 text-amber-900 text-sm font-bold rounded-lg shadow-sm flex items-center gap-2">
+                    <span>{setName}</span>
+                    <span className="text-amber-500 bg-amber-50 px-2 py-0.5 rounded text-xs">共 {draws} 抽</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Top Level Summary */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
