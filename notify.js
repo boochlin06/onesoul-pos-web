@@ -251,9 +251,15 @@ function handleLineWebhookEvent(event) {
  * 定時檢查未打卡 — 每小時自動執行
  */
 function checkUnclocked() {
-  var branches = ['竹北', '金山'];
-  var cache = CacheService.getScriptCache();
   var now = new Date();
+  var branches = ['竹北'];
+  
+  // 5月起金山停業，不再輪詢打卡狀態
+  if (now.getFullYear() < 2026 || (now.getFullYear() === 2026 && now.getMonth() < 4)) {
+    branches.push('金山');
+  }
+  
+  var cache = CacheService.getScriptCache();
   var nowMin = now.getHours() * 60 + now.getMinutes();
   var todayKey = Utilities.formatDate(now, 'Asia/Taipei', 'yyyyMMdd');
 

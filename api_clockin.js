@@ -35,6 +35,10 @@ function apiGetBranchConfig(branch) {
  * 查今天是不是營業日（讀班表 B/C 欄值班人員）
  */
 function apiGetTodaySchedule(branch) {
+  var now = new Date();
+  if (branch === '金山' && (now.getFullYear() > 2026 || (now.getFullYear() === 2026 && now.getMonth() >= 4))) {
+    return { success: true, data: { open: false, staff: '金山門市停業', row: -1 } };
+  }
   try {
     var tempApp = SpreadsheetApp.openById(appBackground);
     var sheet = tempApp.getSheetByName(sheetSchedule);
@@ -65,8 +69,12 @@ function apiGetTodaySchedule(branch) {
  * 打卡 — 寫入班表 D/G 欄（上班時間）
  */
 function apiClockIn(payload, callerEmail) {
+  var branch = payload.branch;
+  var now = new Date();
+  if (branch === '金山' && (now.getFullYear() > 2026 || (now.getFullYear() === 2026 && now.getMonth() >= 4))) {
+    return { success: true, message: '金山門市已於五月停業，不須打卡', data: { clockInTime: '00:00', remark: '免打卡' } };
+  }
   try {
-    var branch = payload.branch;
     var tempApp = SpreadsheetApp.openById(appBackground);
     var sheet = tempApp.getSheetByName(sheetSchedule);
     if (!sheet) return { success: false, message: '找不到班表分頁' };

@@ -32,6 +32,12 @@ function dailyTodaySaleRecordBackupChupei() {
  * 綁定：時間觸發器
  */
 function dailyTodaySaleRecordBackupJinsang() {
+  var now = new Date();
+  if (now.getFullYear() > 2026 || (now.getFullYear() === 2026 && now.getMonth() >= 4)) {
+    Logger.log("金山五月起暫停營業，取消備份");
+    return;
+  }
+  
   _backupSheetToWorkbook(
     SpreadsheetApp.openById(appJinshan).getSheetByName(sheetTodaySalesRecord),
     SpreadsheetApp.openById(BACKUP_IDS.dailySales),
