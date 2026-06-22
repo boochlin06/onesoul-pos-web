@@ -106,11 +106,19 @@ describe('applyLotteryUpdate', () => {
     expect(result.draws).toBe(1);
   });
 
-  it('field=prize 為 z → 非GK 標記', () => {
+  it('field=prize 為 z → 非GK 標記, unitPoints 由 prizeEntry 決定', () => {
     const item = { ...emptyLottery(), id: 'S1' };
     const result = applyLotteryUpdate(item, 'prize', 'z', prizes);
     expect(result.prizeName).toBe('非GK');
-    expect(result.unitPoints).toBe(1);
+    expect(result.unitPoints).toBe(0); // 無匹配的 z prizeEntry → 0
+  });
+
+  it('field=prize 為 Z 且 prizeEntry 有點數 → unitPoints 從 prizeEntry 帶入', () => {
+    const prizesWithZ = [...prizes, makePrize('S1', 'Z', { points: 3, prizeName: '非GK' })];
+    const item = { ...emptyLottery(), id: 'S1' };
+    const result = applyLotteryUpdate(item, 'prize', 'Z', prizesWithZ);
+    expect(result.prizeName).toBe('非GK');
+    expect(result.unitPoints).toBe(3); // 從 prizeEntry.points 帶入
   });
 
   it('type=點數 時 totalPoints = draws * unitPoints', () => {

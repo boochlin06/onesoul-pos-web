@@ -64,7 +64,7 @@ export function applyLotteryUpdate(
       if (value === '88888') updated.remark = '送1點';
       else if (value === '99999') updated.remark = '扣1點';
       else if (value === 'x') updated.remark = '盲盒';
-      else if (value === 'z' || value === 'Z') { updated.remark = ''; updated.prizeName = '非GK'; updated.unitPoints = 1; }
+      else if (value === 'z' || value === 'Z') { updated.remark = ''; updated.prizeName = '非GK'; }
     }
   }
   // 抽數防呆：不可超過該獎項的總抽數
