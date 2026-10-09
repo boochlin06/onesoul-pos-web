@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 COPY tsconfig.json ./
 COPY src ./src/
@@ -23,7 +23,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install --omit=dev
+RUN npm install --omit=dev --legacy-peer-deps
 RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
