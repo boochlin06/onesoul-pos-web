@@ -15,10 +15,12 @@ echo "=========================================================="
 echo "   🚀 OneSoul ERP / POS 旗艦系統 - 雲端生產環境自動部署"
 echo "=========================================================="
 
-# 1. 檢查 Docker 環境
+# 1. 檢查並自動安裝 Docker 環境
 if ! command -v docker &> /dev/null; then
-    echo "🛑 錯誤：未偵測到 Docker，請先安裝 Docker 與 Docker Compose。" >&2
-    exit 1
+    echo "⚠️ 未偵測到 Docker，正在自動安裝 Docker 與 Compose 外掛..."
+    curl -fsSL https://get.docker.com | sh
+    sudo usermod -aG docker "$USER" 2>/dev/null || true
+    echo "✅ Docker 安裝完成！"
 fi
 
 # 2. 檢查 .env 環境變數檔案
