@@ -225,3 +225,16 @@ export const posCoreApi = {
   getStocktakes: () => apiRequest('/v1/stocktakes'),
   getStores: () => apiRequest('/v1/stores'),
 };
+
+// ── Google Sheets 全量一鍵極速遷移 API ──────────────────────────
+export const migrationApi = {
+  getStatus: () => apiRequest('/admin/migration/status'),
+  runMigration: (options: { dryRun?: boolean; source?: string } = {}) => {
+    return apiRequest('/admin/migration/run', {
+      method: 'POST',
+      body: JSON.stringify(options),
+    });
+  },
+  getHistory: () => apiRequest('/admin/migration/history'),
+  getProgressStreamUrl: () => `${API_BASE}/admin/migration/progress`,
+};

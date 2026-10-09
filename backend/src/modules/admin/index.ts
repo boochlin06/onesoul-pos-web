@@ -8,6 +8,7 @@ import { adminReportsRoutes } from './reports.routes.js';
 import { adminScheduleRoutes } from './schedule.routes.js';
 import { adminSettingsRoutes } from './settings.routes.js';
 import { adminAuditRoutes } from './audit.routes.js';
+import { adminMigrationRoutes } from './migration.routes.js';
 import { processOutboxTasks } from './outbox.service.js';
 
 export const adminPlugin: FastifyPluginAsync = async (fastify) => {
@@ -23,6 +24,7 @@ export const adminPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(adminScheduleRoutes);
   await fastify.register(adminSettingsRoutes);
   await fastify.register(adminAuditRoutes);
+  await fastify.register(adminMigrationRoutes);
 
   // 啟動 Transactional Outbox Worker (每 5 秒非同步處理 PENDING 任務)
   const workerInterval = setInterval(async () => {

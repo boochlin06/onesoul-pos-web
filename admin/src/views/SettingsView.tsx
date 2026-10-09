@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { settingsApi } from '../api/client';
+import { OneClickMigrationPanel } from '../components/OneClickMigrationPanel';
 import { 
   Settings, 
   MessageSquare, 
@@ -132,6 +133,9 @@ export const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 🚀 Google Sheets 全量極速一鍵遷移工作台 */}
+      <OneClickMigrationPanel />
+
       {/* 頂部標題 */}
       <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60">
         <div className="flex items-center gap-2">
