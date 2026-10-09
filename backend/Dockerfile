@@ -24,8 +24,9 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 RUN npm install --omit=dev --legacy-peer-deps
-RUN npx prisma generate
 
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY data ./data
 
