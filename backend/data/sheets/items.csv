@@ -1,0 +1,6 @@
+id,name,points,category,quantity,branch,cost,price
+GK001,海賊王 魯夫 GK,300,GK,15,竹北,8000,15000
+GK001,海賊王 魯夫 GK,300,GK,5,金山,8000,15000
+GEN001,壓克力展示盒,5,GENERAL,60,竹北,150,300
+GEN001,壓克力展示盒,5,GENERAL,30,金山,150,300
+BB001,Labubu 盲盒,10,BLIND_BOX,20,竹北,200,350

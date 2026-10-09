@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # ── 1. PostgreSQL 關聯式資料庫 ──
+  postgres:
+    image: postgres:16-alpine
+    container_name: onesoul-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-onesoul_prod_secret_2026}
+      POSTGRES_DB: ${DB_NAME:-onesoul_pos}
+    ports:
+      # 🛡️ 僅綁定本機 Loopback，杜絕公網直連威脅
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-onesoul_pos}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - onesoul-network
+
+  # ── 2. Fastify Core 後端 API 服務 ──
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: onesoul-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-onesoul_prod_secret_2026}@postgres:5432/${DB_NAME:-onesoul_pos}?schema=public
+      CORS_ORIGIN: https://erp.boochlin.com,http://localhost:5174,http://127.0.0.1:8080
+    ports:
+      # 🛡️ 僅對宿主機暴露 3000 埠，供宿主機 Nginx 反向代理
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - onesoul-network
+
+  # ── 3. 前端 Admin SPA 管理後台 ──
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    container_name: onesoul-admin
+    restart: unless-stopped
+    ports:
+      # 🛡️ 僅對宿主機暴露 8080 埠，供宿主機 Nginx 反向代理
+      - '127.0.0.1:8080:80'
+    networks:
+      - onesoul-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  onesoul-network:
+    driver: bridge

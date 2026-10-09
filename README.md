@@ -1,39 +1,12 @@
-# OneSoul POS Web & Backend Integration
+<h1 align="center">OneSoul 開發版</h1>
 
-本專案包含 OneSoul POS 系統的完整前後端解決方案。透過 Google Sheets 作為核心資料庫，提供高效的零售管理體驗。
+## 📖 基本資料 (Basic Info)
+*   **專案定位**：🟡 Tier 2 中高階實用工具與子系統 (Level 2 - Advanced Utility)
+*   **目的與解決痛點**：內部開發迭代的 Web 服務
 
-## 📁 專案結構
+## 🚀 技術亮點 (Technical Highlights)
+*   **狀態同步與單頁面 (SPA) 路由管理**
+*   快速成型，具備高度的實用價值與模組可重用性。
 
-- **`/web`**: 基於 React + Vite 的 POS 前端應用程式。
-  - 支援結帳、點數計算、當日銷售管理、會員查詢、獎項庫同步（最新 1000 筆銷售紀錄）等功能。
-- **根目錄 (`/`)**: 包含 Google Apps Script (GAS) 的原始碼。
-  - `services.js`: 核心業務邏輯（結帳、點數更新、關帳、刪除單據）。
-  - `main.js` / `prog_index.js`: API 路由與主控邏輯。
-
-## 🚀 快速導覽
-
-### 前端 (Web POS)
-詳細說明請參閱 [web/README.md](./web/README.md)。
-
-1. 進入 `web` 目錄執行 `npm install`。
-2. 執行 `npm run dev` 開發測試。
-3. 確認 `web/src/App.tsx` 中的 `GAS_URL` 指向您的部署網址。
-
-### 後端 (Google Apps Script)
-1. 在專案根目錄執行 `npm run push:dev` 會部署到開發版 GAS，執行 `npm run push:prod` 會部署到正式版 GAS。
-2. 系統會自動切換對應的環境變數及資料庫（受 `ScriptProperties` 的 `APP_BACKGROUND_ID` 控制）。
-
-## 🌟 主要功能亮點
-- **交易群組化顯示**：不論是當日銷售或歷史紀錄，系統都會自動根據 `ID` (checkoutUID) 將多個品項群組化為單一交易卡片，並醒目顯示交易 ID。
-- **作廢訂單同步退點**：在「當日銷售」分頁作廢訂單時，系統會自動比對手機號碼並將誤發/誤扣的點數退回。
-- **點數套結帳**：獎項庫 J 欄標記「點數」的套組自動偵測為點數套，金額為零，改為輸入「扣抵點數」，K 欄寫入淨點數（得到點數 - 扣抵點數）。
-- **抽數防呆**：輸入抽數不可超過該獎項在套裡的總數量。
-- **門市切換**：完美支援竹北與金山門市不同的資料源過濾，切換門市自動更新庫存資料。
-- **強大搜尋**：優化過後的會員與獎項庫搜尋引擎。
-- **跨店作廢安全**：兩店互相作廢對方的套會被攔截提示。
-- **高風險結帳攔截(Phase 3 最新)**：實作送出前的「結帳確認 Modal」，自動將雜亂明細梳理為「外帶實體」、「換點」、「贈送」三大指標。並搭載大獎 (A-D, SP, 最後賞等) 轉虛擬點數的強制勾選防呆機制，與小獎外帶的橘色二次確認，全面杜絕店內錯帳與高單價公仔人為疏失！
-- **showBanner 統一通知**：全系統移除原生 `alert()`，改用 StatusBanner 通知元件。
-
----
-開發者：DeepMind Antigravity Agent
-日期：2026-04-20
+## 🎯 面試與推銷指南 (Interview & Pitch Guide)
+👉 **[點此查看面試攻略 (interview.md)](./interview.md)**

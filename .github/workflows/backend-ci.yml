@@ -1,0 +1,85 @@
+name: Backend MASVS Security & Quality CI
+
+on:
+  push:
+    branches: [main, dev, 'feature/**']
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  test-and-audit:
+    name: Build, Test & MASVS Security Audit
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: onesoul_pos_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package.json
+
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: npm install
+
+      # ── MASVS-CODE: 相依套件供應鏈漏洞掃描 ──
+      - name: Audit Dependencies (MASVS Security Check)
+        working-directory: backend
+        run: npm audit --audit-level=high
+
+      # ── 資料庫 Schema 與型別生成 ──
+      - name: Generate Prisma Client
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onesoul_pos_ci?schema=public
+        run: npx prisma generate
+
+      - name: Push Prisma Schema to CI Database
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onesoul_pos_ci?schema=public
+        run: npx prisma db push
+
+      - name: Run Seed Data
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onesoul_pos_ci?schema=public
+        run: npm run prisma:seed
+
+      # ── TypeScript 型別編譯檢查 ──
+      - name: TypeScript Build & Typecheck
+        working-directory: backend
+        run: npm run build
+
+      # ── 單元與整合測試 ──
+      - name: Run Automated Tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onesoul_pos_ci?schema=public
+        run: npm test

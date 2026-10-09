@@ -1,6 +1,8 @@
-# Ignore frontend project
+# Ignore frontend and backend projects
 web/
 web/**
+backend/
+backend/**
 
 # Ignore node modules
 node_modules/
