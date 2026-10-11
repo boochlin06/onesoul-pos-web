@@ -101,7 +101,7 @@ export async function operationRoutes(fastify: FastifyInstance) {
     const now = new Date();
 
     // 判斷是否遲到
-    let status = 'NORMAL';
+    let lateMinutes = 0;
     if (store?.openTime) {
       const [h, m] = store.openTime.split(':').map(Number);
       const shiftStart = new Date(now);
@@ -109,6 +109,7 @@ export async function operationRoutes(fastify: FastifyInstance) {
 
       if (now > shiftStart) {
         status = 'LATE';
+        lateMinutes = Math.round((now.getTime() - shiftStart.getTime()) / 60000);
       }
     }
 
@@ -121,13 +122,30 @@ export async function operationRoutes(fastify: FastifyInstance) {
       },
     });
 
+    // 🛡️ 同步寫入 Admin 考勤主表 attendance_records，徹底解決雙軌分裂缺陷
+    try {
+      await (prisma as any).attendanceRecord?.create({
+        data: {
+          storeId,
+          userEmail: user?.email || 'unknown',
+          userName: (user as any)?.name || user?.email,
+          clockInAt: now,
+          status: status as any,
+          lateMinutes,
+          ipAddress: request.ip,
+        },
+      });
+    } catch {
+      // 容錯防護
+    }
+
     if (status === 'LATE') {
-      sendLinePush(`⚠️ [${branch}門市 遲到提醒] 員工 ${user?.email} 已於 ${now.toLocaleTimeString()} 打卡 (狀態: 遲到)`).catch(() => {});
+      sendLinePush(`⚠️ [${branch}門市 遲到提醒] 員工 ${user?.email} 已於 ${now.toLocaleTimeString()} 打卡 (遲到 ${lateMinutes} 分鐘)`).catch(() => {});
     }
 
     return {
       success: true,
-      message: `${branch}門市打卡成功！(${status === 'LATE' ? '遲到' : '正常'})`,
+      message: `${branch}門市打卡成功！(${status === 'LATE' ? `遲到 ${lateMinutes} 分鐘` : '正常'})`,
       data: attendance,
     };
   });

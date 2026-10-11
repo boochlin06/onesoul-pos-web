@@ -52,6 +52,7 @@ const checkoutSchema = z.object({
     receivedAmount: z.number().default(0),
     cash: z.number().default(0),
     creditCard: z.number().default(0),
+    linePay: z.number().default(0),
     remittance: z.number().default(0),
     pointsUsed: z.number().default(0),
   }),
@@ -161,6 +162,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
             receivedAmount: payload.payment.receivedAmount,
             cash: payload.payment.cash,
             creditCard: payload.payment.creditCard,
+            linePay: payload.payment.linePay || 0,
             remittance: payload.payment.remittance,
             pointsUsed: payload.payment.pointsUsed,
             netPointsDelta: pointsDelta,
@@ -243,8 +245,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // ── 6. 處理直購商品明細與庫存 ──
-        for (const m of payload.merchandises) {
+        // ── 6. 處理直購商品明細與庫存 (🛡️ 強制依 id 字典排序，杜絕並發交叉鎖死 40P01) ──
+        const sortedMerchandises = [...payload.merchandises].sort((a, b) => a.id.localeCompare(b.id));
+        for (const m of sortedMerchandises) {
           let mPoints = 0;
           if (m.paymentType === '點數' || m.id === '99999') {
             mPoints = -Math.abs(m.totalPoints);
@@ -472,10 +475,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
           });
 
           if (inv) {
-            const returnedQty = inv.quantity + item.quantity;
-            await tx.storeInventory.update({
+            const updatedInv = await tx.storeInventory.update({
               where: { id: inv.id },
-              data: { quantity: returnedQty },
+              data: { quantity: { increment: item.quantity } },
             });
 
             await tx.inventoryLog.create({
@@ -484,7 +486,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
                 productId: item.productId,
                 changeType: InventoryChangeType.SALE_VOID_RETURN,
                 delta: item.quantity,
-                balance: returnedQty,
+                balance: updatedInv.quantity,
                 orderId: order.id,
                 operator: user?.email,
                 reason: `訂單作廢回補: ${checkoutUID}`,
@@ -543,5 +545,55 @@ export async function orderRoutes(fastify: FastifyInstance) {
     );
 
     return { success: true, data: entries };
+  });
+
+  // ── 8. POS 購物車草稿暫存管理 (對齊 GAS apiSaveDraft / apiGetDrafts / apiClearDraft) ──
+  const cartDrafts = new Map<string, { branch: string; sessionId: string; email: string; data: any; ts: number }>();
+
+  fastify.post('/drafts', { preHandler: [authenticate] }, async (request, reply) => {
+    const { branch, sessionId, data } = (request.body as any) || {};
+    const user = (request as any).user;
+    if (!branch || !sessionId) {
+      return reply.code(400).send({ success: false, message: '缺少門市或班次識別' });
+    }
+    const key = `draft_${branch}_${sessionId}`;
+    cartDrafts.set(key, {
+      branch,
+      sessionId,
+      email: user?.email || 'cashier',
+      data,
+      ts: Date.now(),
+    });
+    return reply.send({ success: true, message: '結帳草稿已暫存' });
+  });
+
+  fastify.get('/drafts', { preHandler: [authenticate] }, async (request, reply) => {
+    const { branch } = (request.query as any) || {};
+    const now = Date.now();
+    const results = [];
+    for (const [key, val] of cartDrafts.entries()) {
+      if (now - val.ts > 30 * 60 * 1000) {
+        cartDrafts.delete(key);
+        continue;
+      }
+      if (!branch || val.branch === branch) {
+        results.push({
+          sessionId: val.sessionId,
+          branch: val.branch,
+          email: val.email,
+          data: val.data,
+          agoSeconds: Math.round((now - val.ts) / 1000),
+        });
+      }
+    }
+    return reply.send({ success: true, data: results });
+  });
+
+  fastify.delete('/drafts/:sessionId', { preHandler: [authenticate] }, async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    const { branch = '竹北' } = (request.query as any) || {};
+    const key = `draft_${branch}_${sessionId}`;
+    cartDrafts.delete(key);
+    return reply.send({ success: true, message: '草稿已清除' });
   });
 }

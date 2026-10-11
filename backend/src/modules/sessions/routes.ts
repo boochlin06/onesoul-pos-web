@@ -178,6 +178,29 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       request.log.error({ err }, 'LINE 關帳推播非同步發送失敗');
     });
 
+    // 🛡️ 對齊 GAS createTrelloCardOnCloseDay：收集當日帶走之 GK/商品，寫入 Outbox 排程發送 Trello 卡片
+    try {
+      const takenGkItems = completedOrders.flatMap((o: any) => o.items || []).filter((it: any) => it.pickType === 'TAKE_AWAY');
+      if (takenGkItems.length > 0) {
+        await (prisma as any).outboxTask?.create({
+          data: {
+            taskType: 'TRELLO_GK_CARD',
+            payload: {
+              branch,
+              staff: user?.email,
+              date: new Date().toISOString().slice(0, 10),
+              items: takenGkItems.map((it: any) => ({
+                name: it.prizeName || it.remark || '公仔/獎項',
+                quantity: it.draws || it.quantity || 1,
+              })),
+            },
+          },
+        });
+      }
+    } catch {
+      // 容錯防護
+    }
+
     return {
       success: true,
       message: `${branch}門市關帳成功！溢短：${discrepancy} 元`,

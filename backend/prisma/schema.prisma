@@ -86,6 +86,7 @@ model Member {
   id            String     @id @default(uuid())
   phone         String     @unique // 唯一電話，支援去前導 0 查詢
   name          String
+  tier          String     @default("GENERAL") // VIP | GOLD | GENERAL
   gender        String?
   birthday      String?    // "yyyy/MM/dd"
   registeredAt  DateTime   @default(now()) @map("registered_at")
@@ -357,6 +358,7 @@ model Order {
   receivedAmount Int                 @default(0) @map("received_amount")
   cash           Int                 @default(0)
   creditCard     Int                 @default(0) @map("credit_card")
+  linePay        Int                 @default(0) @map("line_pay") // 🛡️ 補齊 LINE Pay 專屬行動支付對帳欄位
   remittance     Int                 @default(0)
   pointsUsed     Int                 @default(0) @map("points_used")
   netPointsDelta Int                 @default(0) @map("net_points_delta")
