@@ -68,7 +68,7 @@ describe('OneSoul ERP Admin API Suite', () => {
   });
 
   describe('2. 商品庫存與雙門市水平對照 (Inventory & Products)', () => {
-    it('應能並排取得竹北與金山門市庫存對照表', async () => {
+    it('應能並排取得竹北與金山門市庫存對照表 (向下相容全量)', async () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/admin/inventory/summary',
@@ -80,6 +80,24 @@ describe('OneSoul ERP Admin API Suite', () => {
       expect(json.data[0]).toHaveProperty('chupeiStock');
       expect(json.data[0]).toHaveProperty('jinshanStock');
       expect(json.data[0]).toHaveProperty('isLowStock');
+    });
+
+    it('應支援極速分頁查詢與分頁元數據回傳 (Pagination Meta)', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/admin/inventory/summary?page=1&pageSize=2',
+      });
+      expect(res.statusCode).toBe(200);
+      const json = res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.length).toBeLessThanOrEqual(2);
+      expect(json.pagination).toBeDefined();
+      expect(json.pagination.page).toBe(1);
+      expect(json.pagination.pageSize).toBe(2);
+      expect(json.pagination.total).toBeGreaterThanOrEqual(1);
+      expect(json.pagination.totalPages).toBeGreaterThanOrEqual(1);
+      expect(json.meta).toBeDefined();
+      expect(json.meta.totalProducts).toBeGreaterThanOrEqual(1);
     });
 
     it('商品主檔修改應支援樂觀鎖 (Version Check)', async () => {

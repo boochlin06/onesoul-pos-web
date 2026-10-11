@@ -11,15 +11,31 @@ import {
   X, 
   CheckCircle2, 
   AlertCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  RotateCw
 } from 'lucide-react';
 
 export const InventoryView: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [lowStockOnly, setLowStockOnly] = useState(false);
+
+  // 伺服器端分頁與統計狀態
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [metaInfo, setMetaInfo] = useState<{ totalProducts: number; lowStockCount: number }>({
+    totalProducts: 0,
+    lowStockCount: 0,
+  });
 
   // 改價 Modal (含樂觀鎖版本號)
   const [editProduct, setEditProduct] = useState<any | null>(null);
@@ -42,9 +58,23 @@ export const InventoryView: React.FC = () => {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<any | null>(null);
 
+  // 250ms 搜尋輸入防抖 (Debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput.trim());
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // 當搜尋條件、分類或缺貨篩選改變時，重置回第 1 頁
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedCategory, lowStockOnly, pageSize]);
+
+  // 當分頁或條件改變時加載數據
   useEffect(() => {
     loadInventory();
-  }, [searchTerm, selectedCategory, lowStockOnly]);
+  }, [page, pageSize, searchTerm, selectedCategory, lowStockOnly]);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -53,9 +83,24 @@ export const InventoryView: React.FC = () => {
         q: searchTerm || undefined,
         category: selectedCategory !== 'ALL' ? selectedCategory : undefined,
         lowStockOnly,
+        page,
+        pageSize,
       });
       if (res.success) {
         setItems(res.data);
+        if (res.pagination) {
+          setTotalItems(res.pagination.total);
+          setTotalPages(res.pagination.totalPages || 1);
+        } else {
+          setTotalItems(res.data.length);
+          setTotalPages(1);
+        }
+        if (res.meta) {
+          setMetaInfo({
+            totalProducts: res.meta.totalProducts || 0,
+            lowStockCount: res.meta.lowStockCount || 0,
+          });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -149,6 +194,28 @@ export const InventoryView: React.FC = () => {
     }
   };
 
+  // 生成分頁頁碼按鈕序列
+  const generatePageNumbers = (current: number, total: number): number[] => {
+    if (total <= 7) {
+      return Array.from({ length: Math.max(1, total) }, (_, i) => i + 1);
+    }
+    const pages: number[] = [];
+    pages.push(1);
+    if (current > 3) {
+      pages.push(-1);
+    }
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    if (current < total - 2) {
+      pages.push(-1);
+    }
+    pages.push(total);
+    return pages;
+  };
+
   return (
     <div className="space-y-6">
       {/* 標題列 */}
@@ -157,6 +224,11 @@ export const InventoryView: React.FC = () => {
           <div className="flex items-center gap-2">
             <Package className="w-5 h-5 text-amber-400" />
             <h1 className="text-xl font-bold text-white">雙門市庫存水平對照與主檔維護</h1>
+            {metaInfo.totalProducts > 0 && (
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
+                全庫共 {metaInfo.totalProducts.toLocaleString()} 品項
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
             竹北店與金山店雙門市水平庫存並排比對、樂觀鎖版本防衝撞改價、Excel 批次上架精靈。
@@ -164,6 +236,13 @@ export const InventoryView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => loadInventory()}
+            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl border border-slate-700 transition"
+            title="重新整理庫存"
+          >
+            <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : ''}`} />
+          </button>
           <button
             onClick={() => {
               setShowBulkModal(true);
@@ -192,11 +271,20 @@ export const InventoryView: React.FC = () => {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="搜尋商品貨號、品名、條碼..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="搜尋商品貨號、品名、條碼 (250ms 即時防抖)..."
+            className="w-full pl-10 pr-9 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono"
           />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput('')}
+              className="absolute right-3 top-2.5 text-slate-400 hover:text-white transition"
+              title="清除搜尋"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -216,12 +304,19 @@ export const InventoryView: React.FC = () => {
             onClick={() => setLowStockOnly(!lowStockOnly)}
             className={`px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
               lowStockOnly
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow'
                 : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
             }`}
           >
-            <AlertTriangle className="w-3.5 h-3.5" />
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
             僅看缺貨預警
+            {metaInfo.lowStockCount > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                lowStockOnly ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-rose-500/20 text-rose-300'
+              }`}>
+                {metaInfo.lowStockCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -336,6 +431,92 @@ export const InventoryView: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* 分頁控制器 Pagination Controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60 text-xs">
+        <div className="flex items-center gap-3 text-slate-400">
+          <span>
+            顯示第 <span className="text-white font-mono font-semibold">{totalItems === 0 ? 0 : (page - 1) * pageSize + 1}</span> 至{' '}
+            <span className="text-white font-mono font-semibold">{Math.min(page * pageSize, totalItems)}</span> 筆，
+            共 <span className="text-amber-400 font-mono font-bold">{totalItems.toLocaleString()}</span> 筆
+          </span>
+          <span className="text-slate-600">|</span>
+          <div className="flex items-center gap-1.5">
+            <span>每頁顯示:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-amber-500 font-mono cursor-pointer"
+            >
+              <option value={20}>20 筆</option>
+              <option value={50}>50 筆</option>
+              <option value={100}>100 筆</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setPage(1)}
+            disabled={page <= 1 || loading}
+            className="p-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            title="第一頁"
+          >
+            <ChevronsLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1 || loading}
+            className="p-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            title="上一頁"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* 頁碼按鈕 */}
+          <div className="flex items-center gap-1 px-1">
+            {generatePageNumbers(page, totalPages).map((p, idx) =>
+              p === -1 ? (
+                <span key={`ellipsis-${idx}`} className="px-1 text-slate-500 font-mono">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`min-w-7 h-7 px-1.5 rounded-lg font-mono text-xs font-semibold transition ${
+                    p === page
+                      ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                      : 'bg-slate-800/80 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white'
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+          </div>
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages || loading}
+            className="p-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            title="下一頁"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setPage(totalPages)}
+            disabled={page >= totalPages || loading}
+            className="p-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            title="最後一頁"
+          >
+            <ChevronsRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

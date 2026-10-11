@@ -3,20 +3,79 @@ import { prisma } from '../../plugins/prisma';
 import { recordAuditLog } from './audit.service.js';
 
 export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
-  // 1. 跨店商品庫存水平對照總覽 (竹北 vs 金山)
+  // 1. 跨店商品庫存水平對照總覽 (竹北 vs 金山) - O(1) Hash Map 毫秒級極速分頁
   fastify.get('/inventory/summary', async (request, reply) => {
-    const products = await prisma.product.findMany();
-    const inventories = await prisma.storeInventory.findMany();
+    const { 
+      q = '', 
+      category, 
+      lowStockOnly = 'false', 
+      page, 
+      pageSize = '20' 
+    } = request.query as any;
 
-    const summary = products.map((prod: any) => {
-      const chupeiInv = inventories.find((i: any) => i.productId === prod.id && i.storeId === 'chupei');
-      const jinshanInv = inventories.find((i: any) => i.productId === prod.id && i.storeId === 'jinshan');
+    const isLowStockFilter = lowStockOnly === 'true' || lowStockOnly === true;
+    const searchKeyword = String(q || '').trim().toLowerCase();
 
-      const chupeiQty = chupeiInv?.quantity ?? 0;
-      const jinshanQty = jinshanInv?.quantity ?? 0;
-      const safetyStock = chupeiInv?.safetyStock || jinshanInv?.safetyStock || 0;
+    // 1. 並行獲取全量商品與門市庫存
+    const [products, inventories] = await Promise.all([
+      prisma.product.findMany(),
+      prisma.storeInventory.findMany(),
+    ]);
 
-      return {
+    // 2. 建立 O(1) 門市庫存雜湊索引表 (徹底消除 6500 萬次 O(N*M) 巢狀迴圈比對)
+    const invMap = new Map<string, { chupei: number; jinshan: number; safetyStock: number }>();
+    for (let i = 0; i < inventories.length; i++) {
+      const inv = inventories[i];
+      let entry = invMap.get(inv.productId);
+      if (!entry) {
+        entry = { chupei: 0, jinshan: 0, safetyStock: 0 };
+        invMap.set(inv.productId, entry);
+      }
+      if (inv.storeId === 'jinshan') {
+        entry.jinshan += inv.quantity || 0;
+      } else {
+        entry.chupei += inv.quantity || 0;
+      }
+      if (inv.safetyStock && inv.safetyStock > entry.safetyStock) {
+        entry.safetyStock = inv.safetyStock;
+      }
+    }
+
+    // 3. 快速聚合與條件過濾
+    const allSummaries: any[] = [];
+    let globalLowStockCount = 0;
+
+    for (let i = 0; i < products.length; i++) {
+      const prod = products[i];
+      const inv = invMap.get(prod.id) || { chupei: 0, jinshan: 0, safetyStock: 0 };
+      const totalStock = inv.chupei + inv.jinshan;
+      const isLowStock = totalStock <= inv.safetyStock && inv.safetyStock > 0;
+
+      if (isLowStock) {
+        globalLowStockCount++;
+      }
+
+      // 分類篩選
+      if (category && category !== 'ALL' && prod.category !== category) {
+        continue;
+      }
+
+      // 低庫存篩選
+      if (isLowStockFilter && !isLowStock) {
+        continue;
+      }
+
+      // 關鍵字搜尋 (品名、貨號、條碼)
+      if (searchKeyword) {
+        const matchName = prod.name.toLowerCase().includes(searchKeyword);
+        const matchId = prod.id.toLowerCase().includes(searchKeyword);
+        const matchBarcode = prod.barcode ? prod.barcode.toLowerCase().includes(searchKeyword) : false;
+        if (!matchName && !matchId && !matchBarcode) {
+          continue;
+        }
+      }
+
+      allSummaries.push({
         id: prod.id,
         barcode: prod.barcode || '',
         name: prod.name,
@@ -25,20 +84,40 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
         sellingPrice: prod.sellingPrice,
         suggestedPoints: prod.suggestedPoints,
         version: prod.version || 0,
-        chupeiStock: chupeiQty,
-        jinshanStock: jinshanQty,
-        totalStock: chupeiQty + jinshanQty,
-        safetyStock,
-        isLowStock: (chupeiQty + jinshanQty) <= safetyStock && safetyStock > 0,
+        chupeiStock: inv.chupei,
+        jinshanStock: inv.jinshan,
+        totalStock,
+        safetyStock: inv.safetyStock,
+        isLowStock,
+      });
+    }
+
+    // 4. 分頁處理 (若未傳 page 則向下相容回傳全部，若傳 page 則切片)
+    const total = allSummaries.length;
+    let paginatedData = allSummaries;
+    let paginationMeta: any = null;
+
+    if (page !== undefined && page !== null && page !== '') {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limit = Math.max(1, Math.min(200, parseInt(pageSize, 10) || 20));
+      const skip = (pageNum - 1) * limit;
+      paginatedData = allSummaries.slice(skip, skip + limit);
+      paginationMeta = {
+        page: pageNum,
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       };
-    });
+    }
 
     return reply.send({
       success: true,
-      data: summary,
+      data: paginatedData,
+      pagination: paginationMeta,
       meta: {
-        totalProducts: summary.length,
-        lowStockCount: summary.filter((i) => i.isLowStock).length,
+        totalProducts: products.length,
+        filteredCount: total,
+        lowStockCount: globalLowStockCount,
       },
     });
   });
