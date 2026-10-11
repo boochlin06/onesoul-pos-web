@@ -13,7 +13,7 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:studio": "prisma studio",
     "migrate:sheets": "tsx src/scripts/migrate-sheets/index.ts",
-    "migrate:one-click": "tsx src/scripts/one_click_migrate.ts"
+    "migrate:one-click": "node dist/scripts/one_click_migrate.js || tsx src/scripts/one_click_migrate.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
