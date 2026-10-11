@@ -22,7 +22,9 @@ if (!parsed.success) {
 }
 
 export const config = {
-  ...parsed.data,
-  corsOriginsList: parsed.data.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
+  corsOriginsList: (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174,http://127.0.0.1:8080,http://178.128.89.67:8080,https://erp.boochlin.com,*')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
   adminEmailsList: parsed.data.ADMIN_EMAILS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
 };

@@ -35,6 +35,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-onesoul_prod_secret_2026}@postgres:5432/${DB_NAME:-onesoul_pos}?schema=public
       CORS_ORIGIN: https://erp.boochlin.com,http://localhost:5174,http://127.0.0.1:8080,http://178.128.89.67:8080
+      CORS_ORIGINS: https://erp.boochlin.com,http://localhost:5174,http://127.0.0.1:8080,http://178.128.89.67:8080
     ports:
       # 🛡️ 僅對宿主機暴露 3000 埠，供宿主機 Nginx 反向代理
       - '127.0.0.1:3000:3000'
