@@ -218,10 +218,44 @@ export function createMemoryPrisma() {
         createdAt: new Date('2026-04-01T12:00:00Z'),
       },
     ] as any[],
+    categories: [] as any[],
+    transferOrders: [] as any[],
+    transferOrderItems: [] as any[],
   };
 
   const client: any = {
     _isMemory: true,
+    category: {
+      findMany: async () => store.categories,
+      findUnique: async ({ where }: any) => store.categories.find((c: any) => c.id === where.id || (where.code && c.code === where.code)) || null,
+      create: async ({ data }: any) => {
+        const c = { id: `cat-${Date.now()}`, ...data, createdAt: new Date(), updatedAt: new Date() };
+        store.categories.push(c);
+        return c;
+      },
+    },
+    transferOrder: {
+      findMany: async () => store.transferOrders,
+      findUnique: async ({ where }: any) => store.transferOrders.find((t: any) => t.id === where.id || (where.transferNo && t.transferNo === where.transferNo)) || null,
+      create: async ({ data }: any) => {
+        const t = { id: `tr-${Date.now()}`, ...data, createdAt: new Date(), updatedAt: new Date() };
+        store.transferOrders.push(t);
+        return t;
+      },
+      update: async ({ where, data }: any) => {
+        const t = store.transferOrders.find((it: any) => it.id === where.id);
+        if (t) Object.assign(t, data, { updatedAt: new Date() });
+        return t;
+      },
+    },
+    transferOrderItem: {
+      findMany: async ({ where }: any = {}) => store.transferOrderItems.filter((i: any) => !where?.transferId || i.transferId === where.transferId),
+      create: async ({ data }: any) => {
+        const item = { id: `tri-${Date.now()}`, ...data };
+        store.transferOrderItems.push(item);
+        return item;
+      },
+    },
     store: {
       findMany: async () => store.stores,
       findUnique: async ({ where }: any) => store.stores.find((s) => s.id === where.id) || null,

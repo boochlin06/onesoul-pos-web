@@ -8,13 +8,20 @@ generator client {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 1. 門市與開關帳 (Stores & Sessions - iCHEF Z-Report)
+// 1. 門市、總倉與開關帳 (Stores, Warehouses & Sessions - iCHEF Z-Report)
 // ─────────────────────────────────────────────────────────────
 
+enum StoreType {
+  RETAIL      // 實體零售門市 (竹北店、金山店)
+  WAREHOUSE   // 中央總倉 / 物流倉
+  POPUP       // 展場 / 快閃專櫃
+}
+
 model Store {
-  id               String                 @id // "chupei" | "jinshan"
-  name             String                 // "竹北店" | "金山店"
+  id               String                 @id // "chupei" | "jinshan" | "warehouse-main"
+  name             String                 // "竹北店" | "金山店" | "中央總倉"
   code             String                 @unique
+  type             StoreType              @default(RETAIL)
   address          String?
   phone            String?
   isActive         Boolean                @default(true)
@@ -24,16 +31,18 @@ model Store {
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
 
-  inventories      StoreInventory[]
-  inventoryLogs    InventoryLog[]
-  stocktakes       Stocktake[]
-  sessions         CashRegisterSession[]
-  orders           Order[]
-  luckyBags        LuckyBag[]
-  attendances      Attendance[]
-  schedules        Schedule[]
-  shiftSchedules   ShiftSchedule[]
+  inventories       StoreInventory[]
+  inventoryLogs     InventoryLog[]
+  stocktakes        Stocktake[]
+  sessions          CashRegisterSession[]
+  orders            Order[]
+  luckyBags         LuckyBag[]
+  attendances       Attendance[]
+  schedules         Schedule[]
+  shiftSchedules    ShiftSchedule[]
   attendanceRecords AttendanceRecord[]
+  transfersOut      TransferOrder[]       @relation("SourceStore")
+  transfersIn       TransferOrder[]       @relation("TargetStore")
 
   @@map("stores")
 }
@@ -79,28 +88,87 @@ model CashRegisterSession {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 2. 會員與點數流水 (Members & Loyalty)
+// 2. 跨店調撥管理 (Inter-store Transfers & In-Transit Tracking)
+// ─────────────────────────────────────────────────────────────
+
+enum TransferStatus {
+  DRAFT       // 草稿待出庫
+  DISPATCHED  // 已出庫 (在途 In-Transit)
+  RECEIVED    // 已驗收入庫完成
+  CANCELLED   // 已作廢撤銷
+}
+
+model TransferOrder {
+  id            String              @id @default(uuid())
+  transferNo    String              @unique @map("transfer_no") // 調撥單號 TR-YYYYMMDD-XXXX
+  sourceStoreId String              @map("source_store_id")
+  targetStoreId String              @map("target_store_id")
+  status        TransferStatus      @default(DRAFT)
+  dispatchedAt  DateTime?           @map("dispatched_at")
+  receivedAt    DateTime?           @map("received_at")
+  dispatchedBy  String?             @map("dispatched_by")
+  receivedBy    String?             @map("received_by")
+  note          String?
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  sourceStore   Store               @relation("SourceStore", fields: [sourceStoreId], references: [id])
+  targetStore   Store               @relation("TargetStore", fields: [targetStoreId], references: [id])
+  items         TransferOrderItem[]
+
+  @@index([sourceStoreId, status])
+  @@index([targetStoreId, status])
+  @@map("transfer_orders")
+}
+
+model TransferOrderItem {
+  id           String        @id @default(uuid())
+  transferId   String        @map("transfer_id")
+  productId    String        @map("product_id")
+  requestedQty Int           @map("requested_qty")
+  shippedQty   Int           @default(0) @map("shipped_qty")
+  receivedQty  Int           @default(0) @map("received_qty")
+  remark       String?
+
+  transfer     TransferOrder @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product      Product       @relation(fields: [productId], references: [id])
+
+  @@unique([transferId, productId])
+  @@map("transfer_order_items")
+}
+
+// ─────────────────────────────────────────────────────────────
+// 3. 會員主檔、點數帳本與經營指標 (Members & Loyalty)
 // ─────────────────────────────────────────────────────────────
 
 model Member {
-  id            String     @id @default(uuid())
-  phone         String     @unique // 唯一電話，支援去前導 0 查詢
-  name          String
-  tier          String     @default("GENERAL") // VIP | GOLD | GENERAL
-  gender        String?
-  birthday      String?    // "yyyy/MM/dd"
-  registeredAt  DateTime   @default(now()) @map("registered_at")
-  points        Int        @default(0) // 當前有效點數
-  version       Int        @default(0) // 樂觀鎖版本號
-  note          String?
-  isActive      Boolean    @default(true) @map("is_active")
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id             String     @id @default(uuid())
+  phone          String     @unique // 唯一電話，支援去前導 0 查詢
+  barcode        String?    @unique // 實體會員卡條碼
+  lineUserId     String?    @unique @map("line_user_id") // LINE 官方帳號綁定 UID
+  name           String
+  tier           String     @default("GENERAL") // VIP | GOLD | GENERAL
+  gender         String?
+  birthday       String?    // "yyyy/MM/dd"
+  registeredAt   DateTime   @default(now()) @map("registered_at")
+  points         Int        @default(0) // 當前有效點數 (永久有效)
+  version        Int        @default(0) // 樂觀鎖版本號
+  note           String?
+  isActive       Boolean    @default(true) @map("is_active")
 
-  pointLogs     PointLog[]
-  orders        Order[]
+  // 📈 會員營運與商務累計指標 (免除全表掃描)
+  totalSpent     Int        @default(0) @map("total_spent")
+  orderCount     Int        @default(0) @map("order_count")
+  lastPurchaseAt DateTime?  @map("last_purchase_at")
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  pointLogs      PointLog[]
+  orders         Order[]
 
   @@index([phone])
+  @@index([lineUserId])
   @@map("members")
 }
 
@@ -130,8 +198,33 @@ model PointLog {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 3. 通用商品、分店庫存與盤點稽核 (Products, Stocktakes & Logs)
+// 4. 商品分類、品相規格與跨店庫存 (Categories, Products & Inventory)
 // ─────────────────────────────────────────────────────────────
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String     // 分類名稱 (如: GK雕像、景品、盒玩、寶可夢)
+  code      String?    @unique // 分類代碼
+  parentId  String?    @map("parent_id") // 支援樹狀母子層級目錄
+  sortOrder Int        @default(0) @map("sort_order")
+  isActive  Boolean    @default(true) @map("is_active")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  products  Product[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+enum ProductCondition {
+  NEW             // 全新未拆
+  DISPLAY_OPENED  // 拆擺無損
+  BOX_DAMAGED     // 盒損特價
+  SECOND_HAND     // 二手有瑕
+}
 
 enum ProductCategory {
   GENERAL
@@ -140,25 +233,39 @@ enum ProductCategory {
 }
 
 model Product {
-  id               String            @id // 貨號
-  barcode          String?           @unique // 條碼
+  id               String              @id // 貨號
+  barcode          String?             @unique // 條碼
   name             String
-  category         String            @default("GENERAL")
-  costPrice        Int               @default(0) @map("cost_price")
-  sellingPrice     Int               @default(0) @map("selling_price")
-  suggestedPoints  Int               @default(0) @map("suggested_points")
-  version          Int               @default(0) // 樂觀鎖版本號
-  isSpecial        Boolean           @default(false) @map("is_special") // 88888/99999
+  categoryId       String?             @map("category_id")
+  category         String              @default("GENERAL") // 維持向下相容舊字串
+  brand            String?             // 品牌 (萬代/MegaHouse/集模堂)
+  series           String?             // 系列 (MASTERLISE/POP/景品)
+  condition        ProductCondition    @default(NEW)
+  costPrice        Int                 @default(0) @map("cost_price")
+  sellingPrice     Int                 @default(0) @map("selling_price")
+  suggestedPoints  Int                 @default(0) @map("suggested_points")
+  version          Int                 @default(0) // 樂觀鎖版本號
+  isSpecial        Boolean             @default(false) @map("is_special") // 88888/99999
   remark           String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  parentId         String?             @map("parent_id") // SPU/SKU 母商品關聯
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
+  categoryRel      Category?           @relation(fields: [categoryId], references: [id])
+  parentProduct    Product?            @relation("ProductVariants", fields: [parentId], references: [id])
+  variants         Product[]           @relation("ProductVariants")
   storeInventories StoreInventory[]
   inventoryLogs    InventoryLog[]
   stocktakeItems   StocktakeItem[]
   orderItems       OrderItem[]
   luckyBagPrizes   LuckyBagPrize[]
+  transferItems    TransferOrderItem[]
 
+  @@index([category])
+  @@index([categoryId])
+  @@index([parentId])
+  @@index([condition])
+  @@index([createdAt])
   @@map("products")
 }
 
@@ -178,41 +285,13 @@ model StoreInventory {
   @@map("store_inventories")
 }
 
-// ─────────────────────────────────────────────────────────────
-// 6. 營運支援與排班考勤 (Operations & Attendances)
-// ─────────────────────────────────────────────────────────────
-
-model Schedule {
-  id        String   @id @default(uuid())
-  storeId   String   @map("store_id")
-  date      String
-  staffName String   @map("staff_name")
-  isClosed  Boolean  @default(false) @map("is_closed")
-
-  store     Store    @relation(fields: [storeId], references: [id])
-
-  @@unique([storeId, date])
-  @@map("schedules")
-}
-
-model Attendance {
-  id         String    @id @default(uuid())
-  storeId    String    @map("store_id")
-  userEmail  String    @map("user_email")
-  clockInAt  DateTime  @default(now()) @map("clock_in_at")
-  clockOutAt DateTime? @map("clock_out_at")
-  status     String    @default("NORMAL")
-
-  store      Store     @relation(fields: [storeId], references: [id])
-
-  @@map("attendances")
-}
-
 enum InventoryChangeType {
   SALE                // 結帳出庫
   SALE_VOID_RETURN    // 作廢入庫回補
   STOCKTAKE_ADJUST    // 盤盈盤虧調整
   MANUAL_ADJUST       // 人工進貨/損耗
+  TRANSFER_OUT        // 調撥出庫
+  TRANSFER_IN         // 調撥入庫
 }
 
 model InventoryLog {
@@ -232,6 +311,7 @@ model InventoryLog {
   product     Product             @relation(fields: [productId], references: [id])
 
   @@index([storeId, productId])
+  @@index([createdAt])
   @@map("inventory_logs")
 }
 
@@ -274,26 +354,8 @@ model StocktakeItem {
   @@map("stocktake_items")
 }
 
-model BlindBox {
-  id               String   @id
-  name             String
-  points           Int      @default(0)
-  manualPrice      Int      @default(0) @map("manual_price")
-  autoSuggestPrice Int      @default(0) @map("auto_suggest_price")
-  cost             Int      @default(0)
-  prizePoints      Int      @default(0) @map("prize_points")
-  inventory        Int      @default(0)
-  configuring      Int      @default(0)
-  shipped          Int      @default(0)
-  remaining        Int      @default(0)
-  remark           String?
-  updatedAt        DateTime @updatedAt
-
-  @@map("blind_boxes")
-}
-
 // ─────────────────────────────────────────────────────────────
-// 4. 福袋與獎項庫 (Lucky Bags & Prizes)
+// 5. 一番賞與福袋開套模型 (Lucky Bags & Prizes)
 // ─────────────────────────────────────────────────────────────
 
 enum LuckyBagStatus {
@@ -303,16 +365,16 @@ enum LuckyBagStatus {
 }
 
 model LuckyBag {
-  id          String         @id
-  storeId     String         @map("store_id")
+  id          String          @id
+  storeId     String          @map("store_id")
   name        String
-  unitPrice   Int            @default(0) @map("unit_price")
-  isPointsSet Boolean        @default(false) @map("is_points_set")
-  status      LuckyBagStatus @default(ACTIVE)
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt
+  unitPrice   Int             @default(0) @map("unit_price")
+  isPointsSet Boolean         @default(false) @map("is_points_set")
+  status      LuckyBagStatus  @default(ACTIVE)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt
 
-  store       Store          @relation(fields: [storeId], references: [id])
+  store       Store           @relation(fields: [storeId], references: [id])
   prizes      LuckyBagPrize[]
   orderItems  OrderItem[]
 
@@ -339,7 +401,7 @@ model LuckyBagPrize {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 5. 銷售訂單與冪等性 (Orders & Order Items)
+// 6. 銷售訂單、複合付款與折扣 (Orders & Multi-tender Payments)
 // ─────────────────────────────────────────────────────────────
 
 enum OrderStatus {
@@ -357,9 +419,15 @@ model Order {
   
   totalDue       Int                 @default(0) @map("total_due")
   receivedAmount Int                 @default(0) @map("received_amount")
+
+  // 💳 複合付款與促銷折扣 JSON 擴充 (高吞吐、零 Join、彈性支援街口/悠遊卡/LINE Pay 複合付款)
+  payments       Json?               // 範例: [{ method: "LINE_PAY", amount: 500, ref: "LP-123" }, { method: "CASH", amount: 300 }]
+  discounts      Json?               // 範例: [{ type: "VIP", amount: 50, note: "VIP 9折" }]
+
+  // 向下相容既有平鋪欄位
   cash           Int                 @default(0)
   creditCard     Int                 @default(0) @map("credit_card")
-  linePay        Int                 @default(0) @map("line_pay") // 🛡️ 補齊 LINE Pay 專屬行動支付對帳欄位
+  linePay        Int                 @default(0) @map("line_pay")
   remittance     Int                 @default(0)
   pointsUsed     Int                 @default(0) @map("points_used")
   netPointsDelta Int                 @default(0) @map("net_points_delta")
@@ -381,6 +449,7 @@ model Order {
 
   @@index([storeId, createdAt])
   @@index([sessionId])
+  @@index([memberId])
   @@map("orders")
 }
 
@@ -421,7 +490,7 @@ model OrderItem {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 6. 營運支援與排班考勤 (Operations & Attendances)
+// 7. 營運支援、排班考勤與人員 (Operations, Schedules & Attendance)
 // ─────────────────────────────────────────────────────────────
 
 enum Role {
@@ -442,6 +511,19 @@ model User {
   @@map("users")
 }
 
+model Schedule {
+  id        String   @id @default(uuid())
+  storeId   String   @map("store_id")
+  date      String
+  staffName String   @map("staff_name")
+  isClosed  Boolean  @default(false) @map("is_closed")
+
+  store     Store    @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, date])
+  @@map("schedules")
+}
+
 model ShiftSchedule {
   id          String   @id @default(uuid())
   storeId     String   @map("store_id")
@@ -458,6 +540,19 @@ model ShiftSchedule {
 
   @@unique([storeId, date])
   @@map("shift_schedules")
+}
+
+model Attendance {
+  id         String    @id @default(uuid())
+  storeId    String    @map("store_id")
+  userEmail  String    @map("user_email")
+  clockInAt  DateTime  @default(now()) @map("clock_in_at")
+  clockOutAt DateTime? @map("clock_out_at")
+  status     String    @default("NORMAL")
+
+  store      Store     @relation(fields: [storeId], references: [id])
+
+  @@map("attendances")
 }
 
 enum AttendanceStatus {
@@ -487,7 +582,7 @@ model AttendanceRecord {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 7. 外部整合與可靠發信匣 (Integrations & Transactional Outbox)
+// 8. 外部整合與可靠發信匣 (Integrations & Transactional Outbox)
 // ─────────────────────────────────────────────────────────────
 
 model IntegrationConfig {
@@ -533,7 +628,7 @@ model OutboxTask {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 8. POS 即時廣播緊急公告 (Emergency Notice)
+// 9. POS 即時廣播緊急公告 (Emergency Notice)
 // ─────────────────────────────────────────────────────────────
 
 enum NoticeLevel {
@@ -559,7 +654,7 @@ model EmergencyNotice {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 9. 一番賞廢套與殘值損益紀錄 (Void Set Logs)
+// 10. 一番賞廢套與殘值損益紀錄 (Void Set Logs)
 // ─────────────────────────────────────────────────────────────
 
 model VoidSetLog {
@@ -584,7 +679,7 @@ model VoidSetLog {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 10. 防竄改雜湊鏈審計日誌 (Tamper-evident Audit Logs)
+// 11. 防竄改雜湊鏈審計日誌 (Tamper-evident Audit Logs)
 // ─────────────────────────────────────────────────────────────
 
 model AuditLog {
@@ -607,4 +702,3 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
-

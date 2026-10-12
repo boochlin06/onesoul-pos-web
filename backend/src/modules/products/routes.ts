@@ -41,23 +41,24 @@ export async function productRoutes(fastify: FastifyInstance) {
 
   // 盲盒資料庫清單 (相容前端 BlindBoxEntry)
   fastify.get('/blindboxes', { preHandler: [authenticate] }, async () => {
-    const blindBoxes = await prisma.blindBox.findMany({
+    const blindBoxes = await prisma.product.findMany({
+      where: { category: 'BLIND_BOX' },
       orderBy: { id: 'asc' },
     });
 
     const formatted = blindBoxes.map((b) => ({
       id: b.id,
       name: b.name,
-      points: b.points,
-      manualPrice: b.manualPrice,
-      autoSuggestPrice: b.autoSuggestPrice,
-      cost: b.cost,
-      prizePoints: b.prizePoints,
-      inventory: b.inventory,
+      points: b.suggestedPoints,
+      manualPrice: b.sellingPrice,
+      autoSuggestPrice: b.sellingPrice,
+      cost: b.costPrice,
+      prizePoints: 0,
+      inventory: 0,
       category: '盲盒',
-      configuring: b.configuring,
-      shipped: b.shipped,
-      remaining: b.remaining,
+      configuring: 0,
+      shipped: 0,
+      remaining: 0,
       remark: b.remark || '',
     }));
 
