@@ -347,7 +347,6 @@ class MigrationManager extends EventEmitter {
           bagMap.set(bagId, {
             id: bagId,
             name: bagName,
-            price: unitPrice,
             unitPrice,
             storeId: store,
             status: 'ACTIVE',
@@ -366,7 +365,7 @@ class MigrationManager extends EventEmitter {
             bagId,
             prizeGrade: grade,
             prizeName,
-            productId: prizeItemCode || null,
+            productId: (prizeItemCode && productMap.has(prizeItemCode)) ? prizeItemCode : null,
             draws: Math.max(draws, drawn + 1),
             drawnCount: drawn,
             points,
@@ -377,9 +376,11 @@ class MigrationManager extends EventEmitter {
       }
 
       const cleanBags = Array.from(bagMap.values()).slice(0, 10);
+      const validBagIds = new Set(cleanBags.map((b) => b.id));
+      const cleanPrizesFiltered = cleanPrizes.filter((p) => validBagIds.has(p.bagId));
       this.currentState.metrics.luckyBags.bags = cleanBags.length;
-      this.currentState.metrics.luckyBags.prizes = cleanPrizes.length;
-      this.addLog('success', `✅ 一番賞清洗完畢: ${cleanBags.length} 大熱門套組，掛載 ${cleanPrizes.length} 個獎項籤位`);
+      this.currentState.metrics.luckyBags.prizes = cleanPrizesFiltered.length;
+      this.addLog('success', `✅ 一番賞清洗完畢: ${cleanBags.length} 大熱門套組，掛載 ${cleanPrizesFiltered.length} 個獎項籤位`);
 
       // ─────────────────────────────────────────────────────────────
       // 階段 4: 歷史開關帳班次 (219 班)
@@ -620,7 +621,7 @@ class MigrationManager extends EventEmitter {
               update: b,
             });
           }
-          for (const p of cleanPrizes) {
+          for (const p of cleanPrizesFiltered) {
             await (prisma as any).luckyBagPrize.upsert({
               where: { id: p.id },
               create: p,

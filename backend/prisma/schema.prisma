@@ -328,6 +328,7 @@ model LuckyBagPrize {
   points     Int      @default(0)
   draws      Int      @default(1)
   drawnCount Int      @default(0) @map("drawn_count")
+  createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt
 
   bag        LuckyBag @relation(fields: [bagId], references: [id], onDelete: Cascade)
