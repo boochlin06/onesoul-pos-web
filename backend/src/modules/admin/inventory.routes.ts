@@ -3,41 +3,61 @@ import { prisma } from '../../plugins/prisma';
 import { recordAuditLog } from './audit.service.js';
 
 export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
-  // 1. 跨店商品庫存水平對照總覽 (竹北 vs 金山) - O(1) Hash Map 毫秒級極速分頁
+  // 1. 跨門市商品庫存水平對照總覽 - 動態多門市擴展、最新至舊排序、O(1) Hash Map 毫秒級極速分頁
   fastify.get('/inventory/summary', async (request, reply) => {
     const { 
       q = '', 
       category, 
       lowStockOnly = 'false', 
       page, 
-      pageSize = '20' 
+      pageSize = '20',
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
     } = request.query as any;
 
     const isLowStockFilter = lowStockOnly === 'true' || lowStockOnly === true;
     const searchKeyword = String(q || '').trim().toLowerCase();
 
-    // 1. 並行獲取全量商品與門市庫存
-    const [products, inventories] = await Promise.all([
+    // 1. 並行獲取所有啟用門市、全量商品與門市庫存
+    const [stores, products, inventories] = await Promise.all([
+      prisma.store.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true, code: true },
+      }),
       prisma.product.findMany(),
       prisma.storeInventory.findMany(),
     ]);
 
-    // 2. 建立 O(1) 門市庫存雜湊索引表 (徹底消除 6500 萬次 O(N*M) 巢狀迴圈比對)
-    const invMap = new Map<string, { chupei: number; jinshan: number; safetyStock: number }>();
+    // 2. 建立動態多門市庫存 O(1) 雜湊索引映射表
+    // 支援任意門市擴展 (chupei, jinshan, sanmin, etc.)
+    const invMap = new Map<string, {
+      storeStocks: Record<string, number>;
+      safetyStocks: Record<string, number>;
+      totalStock: number;
+      maxSafetyStock: number;
+    }>();
+
     for (let i = 0; i < inventories.length; i++) {
       const inv = inventories[i];
       let entry = invMap.get(inv.productId);
       if (!entry) {
-        entry = { chupei: 0, jinshan: 0, safetyStock: 0 };
+        entry = {
+          storeStocks: {},
+          safetyStocks: {},
+          totalStock: 0,
+          maxSafetyStock: 0,
+        };
         invMap.set(inv.productId, entry);
       }
-      if (inv.storeId === 'jinshan') {
-        entry.jinshan += inv.quantity || 0;
-      } else {
-        entry.chupei += inv.quantity || 0;
-      }
-      if (inv.safetyStock && inv.safetyStock > entry.safetyStock) {
-        entry.safetyStock = inv.safetyStock;
+      const qty = inv.quantity || 0;
+      entry.storeStocks[inv.storeId] = (entry.storeStocks[inv.storeId] || 0) + qty;
+      entry.totalStock += qty;
+
+      if (inv.safetyStock) {
+        entry.safetyStocks[inv.storeId] = inv.safetyStock;
+        if (inv.safetyStock > entry.maxSafetyStock) {
+          entry.maxSafetyStock = inv.safetyStock;
+        }
       }
     }
 
@@ -47,10 +67,14 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
 
     for (let i = 0; i < products.length; i++) {
       const prod = products[i];
-      const inv = invMap.get(prod.id) || { chupei: 0, jinshan: 0, safetyStock: 0 };
-      const totalStock = inv.chupei + inv.jinshan;
-      const isLowStock = totalStock <= inv.safetyStock && inv.safetyStock > 0;
+      const inv = invMap.get(prod.id) || {
+        storeStocks: {},
+        safetyStocks: {},
+        totalStock: 0,
+        maxSafetyStock: 2,
+      };
 
+      const isLowStock = inv.totalStock <= inv.maxSafetyStock && inv.maxSafetyStock > 0;
       if (isLowStock) {
         globalLowStockCount++;
       }
@@ -84,15 +108,44 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
         sellingPrice: prod.sellingPrice,
         suggestedPoints: prod.suggestedPoints,
         version: prod.version || 0,
-        chupeiStock: inv.chupei,
-        jinshanStock: inv.jinshan,
-        totalStock,
-        safetyStock: inv.safetyStock,
+        createdAt: prod.createdAt,
+        updatedAt: prod.updatedAt,
+        // 動態門市庫存映射
+        storeStocks: inv.storeStocks,
+        safetyStocks: inv.safetyStocks,
+        // 向下相容竹北/金山欄位
+        chupeiStock: inv.storeStocks['chupei'] || 0,
+        jinshanStock: inv.storeStocks['jinshan'] || 0,
+        totalStock: inv.totalStock,
+        safetyStock: inv.maxSafetyStock,
         isLowStock,
       });
     }
 
-    // 4. 分頁處理 (若未傳 page 則向下相容回傳全部，若傳 page 則切片)
+    // 4. 動態排序 (預設: 最新建立在前 createdAt DESC)
+    allSummaries.sort((a, b) => {
+      let diff = 0;
+      if (sortBy === 'createdAt') {
+        const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        diff = tA - tB;
+      } else if (sortBy === 'updatedAt') {
+        const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const tB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        diff = tA - tB;
+      } else if (sortBy === 'sellingPrice') {
+        diff = (a.sellingPrice || 0) - (b.sellingPrice || 0);
+      } else if (sortBy === 'totalStock') {
+        diff = (a.totalStock || 0) - (b.totalStock || 0);
+      } else if (sortBy === 'name') {
+        diff = a.name.localeCompare(b.name, 'zh-TW');
+      }
+
+      // 降序反轉
+      return sortOrder === 'desc' ? -diff : diff;
+    });
+
+    // 5. 分頁處理 (未傳 page 則向下相容回傳全部)
     const total = allSummaries.length;
     let paginatedData = allSummaries;
     let paginationMeta: any = null;
@@ -112,6 +165,7 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.send({
       success: true,
+      stores, // 回傳系統所有 active 門市，供前端動態渲染表頭
       data: paginatedData,
       pagination: paginationMeta,
       meta: {
@@ -122,7 +176,107 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // 2. 修改商品主檔 (支援樂觀鎖 version)
+  // 2. 手動新增單品主檔與各門市期初庫存錄入
+  fastify.post('/inventory/products', async (request, reply) => {
+    const {
+      id: customId,
+      name,
+      category = 'GENERAL',
+      costPrice = 0,
+      sellingPrice = 0,
+      suggestedPoints,
+      barcode,
+      initialStocks = {},
+      safetyStock = 2,
+    } = request.body as any;
+
+    if (!name || !name.trim()) {
+      return reply.code(400).send({ success: false, message: '商品品名為必填欄位' });
+    }
+
+    const operatorId = (request as any).user?.email || 'admin@onesoul.com';
+    const prodId = (customId && customId.trim())
+      ? customId.trim()
+      : `${category.toUpperCase().slice(0, 3)}-${Date.now().toString().slice(-6)}`;
+
+    // 檢查貨號重複
+    const existing = await prisma.product.findUnique({ where: { id: prodId } });
+    if (existing) {
+      return reply.code(409).send({ success: false, message: `貨號 [${prodId}] 已存在，請使用不同貨號` });
+    }
+
+    const numSellingPrice = Math.max(0, Number(sellingPrice) || 0);
+    const numCostPrice = Math.max(0, Number(costPrice) || 0);
+    const points = suggestedPoints !== undefined ? Number(suggestedPoints) : Math.round(numSellingPrice * 0.05);
+
+    // 取得所有啟用門市
+    const stores = await prisma.store.findMany({ where: { isActive: true } });
+
+    const createdProduct = await prisma.$transaction(async (tx: any) => {
+      const prod = await tx.product.create({
+        data: {
+          id: prodId,
+          name: name.trim(),
+          category: category.trim() || 'GENERAL',
+          costPrice: numCostPrice,
+          sellingPrice: numSellingPrice,
+          suggestedPoints: points,
+          barcode: barcode ? barcode.trim() : null,
+          version: 1,
+        },
+      });
+
+      for (const s of stores) {
+        const qty = Math.max(0, Number(initialStocks[s.id]) || 0);
+        await tx.storeInventory.create({
+          data: {
+            storeId: s.id,
+            productId: prodId,
+            quantity: qty,
+            safetyStock: Math.max(0, Number(safetyStock) || 2),
+            version: 1,
+          },
+        });
+
+        if (qty > 0) {
+          await tx.inventoryLog.create({
+            data: {
+              storeId: s.id,
+              productId: prodId,
+              type: 'INBOUND',
+              delta: qty,
+              balance: qty,
+              reason: '後台手動新增單品期初入庫',
+              operator: operatorId,
+            },
+          });
+        }
+      }
+
+      return prod;
+    });
+
+    await recordAuditLog(prisma, {
+      operatorId,
+      action: 'CREATE_PRODUCT',
+      targetType: 'Product',
+      targetId: prodId,
+      afterState: {
+        product: createdProduct,
+        initialStocks,
+        safetyStock,
+      },
+      reason: `新增單品主檔 [${prodId}] ${name.trim()} (售價: $${numSellingPrice})`,
+    });
+
+    return reply.code(201).send({
+      success: true,
+      data: createdProduct,
+      message: `商品 [${prodId}] ${name.trim()} 建立成功！`,
+    });
+  });
+
+  // 3. 修改商品主檔 (支援樂觀鎖 version)
   fastify.put('/inventory/products/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const { name, costPrice, sellingPrice, suggestedPoints, barcode, version } = request.body as any;

@@ -46,14 +46,22 @@ export const membersApi = {
 
 // ── 庫存與商品 API ──────────────────────────────────────────────
 export const inventoryApi = {
-  summary: (params: { q?: string; category?: string; lowStockOnly?: boolean; page?: number; pageSize?: number } = {}) => {
+  summary: (params: { q?: string; category?: string; lowStockOnly?: boolean; page?: number; pageSize?: number; sortBy?: string; sortOrder?: string } = {}) => {
     const query = new URLSearchParams();
     if (params.q) query.set('q', params.q);
     if (params.category) query.set('category', params.category);
     if (params.lowStockOnly) query.set('lowStockOnly', 'true');
     if (params.page !== undefined) query.set('page', String(params.page));
     if (params.pageSize !== undefined) query.set('pageSize', String(params.pageSize));
+    if (params.sortBy) query.set('sortBy', params.sortBy);
+    if (params.sortOrder) query.set('sortOrder', params.sortOrder);
     return apiRequest(`/admin/inventory/summary?${query.toString()}`);
+  },
+  createProduct: (data: any) => {
+    return apiRequest('/admin/inventory/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
   updateProduct: (id: string, data: any) => {
     return apiRequest(`/admin/inventory/products/${id}`, {

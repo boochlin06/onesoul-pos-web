@@ -16,7 +16,14 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  RotateCw
+  RotateCw,
+  Plus,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Sparkles,
+  Store,
+  Eye
 } from 'lucide-react';
 
 export const InventoryView: React.FC = () => {
@@ -26,6 +33,18 @@ export const InventoryView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [lowStockOnly, setLowStockOnly] = useState(false);
+
+  // 多門市動態擴展狀態
+  const [stores, setStores] = useState<Array<{ id: string; name: string; code?: string }>>([
+    { id: 'chupei', name: '竹北店' },
+    { id: 'jinshan', name: '金山店' },
+  ]);
+  const [visibleStoreIds, setVisibleStoreIds] = useState<string[]>(['chupei', 'jinshan']);
+  const [showStorePicker, setShowStorePicker] = useState(false);
+
+  // 排序狀態 (預設: 最新建立優先 createdAt DESC)
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // 伺服器端分頁與統計狀態
   const [page, setPage] = useState(1);
@@ -44,9 +63,9 @@ export const InventoryView: React.FC = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
-  // 調庫存 Modal
+  // 調庫存 Modal (動態門市)
   const [stockAdjustTarget, setStockAdjustTarget] = useState<any | null>(null);
-  const [adjustStore, setAdjustStore] = useState<'chupei' | 'jinshan'>('chupei');
+  const [adjustStore, setAdjustStore] = useState<string>('chupei');
   const [adjustDelta, setAdjustDelta] = useState<number>(0);
   const [adjustReason, setAdjustReason] = useState<string>('');
   const [adjustLoading, setAdjustLoading] = useState(false);
@@ -58,6 +77,34 @@ export const InventoryView: React.FC = () => {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<any | null>(null);
 
+  // 手動新增單品主檔 Modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState<{
+    id: string;
+    name: string;
+    category: string;
+    customCategory: string;
+    costPrice: number;
+    sellingPrice: number;
+    suggestedPoints: number;
+    barcode: string;
+    safetyStock: number;
+    initialStocks: Record<string, number>;
+  }>({
+    id: '',
+    name: '',
+    category: 'GENERAL',
+    customCategory: '',
+    costPrice: 0,
+    sellingPrice: 0,
+    suggestedPoints: 0,
+    barcode: '',
+    safetyStock: 2,
+    initialStocks: {},
+  });
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
   // 250ms 搜尋輸入防抖 (Debounce)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -66,15 +113,15 @@ export const InventoryView: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // 當搜尋條件、分類或缺貨篩選改變時，重置回第 1 頁
+  // 當搜尋條件、分類、缺貨篩選或排序改變時，重置回第 1 頁
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, selectedCategory, lowStockOnly, pageSize]);
+  }, [searchTerm, selectedCategory, lowStockOnly, pageSize, sortBy, sortOrder]);
 
   // 當分頁或條件改變時加載數據
   useEffect(() => {
     loadInventory();
-  }, [page, pageSize, searchTerm, selectedCategory, lowStockOnly]);
+  }, [page, pageSize, searchTerm, selectedCategory, lowStockOnly, sortBy, sortOrder]);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -85,9 +132,20 @@ export const InventoryView: React.FC = () => {
         lowStockOnly,
         page,
         pageSize,
+        sortBy,
+        sortOrder,
       });
       if (res.success) {
         setItems(res.data);
+        if (res.stores && Array.isArray(res.stores) && res.stores.length > 0) {
+          setStores(res.stores);
+          // 若初次載入或門市變更，同步預設可見門市
+          setVisibleStoreIds((prev) => {
+            const existingIds = new Set(prev);
+            const valid = res.stores.filter((s: any) => existingIds.has(s.id)).map((s: any) => s.id);
+            return valid.length > 0 ? valid : res.stores.map((s: any) => s.id);
+          });
+        }
         if (res.pagination) {
           setTotalItems(res.pagination.total);
           setTotalPages(res.pagination.totalPages || 1);
@@ -106,6 +164,93 @@ export const InventoryView: React.FC = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 排序切換處理
+  const handleSortToggle = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc'); // 切換新欄位時預設降序
+    }
+  };
+
+  // 門市顯示切換
+  const toggleStoreVisibility = (storeId: string) => {
+    if (visibleStoreIds.includes(storeId)) {
+      if (visibleStoreIds.length === 1) return; // 至少保留一間門市
+      setVisibleStoreIds(visibleStoreIds.filter((id) => id !== storeId));
+    } else {
+      setVisibleStoreIds([...visibleStoreIds, storeId]);
+    }
+  };
+
+  // 自動產生貨號
+  const handleGenerateId = () => {
+    const cat = createForm.category === 'CUSTOM' ? (createForm.customCategory || 'GEN') : createForm.category;
+    const prefix = cat.slice(0, 3).toUpperCase();
+    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+    setCreateForm((prev) => ({ ...prev, id: `${prefix}-${randomSuffix}` }));
+  };
+
+  // 自動產生 471 標準條碼
+  const handleGenerateBarcode = () => {
+    const randomDigits = Math.floor(1000000 + Math.random() * 9000000);
+    setCreateForm((prev) => ({ ...prev, barcode: `471${randomDigits}` }));
+  };
+
+  // 提交新增單品主檔
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.name.trim()) {
+      setCreateError('請填寫商品名稱');
+      return;
+    }
+
+    const finalCategory = createForm.category === 'CUSTOM' 
+      ? (createForm.customCategory.trim() || 'GENERAL') 
+      : createForm.category;
+
+    setCreateLoading(true);
+    setCreateError(null);
+    try {
+      await inventoryApi.createProduct({
+        id: createForm.id.trim() || undefined,
+        name: createForm.name.trim(),
+        category: finalCategory,
+        costPrice: createForm.costPrice,
+        sellingPrice: createForm.sellingPrice,
+        suggestedPoints: createForm.suggestedPoints,
+        barcode: createForm.barcode.trim() || undefined,
+        safetyStock: createForm.safetyStock,
+        initialStocks: createForm.initialStocks,
+      });
+
+      setShowCreateModal(false);
+      // 重設表單
+      setCreateForm({
+        id: '',
+        name: '',
+        category: 'GENERAL',
+        customCategory: '',
+        costPrice: 0,
+        sellingPrice: 0,
+        suggestedPoints: 0,
+        barcode: '',
+        safetyStock: 2,
+        initialStocks: {},
+      });
+      // 重新整理 (此時排在最前頭)
+      setSortBy('createdAt');
+      setSortOrder('desc');
+      setPage(1);
+      loadInventory();
+    } catch (err: any) {
+      setCreateError(err.message || '新增商品失敗');
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -235,7 +380,7 @@ export const InventoryView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => loadInventory()}
             className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl border border-slate-700 transition"
@@ -243,6 +388,34 @@ export const InventoryView: React.FC = () => {
           >
             <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : ''}`} />
           </button>
+
+          {/* 新增單品主檔 */}
+          <button
+            onClick={() => {
+              // 初始化各門市期初庫存字典
+              const initMap: Record<string, number> = {};
+              stores.forEach((s) => { initMap[s.id] = 0; });
+              setCreateForm({
+                id: '',
+                name: '',
+                category: 'GENERAL',
+                customCategory: '',
+                costPrice: 0,
+                sellingPrice: 0,
+                suggestedPoints: 0,
+                barcode: '',
+                safetyStock: 2,
+                initialStocks: initMap,
+              });
+              setCreateError(null);
+              setShowCreateModal(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-950/30 transition"
+          >
+            <Plus className="w-4 h-4" />
+            新增單品主檔
+          </button>
+
           <button
             onClick={() => {
               setShowBulkModal(true);
@@ -265,7 +438,7 @@ export const InventoryView: React.FC = () => {
         </div>
       </div>
 
-      {/* 篩選欄 */}
+      {/* 篩選與門市顯示列 */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -287,7 +460,7 @@ export const InventoryView: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -298,7 +471,45 @@ export const InventoryView: React.FC = () => {
             <option value="FIGURE">景品公仔</option>
             <option value="GENERAL">一般商品</option>
             <option value="BLIND_BOX">盒玩盲盒</option>
+            <option value="寶可夢">寶可夢</option>
+            <option value="海賊王">海賊王</option>
+            <option value="七龍珠">七龍珠</option>
+            <option value="宮崎駿">宮崎駿</option>
+            <option value="灌籃高手">灌籃高手</option>
           </select>
+
+          {/* 門市欄位自訂顯示開關 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowStorePicker(!showStorePicker)}
+              className="px-3 py-2 bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition"
+              title="勾選欲顯示的門市欄位"
+            >
+              <Store className="w-3.5 h-3.5 text-indigo-400" />
+              門市欄位 ({visibleStoreIds.length}/{stores.length})
+            </button>
+            {showStorePicker && (
+              <div className="absolute right-0 top-11 w-48 bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-2xl z-40 space-y-2">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  自訂可見門市
+                </div>
+                {stores.map((s) => (
+                  <label
+                    key={s.id}
+                    className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer hover:text-white"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleStoreIds.includes(s.id)}
+                      onChange={() => toggleStoreVisibility(s.id)}
+                      className="rounded border-slate-700 text-amber-500 focus:ring-0"
+                    />
+                    <span>{s.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => setLowStockOnly(!lowStockOnly)}
@@ -321,44 +532,104 @@ export const InventoryView: React.FC = () => {
         </div>
       </div>
 
-      {/* 雙門市庫存對照表格 */}
-      <div className="bg-slate-800/70 border border-slate-700/80 rounded-2xl overflow-hidden">
+      {/* 多門市動態庫存對照表格 */}
+      <div className="bg-slate-800/70 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-900/60 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
               <tr>
-                <th className="py-3 px-4">貨號 / 條碼</th>
+                <th
+                  onClick={() => handleSortToggle('createdAt')}
+                  className="py-3 px-4 cursor-pointer hover:text-white transition select-none"
+                  title="點擊依建立時間排序 (最新在上)"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>貨號 / 建立時間</span>
+                    {sortBy === 'createdAt' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-400" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
+                    )}
+                  </div>
+                </th>
                 <th className="py-3 px-4">品名</th>
                 <th className="py-3 px-4">類別</th>
                 <th className="py-3 px-4 text-right">成本價</th>
-                <th className="py-3 px-4 text-right">建議售價</th>
-                <th className="py-3 px-4 text-center bg-blue-950/20 text-blue-300">竹北店庫存</th>
-                <th className="py-3 px-4 text-center bg-amber-950/20 text-amber-300">金山店庫存</th>
-                <th className="py-3 px-4 text-center">雙店合計</th>
+                <th
+                  onClick={() => handleSortToggle('sellingPrice')}
+                  className="py-3 px-4 text-right cursor-pointer hover:text-white transition select-none"
+                  title="點擊依售價排序"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>建議售價</span>
+                    {sortBy === 'sellingPrice' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-400" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
+                    )}
+                  </div>
+                </th>
+
+                {/* 動態渲染已勾選之門市表頭 */}
+                {stores.filter((s) => visibleStoreIds.includes(s.id)).map((s, idx) => {
+                  const colorThemes = [
+                    'bg-blue-950/20 text-blue-300 border-blue-500/20',
+                    'bg-amber-950/20 text-amber-300 border-amber-500/20',
+                    'bg-emerald-950/20 text-emerald-300 border-emerald-500/20',
+                    'bg-purple-950/20 text-purple-300 border-purple-500/20',
+                    'bg-cyan-950/20 text-cyan-300 border-cyan-500/20',
+                  ];
+                  const theme = colorThemes[idx % colorThemes.length];
+                  return (
+                    <th key={s.id} className={`py-3 px-4 text-center font-bold ${theme}`}>
+                      {s.name}庫存
+                    </th>
+                  );
+                })}
+
+                <th
+                  onClick={() => handleSortToggle('totalStock')}
+                  className="py-3 px-4 text-center cursor-pointer hover:text-white transition select-none"
+                  title="點擊依全店合計庫存排序"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span>全店合計</span>
+                    {sortBy === 'totalStock' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-400" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
+                    )}
+                  </div>
+                </th>
                 <th className="py-3 px-4 text-center">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/60 text-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-500">
+                  <td colSpan={6 + visibleStoreIds.length} className="py-8 text-center text-slate-500">
                     載入中...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-500">
+                  <td colSpan={6 + visibleStoreIds.length} className="py-8 text-center text-slate-500">
                     查無商品庫存資料
                   </td>
                 </tr>
               ) : (
                 items.map((item) => {
-                  const totalStock = (item.chupeiStock || 0) + (item.jinshanStock || 0);
+                  const visibleStores = stores.filter((s) => visibleStoreIds.includes(s.id));
                   return (
                     <tr key={item.id} className="hover:bg-slate-750/50 transition">
                       <td className="py-3.5 px-4 font-mono text-xs">
                         <div className="font-semibold text-white">{item.id}</div>
                         {item.barcode && <div className="text-[11px] text-slate-500">{item.barcode}</div>}
+                        {item.createdAt && (
+                          <div className="text-[10px] text-slate-500">
+                            {new Date(item.createdAt).toLocaleDateString()}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 font-medium text-white max-w-xs truncate">
                         {item.name}
@@ -374,27 +645,39 @@ export const InventoryView: React.FC = () => {
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-amber-400">
                         ${item.sellingPrice?.toLocaleString() || 0}
                       </td>
-                      {/* 竹北店庫存 */}
-                      <td className="py-3.5 px-4 text-center bg-blue-950/10 font-bold font-mono">
-                        <span className={item.chupeiStock <= (item.safetyStock || 1) ? 'text-rose-400' : 'text-blue-300'}>
-                          {item.chupeiStock ?? 0}
-                        </span>
-                      </td>
-                      {/* 金山店庫存 */}
-                      <td className="py-3.5 px-4 text-center bg-amber-950/10 font-bold font-mono">
-                        <span className={item.jinshanStock <= (item.safetyStock || 1) ? 'text-rose-400' : 'text-amber-300'}>
-                          {item.jinshanStock ?? 0}
-                        </span>
-                      </td>
-                      {/* 雙店合計 */}
+
+                      {/* 動態渲染各門市庫存 */}
+                      {visibleStores.map((s, idx) => {
+                        const colorThemes = [
+                          { bg: 'bg-blue-950/10', text: 'text-blue-300' },
+                          { bg: 'bg-amber-950/10', text: 'text-amber-300' },
+                          { bg: 'bg-emerald-950/10', text: 'text-emerald-300' },
+                          { bg: 'bg-purple-950/10', text: 'text-purple-300' },
+                          { bg: 'bg-cyan-950/10', text: 'text-cyan-300' },
+                        ];
+                        const theme = colorThemes[idx % colorThemes.length];
+                        const qty = item.storeStocks?.[s.id] ?? (s.id === 'chupei' ? item.chupeiStock : s.id === 'jinshan' ? item.jinshanStock : 0) ?? 0;
+                        const safety = item.safetyStocks?.[s.id] ?? item.safetyStock ?? 2;
+                        const isStoreLow = qty <= safety && safety > 0;
+                        return (
+                          <td key={s.id} className={`py-3.5 px-4 text-center font-bold font-mono ${theme.bg}`}>
+                            <span className={isStoreLow ? 'text-rose-400' : theme.text}>
+                              {qty}
+                            </span>
+                          </td>
+                        );
+                      })}
+
+                      {/* 全店合計 */}
                       <td className="py-3.5 px-4 text-center font-extrabold text-white">
-                        {totalStock}
+                        {item.totalStock ?? 0}
                         {item.isLowStock && (
                           <span className="ml-1.5 inline-block text-[10px] px-1.5 py-0.2 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded">
                             低量
                           </span>
                         )}
                       </td>
+
                       {/* 操作按鈕 */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
@@ -413,7 +696,7 @@ export const InventoryView: React.FC = () => {
                           <button
                             onClick={() => {
                               setStockAdjustTarget(item);
-                              setAdjustStore('chupei');
+                              setAdjustStore(stores[0]?.id || 'chupei');
                               setAdjustDelta(0);
                               setAdjustReason('');
                               setAdjustError(null);
@@ -599,7 +882,7 @@ export const InventoryView: React.FC = () => {
             <div className="bg-slate-900/80 p-3 rounded-xl mb-4 text-xs space-y-1">
               <div className="text-slate-300">商品：<span className="text-white font-bold">{stockAdjustTarget.name}</span></div>
               <div className="text-slate-400 font-mono">
-                竹北庫存: {stockAdjustTarget.chupeiStock ?? 0} | 金山庫存: {stockAdjustTarget.jinshanStock ?? 0}
+                {stores.map((s) => `${s.name}: ${stockAdjustTarget.storeStocks?.[s.id] ?? 0}`).join(' | ')}
               </div>
             </div>
 
@@ -618,8 +901,9 @@ export const InventoryView: React.FC = () => {
                   onChange={(e: any) => setAdjustStore(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
                 >
-                  <option value="chupei">竹北門市</option>
-                  <option value="jinshan">金山門市</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -723,6 +1007,236 @@ export const InventoryView: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 手動新增單品主檔 Modal (支援多門市期初庫存與一鍵產號) */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2 mb-2">
+              <Plus className="w-5 h-5 text-emerald-400" />
+              <h3 className="text-lg font-bold text-white">新增單品主檔與期初入庫</h3>
+            </div>
+            <p className="text-xs text-slate-400 mb-4">
+              設定商品基礎規格、售價成本，並動態指派各門市初始現貨量。
+            </p>
+
+            {createError && (
+              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{createError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
+              {/* 品名 */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  商品品名 <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  placeholder="例如: 海賊王 索隆 三千世界 雕像"
+                  className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+
+              {/* 貨號與條碼 (支援一鍵自動產號) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-slate-300">商品貨號 (ID)</label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateId}
+                      className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      自動產生
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={createForm.id}
+                    onChange={(e) => setCreateForm({ ...createForm, id: e.target.value })}
+                    placeholder="留空將自動生成"
+                    className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-slate-300">商品條碼 (Barcode)</label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateBarcode}
+                      className="text-[11px] text-indigo-400 hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      產生 471 條碼
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={createForm.barcode}
+                    onChange={(e) => setCreateForm({ ...createForm, barcode: e.target.value })}
+                    placeholder="例如: 471000888 (選填)"
+                    className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* 類別 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">商品類別</label>
+                  <select
+                    value={createForm.category}
+                    onChange={(e) => setCreateForm({ ...createForm, category: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="GENERAL">一般商品 (GENERAL)</option>
+                    <option value="GK">GK 雕像 (GK)</option>
+                    <option value="FIGURE">景品公仔 (FIGURE)</option>
+                    <option value="BLIND_BOX">盒玩盲盒 (BLIND_BOX)</option>
+                    <option value="寶可夢">寶可夢</option>
+                    <option value="海賊王">海賊王</option>
+                    <option value="七龍珠">七龍珠</option>
+                    <option value="宮崎駿">宮崎駿</option>
+                    <option value="灌籃高手">灌籃高手</option>
+                    <option value="CUSTOM">+ 自訂新類別</option>
+                  </select>
+                </div>
+                {createForm.category === 'CUSTOM' && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">輸入自訂類別名稱</label>
+                    <input
+                      type="text"
+                      value={createForm.customCategory}
+                      onChange={(e) => setCreateForm({ ...createForm, customCategory: e.target.value })}
+                      placeholder="例如: 咒術迴戰、一番賞..."
+                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* 成本、售價、點數 */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">進貨成本價</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={createForm.costPrice}
+                    onChange={(e) => setCreateForm({ ...createForm, costPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    建議售價 <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={createForm.sellingPrice}
+                    onChange={(e) => {
+                      const sp = parseFloat(e.target.value) || 0;
+                      setCreateForm({
+                        ...createForm,
+                        sellingPrice: sp,
+                        suggestedPoints: Math.round(sp * 0.05),
+                      });
+                    }}
+                    className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-amber-400 focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">折抵點數 (5%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={createForm.suggestedPoints}
+                    onChange={(e) => setCreateForm({ ...createForm, suggestedPoints: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-slate-300 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* 動態多門市期初庫存量輸入 */}
+              <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Store className="w-3.5 h-3.5 text-indigo-400" />
+                    各門市期初入庫數量
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] text-slate-400">安全庫存預警值:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={createForm.safetyStock}
+                      onChange={(e) => setCreateForm({ ...createForm, safetyStock: parseInt(e.target.value, 10) || 0 })}
+                      className="w-16 px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-center text-xs font-mono text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {stores.map((s) => (
+                    <div key={s.id} className="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/50">
+                      <div className="text-[11px] font-medium text-slate-300 mb-1">{s.name}</div>
+                      <input
+                        type="number"
+                        min="0"
+                        value={createForm.initialStocks[s.id] ?? 0}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10) || 0;
+                          setCreateForm({
+                            ...createForm,
+                            initialStocks: { ...createForm.initialStocks, [s.id]: val },
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-center text-white focus:outline-none focus:border-indigo-500"
+                        placeholder="0"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 按鈕 */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-xl transition"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={createLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition disabled:opacity-50 shadow"
+                >
+                  {createLoading ? '建立中...' : '確認建立單品主檔'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
