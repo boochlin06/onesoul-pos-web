@@ -243,7 +243,7 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
             data: {
               storeId: s.id,
               productId: prodId,
-              type: 'INBOUND',
+              changeType: 'MANUAL_ADJUST',
               delta: qty,
               balance: qty,
               reason: '後台手動新增單品期初入庫',
