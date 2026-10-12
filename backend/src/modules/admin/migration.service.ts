@@ -358,7 +358,8 @@ class MigrationManager extends EventEmitter {
 
         if (prizeName) {
           const gradeIndex = cleanPrizes.filter((p) => p.bagId === bagId).length;
-          const grade = gradeIndex === 0 ? 'A' : gradeIndex === 1 ? 'B' : gradeIndex === 2 ? 'C' : 'D';
+          const grades = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'LAST'];
+          const grade = gradeIndex < grades.length ? grades[gradeIndex] : `P${gradeIndex + 1}`;
 
           cleanPrizes.push({
             id: `p-${bagId}-${gradeIndex + 1}`,
