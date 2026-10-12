@@ -137,6 +137,44 @@ describe('OneSoul ERP Admin API Suite', () => {
       expect(res.json().data.delta).toBe(5);
     });
 
+    it('試算表級批次原地更新 (batch-update) 應能原子性更新商品主檔與庫存調帳', async () => {
+      // 1. 空更新應回傳 400
+      const emptyRes = await app.inject({
+        method: 'POST',
+        url: '/api/admin/inventory/batch-update',
+        payload: { productUpdates: [], stockAdjustments: [] },
+      });
+      expect(emptyRes.statusCode).toBe(400);
+
+      // 2. 正常批次更新
+      const batchRes = await app.inject({
+        method: 'POST',
+        url: '/api/admin/inventory/batch-update',
+        payload: {
+          productUpdates: [
+            { id: 'GEN001', sellingPrice: 388, costPrice: 199, suggestedPoints: 19 },
+          ],
+          stockAdjustments: [
+            { storeId: 'chupei', productId: 'GEN001', newQuantity: 28, reason: '試算表批次盤點更新' },
+          ],
+        },
+      });
+      expect(batchRes.statusCode).toBe(200);
+      const data = batchRes.json().data;
+      expect(data.updatedProductCount).toBe(1);
+      expect(data.updatedStockCount).toBe(1);
+
+      // 3. 驗證資料庫實際變更
+      const checkRes = await app.inject({
+        method: 'GET',
+        url: '/api/admin/inventory/summary?q=GEN001',
+      });
+      const prod = checkRes.json().data[0];
+      expect(prod.sellingPrice).toBe(388);
+      expect(prod.costPrice).toBe(199);
+      expect(prod.storeStocks.chupei).toBe(28);
+    });
+
     it('Excel 批次上架精靈 (Bulk Import) 應能正確解析並批量入庫', async () => {
       const res = await app.inject({
         method: 'POST',

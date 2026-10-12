@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { inventoryApi, reportsApi } from '../api/client';
 import { 
   Package, 
@@ -23,8 +23,23 @@ import {
   ArrowDown,
   Sparkles,
   Store,
-  Eye
+  Zap,
+  Save,
+  Undo2,
+  Check,
+  CornerDownLeft,
+  Rows,
+  Layers
 } from 'lucide-react';
+
+interface PendingCellChange {
+  type: 'product' | 'stock';
+  productId: string;
+  storeId?: string;
+  field: string;
+  originalValue: any;
+  currentValue: any;
+}
 
 export const InventoryView: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
@@ -56,7 +71,25 @@ export const InventoryView: React.FC = () => {
     lowStockCount: 0,
   });
 
-  // 改價 Modal (含樂觀鎖版本號)
+  // ── Google Sheet 試算表核心體驗狀態 ────────────────────────────
+  // 雙軌模式: 'auto' (Enter/失焦立即自動儲存) | 'batch' (批次暫存手動/Ctrl+S送出)
+  const [saveMode, setSaveMode] = useState<'auto' | 'batch'>('auto');
+  // 行高密度: 'compact' (32px 試算表高密度) | 'standard' (44px 標準舒適)
+  const [density, setDensity] = useState<'compact' | 'standard'>('compact');
+
+  // 當前選取與編輯單元格焦點
+  const [activeCell, setActiveCell] = useState<{ rowId: string; colId: string } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ rowId: string; colId: string; value: any } | null>(null);
+
+  // 單元格儲存狀態反饋微閃 (key: `${rowId}_${colId}`)
+  const [cellFeedback, setCellFeedback] = useState<Record<string, { status: 'saving' | 'saved' | 'error'; message?: string }>>({});
+
+  // 批次暫存變更集合 (key: `${rowId}_${colId}`)
+  const [pendingChanges, setPendingChanges] = useState<Map<string, PendingCellChange>>(new Map());
+  const [batchSaving, setBatchSaving] = useState(false);
+  const [batchToast, setBatchToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // 改價 Modal (含樂觀鎖版本號，作為進階輔助視窗)
   const [editProduct, setEditProduct] = useState<any | null>(null);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [costPrice, setCostPrice] = useState<number>(0);
@@ -139,7 +172,6 @@ export const InventoryView: React.FC = () => {
         setItems(res.data);
         if (res.stores && Array.isArray(res.stores) && res.stores.length > 0) {
           setStores(res.stores);
-          // 若初次載入或門市變更，同步預設可見門市
           setVisibleStoreIds((prev) => {
             const existingIds = new Set(prev);
             const valid = res.stores.filter((s: any) => existingIds.has(s.id)).map((s: any) => s.id);
@@ -167,20 +199,309 @@ export const InventoryView: React.FC = () => {
     }
   };
 
+  // ── 試算表可導航欄位定義 ──────────────────────────────────────
+  const getNavigableColIds = useCallback(() => {
+    const cols = ['name', 'category', 'costPrice', 'sellingPrice', 'suggestedPoints'];
+    const visibleStores = stores.filter((s) => visibleStoreIds.includes(s.id));
+    visibleStores.forEach((s) => {
+      cols.push(`store_${s.id}`);
+    });
+    cols.push('safetyStock');
+    return cols;
+  }, [stores, visibleStoreIds]);
+
+  // 取得單元格即時數值
+  const getCellValue = (item: any, colId: string) => {
+    if (colId.startsWith('store_')) {
+      const storeId = colId.replace('store_', '');
+      return item.storeStocks?.[storeId] ?? (storeId === 'chupei' ? item.chupeiStock : storeId === 'jinshan' ? item.jinshanStock : 0) ?? 0;
+    }
+    return item[colId] ?? '';
+  };
+
+  // ── 單元格送出與即時公式連動 ────────────────────────────────────
+  const handleCellCommit = async (rowId: string, colId: string, inputVal: any) => {
+    const item = items.find((i) => i.id === rowId);
+    if (!item) return;
+
+    const oldValue = getCellValue(item, colId);
+    const isNumeric = ['costPrice', 'sellingPrice', 'suggestedPoints', 'safetyStock'].includes(colId) || colId.startsWith('store_');
+    let parsedNew = inputVal;
+    if (isNumeric) {
+      parsedNew = Number(inputVal);
+      if (isNaN(parsedNew)) parsedNew = 0;
+    } else {
+      parsedNew = String(inputVal || '').trim();
+    }
+
+    if (parsedNew === oldValue) {
+      setEditingCell(null);
+      return;
+    }
+
+    // 1. 前端樂觀更新 + 即時公式計算連動
+    setItems((prevItems) =>
+      prevItems.map((prod) => {
+        if (prod.id !== rowId) return prod;
+        const updated = { ...prod };
+        if (colId.startsWith('store_')) {
+          const storeId = colId.replace('store_', '');
+          const newStocks = { ...(prod.storeStocks || {}), [storeId]: parsedNew };
+          updated.storeStocks = newStocks;
+          if (storeId === 'chupei') updated.chupeiStock = parsedNew;
+          if (storeId === 'jinshan') updated.jinshanStock = parsedNew;
+          // 動態重算合計庫存
+          updated.totalStock = Object.values(newStocks).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+          updated.isLowStock = updated.totalStock <= (updated.safetyStock || 2);
+        } else {
+          updated[colId] = parsedNew;
+          // 修改售價自動連動 5% 點數回饋
+          if (colId === 'sellingPrice') {
+            updated.suggestedPoints = Math.round(parsedNew * 0.05);
+          }
+        }
+        return updated;
+      })
+    );
+
+    const cellKey = `${rowId}_${colId}`;
+    setEditingCell(null);
+
+    // 2. 批次錄入模式：寫入 pendingChanges
+    if (saveMode === 'batch') {
+      setPendingChanges((prev) => {
+        const next = new Map(prev);
+        const isStock = colId.startsWith('store_');
+        const storeId = isStock ? colId.replace('store_', '') : undefined;
+        const existingChange = next.get(cellKey);
+        const originalVal = existingChange ? existingChange.originalValue : oldValue;
+
+        if (parsedNew === originalVal) {
+          next.delete(cellKey);
+        } else {
+          next.set(cellKey, {
+            type: isStock ? 'stock' : 'product',
+            productId: rowId,
+            storeId,
+            field: isStock ? storeId! : colId,
+            originalValue: originalVal,
+            currentValue: parsedNew,
+          });
+        }
+        return next;
+      });
+      return;
+    }
+
+    // 3. 即時自動存檔模式：直接發送 API 並給予微閃反饋
+    setCellFeedback((prev) => ({ ...prev, [cellKey]: { status: 'saving' } }));
+    try {
+      if (colId.startsWith('store_')) {
+        const storeId = colId.replace('store_', '');
+        await inventoryApi.adjustStock(
+          storeId,
+          rowId,
+          0,
+          '試算表原地儲存格快速調帳',
+          parsedNew
+        );
+      } else {
+        const payload: any = {
+          [colId]: parsedNew,
+          version: item.version,
+        };
+        if (colId === 'sellingPrice') {
+          payload.suggestedPoints = Math.round(parsedNew * 0.05);
+        }
+        await inventoryApi.updateProduct(rowId, payload);
+      }
+
+      // 儲存成功：綠光微閃
+      setCellFeedback((prev) => ({ ...prev, [cellKey]: { status: 'saved' } }));
+      setTimeout(() => {
+        setCellFeedback((prev) => {
+          const c = { ...prev };
+          delete c[cellKey];
+          return c;
+        });
+      }, 1200);
+    } catch (err: any) {
+      console.error(err);
+      // 復原資料
+      setItems((prevItems) =>
+        prevItems.map((prod) => (prod.id === rowId ? item : prod))
+      );
+      setCellFeedback((prev) => ({
+        ...prev,
+        [cellKey]: { status: 'error', message: err.message || '儲存失敗' },
+      }));
+    }
+  };
+
+  // ── 全套鍵盤流快捷導航 (Tab/Enter/Esc) ─────────────────────────
+  const handleCellKeyDown = (e: React.KeyboardEvent, rowId: string, colId: string) => {
+    const navigableCols = getNavigableColIds();
+    const currentColIdx = navigableCols.indexOf(colId);
+    const currentRowIdx = items.findIndex((i) => i.id === rowId);
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentVal = editingCell?.value;
+      handleCellCommit(rowId, colId, currentVal);
+
+      // 移動到下一列相同欄位 (Shift+Enter 往上)
+      const targetRowIdx = e.shiftKey ? currentRowIdx - 1 : currentRowIdx + 1;
+      if (targetRowIdx >= 0 && targetRowIdx < items.length) {
+        const nextItem = items[targetRowIdx];
+        setActiveCell({ rowId: nextItem.id, colId });
+        setEditingCell({ rowId: nextItem.id, colId, value: getCellValue(nextItem, colId) });
+      }
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const currentVal = editingCell?.value;
+      handleCellCommit(rowId, colId, currentVal);
+
+      // 移動到下一欄 (Shift+Tab 往上一欄)
+      if (e.shiftKey) {
+        if (currentColIdx > 0) {
+          const prevCol = navigableCols[currentColIdx - 1];
+          setActiveCell({ rowId, colId: prevCol });
+          setEditingCell({ rowId, colId: prevCol, value: getCellValue(items[currentRowIdx], prevCol) });
+        } else if (currentRowIdx > 0) {
+          const prevCol = navigableCols[navigableCols.length - 1];
+          const prevItem = items[currentRowIdx - 1];
+          setActiveCell({ rowId: prevItem.id, colId: prevCol });
+          setEditingCell({ rowId: prevItem.id, colId: prevCol, value: getCellValue(prevItem, prevCol) });
+        }
+      } else {
+        if (currentColIdx < navigableCols.length - 1) {
+          const nextCol = navigableCols[currentColIdx + 1];
+          setActiveCell({ rowId, colId: nextCol });
+          setEditingCell({ rowId, colId: nextCol, value: getCellValue(items[currentRowIdx], nextCol) });
+        } else if (currentRowIdx < items.length - 1) {
+          const nextCol = navigableCols[0];
+          const nextItem = items[currentRowIdx + 1];
+          setActiveCell({ rowId: nextItem.id, colId: nextCol });
+          setEditingCell({ rowId: nextItem.id, colId: nextCol, value: getCellValue(nextItem, nextCol) });
+        }
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setEditingCell(null);
+    }
+  };
+
+  // ── 全域快捷鍵監聽 (Ctrl+S / Cmd+S 批次儲存) ───────────────────
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (pendingChanges.size > 0 && !batchSaving) {
+          handleBatchSave();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [pendingChanges, batchSaving]);
+
+  // ── 批次儲存提交 (Batch Save) ──────────────────────────────────
+  const handleBatchSave = async () => {
+    if (pendingChanges.size === 0 || batchSaving) return;
+
+    setBatchSaving(true);
+    setBatchToast(null);
+
+    const productMap = new Map<string, any>();
+    const stockAdjustments: Array<{ productId: string; storeId: string; newQuantity: number; reason: string }> = [];
+
+    pendingChanges.forEach((change) => {
+      if (change.type === 'product') {
+        const prodData = productMap.get(change.productId) || { id: change.productId };
+        prodData[change.field] = change.currentValue;
+        if (change.field === 'sellingPrice') {
+          prodData.suggestedPoints = Math.round(Number(change.currentValue) * 0.05);
+        }
+        productMap.set(change.productId, prodData);
+      } else if (change.type === 'stock' && change.storeId) {
+        stockAdjustments.push({
+          productId: change.productId,
+          storeId: change.storeId,
+          newQuantity: Number(change.currentValue),
+          reason: '試算表批次原地更新庫存',
+        });
+      }
+    });
+
+    const productUpdates = Array.from(productMap.values());
+
+    try {
+      const res = await inventoryApi.batchUpdate({
+        productUpdates,
+        stockAdjustments,
+      });
+
+      if (res.success) {
+        setBatchToast({
+          type: 'success',
+          message: `✅ 批次更新成功！已儲存 ${productUpdates.length} 筆商品主檔與 ${stockAdjustments.length} 筆庫存紀錄。`,
+        });
+        setPendingChanges(new Map());
+        loadInventory();
+        setTimeout(() => setBatchToast(null), 3500);
+      }
+    } catch (err: any) {
+      setBatchToast({
+        type: 'error',
+        message: err.message || '批次更新失敗，請檢查資料',
+      });
+    } finally {
+      setBatchSaving(false);
+    }
+  };
+
+  // 放棄所有暫存變更
+  const handleDiscardChanges = () => {
+    if (pendingChanges.size === 0) return;
+    if (!window.confirm(`確定要放棄目前未儲存的 ${pendingChanges.size} 筆暫存變更嗎？`)) return;
+
+    setItems((prevItems) => {
+      return prevItems.map((prod) => {
+        let updated = { ...prod };
+        pendingChanges.forEach((change) => {
+          if (change.productId === prod.id) {
+            if (change.type === 'product') {
+              updated[change.field] = change.originalValue;
+            } else if (change.type === 'stock' && change.storeId) {
+              const newStocks = { ...(updated.storeStocks || {}), [change.storeId]: change.originalValue };
+              updated.storeStocks = newStocks;
+              updated.totalStock = Object.values(newStocks).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+            }
+          }
+        });
+        return updated;
+      });
+    });
+
+    setPendingChanges(new Map());
+    setBatchToast({ type: 'success', message: '已還原所有暫存變更' });
+    setTimeout(() => setBatchToast(null), 2000);
+  };
+
   // 排序切換處理
   const handleSortToggle = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(field);
-      setSortOrder('desc'); // 切換新欄位時預設降序
+      setSortOrder('desc');
     }
   };
 
   // 門市顯示切換
   const toggleStoreVisibility = (storeId: string) => {
     if (visibleStoreIds.includes(storeId)) {
-      if (visibleStoreIds.length === 1) return; // 至少保留一間門市
+      if (visibleStoreIds.length === 1) return;
       setVisibleStoreIds(visibleStoreIds.filter((id) => id !== storeId));
     } else {
       setVisibleStoreIds([...visibleStoreIds, storeId]);
@@ -229,7 +550,6 @@ export const InventoryView: React.FC = () => {
       });
 
       setShowCreateModal(false);
-      // 重設表單
       setCreateForm({
         id: '',
         name: '',
@@ -242,7 +562,6 @@ export const InventoryView: React.FC = () => {
         safetyStock: 2,
         initialStocks: {},
       });
-      // 重新整理 (此時排在最前頭)
       setSortBy('createdAt');
       setSortOrder('desc');
       setPage(1);
@@ -264,7 +583,7 @@ export const InventoryView: React.FC = () => {
       await inventoryApi.updateProduct(editProduct.id, {
         sellingPrice,
         costPrice,
-        version: editProduct.version, // 樂觀鎖版本驗證
+        version: editProduct.version,
       });
       setEditProduct(null);
       loadInventory();
@@ -310,7 +629,6 @@ export const InventoryView: React.FC = () => {
     setBulkLoading(true);
     setBulkResult(null);
     try {
-      // 解析 CSV 格式: 貨號,品名,成本,售價,數量,安全庫存
       const lines = bulkCsvText.trim().split('\n');
       const parsedItems = [];
       for (const line of lines) {
@@ -339,60 +657,134 @@ export const InventoryView: React.FC = () => {
     }
   };
 
-  // 生成分頁頁碼按鈕序列
+  // 生成分頁頁碼
   const generatePageNumbers = (current: number, total: number): number[] => {
     if (total <= 7) {
       return Array.from({ length: Math.max(1, total) }, (_, i) => i + 1);
     }
     const pages: number[] = [];
     pages.push(1);
-    if (current > 3) {
-      pages.push(-1);
-    }
+    if (current > 3) pages.push(-1);
     const start = Math.max(2, current - 1);
     const end = Math.min(total - 1, current + 1);
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-    if (current < total - 2) {
-      pages.push(-1);
-    }
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (current < total - 2) pages.push(-1);
     pages.push(total);
     return pages;
   };
 
+  // 緊湊/標準樣式輔助變數
+  const isCompact = density === 'compact';
+  const rowHeightClass = isCompact ? 'h-8 text-xs' : 'h-11 text-sm';
+  const cellPaddingClass = isCompact ? 'px-2.5 py-0.5' : 'px-3 py-2';
+
+  // 渲染可原地編輯之單元格
+  const renderEditableCell = (
+    item: any,
+    colId: string,
+    align: 'left' | 'center' | 'right' = 'left',
+    formatValue?: (val: any) => string | React.ReactNode,
+    customClass = ''
+  ) => {
+    const rawVal = getCellValue(item, colId);
+    const cellKey = `${item.id}_${colId}`;
+    const isEditing = editingCell?.rowId === item.id && editingCell?.colId === colId;
+    const isActive = activeCell?.rowId === item.id && activeCell?.colId === colId;
+    const isPending = pendingChanges.has(cellKey);
+    const feedback = cellFeedback[cellKey];
+
+    // 動態狀態樣式
+    let stateStyles = 'border-b border-r border-slate-800/80 hover:bg-slate-750/70 transition-colors';
+    if (isEditing) {
+      stateStyles = 'ring-2 ring-blue-400 bg-slate-900 z-10 relative';
+    } else if (feedback?.status === 'saving') {
+      stateStyles = 'ring-2 ring-cyan-500 bg-cyan-950/30 text-cyan-200 animate-pulse z-10 relative';
+    } else if (feedback?.status === 'saved') {
+      stateStyles = 'ring-2 ring-emerald-400 bg-emerald-950/40 text-emerald-300 transition-all duration-700 z-10 relative';
+    } else if (feedback?.status === 'error') {
+      stateStyles = 'ring-2 ring-rose-500 bg-rose-950/40 text-rose-300 z-10 relative';
+    } else if (isPending) {
+      stateStyles = 'bg-amber-950/25 border-b border-r border-amber-600/40 text-amber-200 relative';
+    } else if (isActive) {
+      stateStyles = 'ring-2 ring-blue-500 bg-blue-950/30 z-10 relative';
+    }
+
+    return (
+      <td
+        key={colId}
+        onClick={() => {
+          setActiveCell({ rowId: item.id, colId });
+        }}
+        onDoubleClick={() => {
+          setActiveCell({ rowId: item.id, colId });
+          setEditingCell({ rowId: item.id, colId, value: rawVal });
+        }}
+        className={`${cellPaddingClass} ${rowHeightClass} ${stateStyles} ${customClass} cursor-text select-none text-${align}`}
+      >
+        {isEditing ? (
+          <input
+            type={['costPrice', 'sellingPrice', 'suggestedPoints', 'safetyStock'].includes(colId) || colId.startsWith('store_') ? 'number' : 'text'}
+            autoFocus
+            value={editingCell.value}
+            onChange={(e) => setEditingCell({ ...editingCell, value: e.target.value })}
+            onBlur={() => handleCellCommit(item.id, colId, editingCell.value)}
+            onKeyDown={(e) => handleCellKeyDown(e, item.id, colId)}
+            onFocus={(e) => e.target.select()}
+            className="w-full h-full bg-transparent text-white font-mono outline-none px-0.5 border-none"
+          />
+        ) : (
+          <div className="flex items-center justify-between w-full h-full gap-1">
+            <span className="truncate w-full">
+              {formatValue ? formatValue(rawVal) : rawVal}
+            </span>
+            {/* 批次模式黃色角標 */}
+            {isPending && (
+              <span 
+                className="w-2 h-2 rounded-full bg-amber-400 shrink-0 ml-1 shadow-sm shadow-amber-400/50" 
+                title="已暫存修改 (待提交)"
+              />
+            )}
+          </div>
+        )}
+      </td>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      {/* 標題列 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60">
+    <div className="space-y-4">
+      {/* 頂部標題與主操作列 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/80 p-4 rounded-2xl border border-slate-700/80 shadow-lg">
         <div>
           <div className="flex items-center gap-2">
             <Package className="w-5 h-5 text-amber-400" />
-            <h1 className="text-xl font-bold text-white">雙門市庫存水平對照與主檔維護</h1>
+            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              試算表級庫存工作台
+              <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                Google Sheets UX
+              </span>
+            </h1>
             {metaInfo.totalProducts > 0 && (
               <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
                 全庫共 {metaInfo.totalProducts.toLocaleString()} 品項
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            竹北店與金山店雙門市水平庫存並排比對、樂觀鎖版本防衝撞改價、Excel 批次上架精靈。
+          <p className="text-xs text-slate-400 mt-1">
+            雙向凍結窗格、單元格原地打字輸入、雙軌自動/批次儲存 (Ctrl+S)、即時公式連動。
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => loadInventory()}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl border border-slate-700 transition"
-            title="重新整理庫存"
+            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition"
+            title="重新載入庫存"
           >
             <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : ''}`} />
           </button>
 
-          {/* 新增單品主檔 */}
           <button
             onClick={() => {
-              // 初始化各門市期初庫存字典
               const initMap: Record<string, number> = {};
               stores.forEach((s) => { initMap[s.id] = 0; });
               setCreateForm({
@@ -410,7 +802,7 @@ export const InventoryView: React.FC = () => {
               setCreateError(null);
               setShowCreateModal(true);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-950/30 transition"
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow transition"
           >
             <Plus className="w-4 h-4" />
             新增單品主檔
@@ -422,49 +814,51 @@ export const InventoryView: React.FC = () => {
               setBulkResult(null);
               setBulkCsvText('');
             }}
-            className="flex items-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow transition"
+            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow transition"
           >
             <UploadCloud className="w-4 h-4" />
-            Excel/CSV 批次上架精靈
+            批次上架精靈
           </button>
+
           <a
             href={reportsApi.getExportUrl('inventory')}
             download
-            className="flex items-center gap-2 px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-xl border border-slate-600 transition"
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-xl border border-slate-600 transition"
           >
             <Download className="w-4 h-4 text-emerald-400" />
-            匯出主檔 CSV
+            匯出 CSV
           </a>
         </div>
       </div>
 
-      {/* 篩選與門市顯示列 */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="搜尋商品貨號、品名、條碼 (250ms 即時防抖)..."
-            className="w-full pl-10 pr-9 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono"
-          />
-          {searchInput && (
-            <button
-              onClick={() => setSearchInput('')}
-              className="absolute right-3 top-2.5 text-slate-400 hover:text-white transition"
-              title="清除搜尋"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      {/* 篩選與 Google Sheet 試算表模式工具列 */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-slate-800/60 p-3 rounded-2xl border border-slate-700/60">
+        <div className="flex flex-1 flex-col sm:flex-row gap-2">
+          {/* 搜尋 */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="搜尋貨號、品名、條碼 (250ms 防抖)..."
+              className="w-full pl-9 pr-8 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono"
+            />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput('')}
+                className="absolute right-2.5 top-2 text-slate-400 hover:text-white transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+          {/* 分類篩選 */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-amber-500"
+            className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500"
           >
             <option value="ALL">全部類別</option>
             <option value="GK">GK 雕像</option>
@@ -478,26 +872,22 @@ export const InventoryView: React.FC = () => {
             <option value="灌籃高手">灌籃高手</option>
           </select>
 
-          {/* 門市欄位自訂顯示開關 */}
+          {/* 門市欄位挑選器 */}
           <div className="relative">
             <button
               onClick={() => setShowStorePicker(!showStorePicker)}
-              className="px-3 py-2 bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition"
-              title="勾選欲顯示的門市欄位"
+              className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl text-xs text-slate-300 hover:text-white flex items-center gap-1.5 transition"
             >
               <Store className="w-3.5 h-3.5 text-indigo-400" />
-              門市欄位 ({visibleStoreIds.length}/{stores.length})
+              門市 ({visibleStoreIds.length}/{stores.length})
             </button>
             {showStorePicker && (
-              <div className="absolute right-0 top-11 w-48 bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-2xl z-40 space-y-2">
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  自訂可見門市
+              <div className="absolute left-0 top-10 w-44 bg-slate-800 border border-slate-700 rounded-xl p-2.5 shadow-2xl z-50 space-y-1.5">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  自訂可見門市欄位
                 </div>
                 {stores.map((s) => (
-                  <label
-                    key={s.id}
-                    className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer hover:text-white"
-                  >
+                  <label key={s.id} className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer hover:text-white">
                     <input
                       type="checkbox"
                       checked={visibleStoreIds.includes(s.id)}
@@ -511,16 +901,17 @@ export const InventoryView: React.FC = () => {
             )}
           </div>
 
+          {/* 缺貨預警 */}
           <button
             onClick={() => setLowStockOnly(!lowStockOnly)}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
               lowStockOnly
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow'
-                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-slate-200'
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-            僅看缺貨預警
+            缺貨預警
             {metaInfo.lowStockCount > 0 && (
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                 lowStockOnly ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-rose-500/20 text-rose-300'
@@ -530,157 +921,350 @@ export const InventoryView: React.FC = () => {
             )}
           </button>
         </div>
+
+        {/* 試算表核心切換開關 (雙軌模式 + 緊湊密度) */}
+        <div className="flex items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-700/60">
+          {/* 行高密度切換 */}
+          <div className="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-700 text-xs">
+            <button
+              onClick={() => setDensity('compact')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition ${
+                density === 'compact'
+                  ? 'bg-slate-700 text-white font-bold shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="32px 緊湊行高 (試算表高密度)"
+            >
+              <Rows className="w-3.5 h-3.5" />
+              緊湊 32px
+            </button>
+            <button
+              onClick={() => setDensity('standard')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition ${
+                density === 'standard'
+                  ? 'bg-slate-700 text-white font-bold shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="44px 標準舒適行高"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              標準 44px
+            </button>
+          </div>
+
+          {/* 雙軌存檔模式切換 */}
+          <div className="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-700 text-xs">
+            <button
+              onClick={() => setSaveMode('auto')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition ${
+                saveMode === 'auto'
+                  ? 'bg-emerald-600 text-white font-bold shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="即時存檔: Enter 或點擊他處立即寫入資料庫"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300" />
+              即時自動儲存
+            </button>
+            <button
+              onClick={() => setSaveMode('batch')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition ${
+                saveMode === 'batch'
+                  ? 'bg-amber-600 text-white font-bold shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="批次錄入: 暫存所有修改，按下 Ctrl+S 一鍵批量提交"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-white" />
+              批次錄入模式
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 多門市動態庫存對照表格 */}
-      <div className="bg-slate-800/70 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-900/60 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
-              <tr>
+      {/* 批次模式懸浮提交橫條 (當有待儲存變更時亮起) */}
+      {pendingChanges.size > 0 && (
+        <div className="sticky top-2 z-50 flex items-center justify-between gap-3 bg-amber-500/15 border-2 border-amber-500/50 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+            <span className="text-xs font-bold text-amber-200">
+              有 <span className="text-white font-mono text-sm underline">{pendingChanges.size}</span> 筆單元格變更尚未儲存
+            </span>
+            <span className="hidden sm:inline text-[11px] text-amber-300/80 font-mono">
+              (快捷鍵: ⌘S / Ctrl+S)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDiscardChanges}
+              className="flex items-center gap-1 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-xl border border-slate-600 transition"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              全部放棄
+            </button>
+            <button
+              onClick={handleBatchSave}
+              disabled={batchSaving}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-lg transition disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              {batchSaving ? '儲存中...' : `立即儲存變更 (${pendingChanges.size})`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 批次儲存通知 Toast */}
+      {batchToast && (
+        <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+          batchToast.type === 'success' 
+            ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300' 
+            : 'bg-rose-500/20 border border-rose-500/40 text-rose-300'
+        }`}>
+          {batchToast.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          <span>{batchToast.message}</span>
+        </div>
+      )}
+
+      {/* 操作提示小語 */}
+      <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 font-mono">
+        <div className="flex items-center gap-3">
+          <span>💡 鍵盤流: <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">Tab</kbd> 下一格</span>
+          <span><kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">Enter</kbd> 下一行</span>
+          <span><kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">Esc</kbd> 還原</span>
+          <span>雙擊或打字即可原地編輯</span>
+        </div>
+        <div>
+          <span>凍結狀態: 貨號與品名固定於左側、表頭固定於頂部</span>
+        </div>
+      </div>
+
+      {/* ── Google Sheet 旗艦雙向凍結表格 ────────────────────────── */}
+      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl overflow-hidden shadow-2xl relative">
+        <div className="overflow-auto max-h-[calc(100vh-320px)] relative">
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 z-30 bg-slate-900 border-b border-slate-700 shadow-sm text-slate-300 text-xs font-semibold select-none">
+              <tr className={rowHeightClass}>
+                {/* 凍結欄 1: 貨號 (Sticky Top + Sticky Left: Z-40) */}
                 <th
                   onClick={() => handleSortToggle('createdAt')}
-                  className="py-3 px-4 cursor-pointer hover:text-white transition select-none"
-                  title="點擊依建立時間排序 (最新在上)"
+                  className="sticky left-0 top-0 z-40 bg-slate-900 border-r border-b border-slate-700/80 min-w-[130px] w-[130px] px-3 py-2 cursor-pointer hover:text-white transition"
+                  title="點擊依建立時間排序"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>貨號 / 建立時間</span>
+                  <div className="flex items-center gap-1">
+                    <span>貨號 / 條碼</span>
                     {sortBy === 'createdAt' ? (
-                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-400" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
-                    ) : (
-                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
-                    )}
-                  </div>
-                </th>
-                <th className="py-3 px-4">品名</th>
-                <th className="py-3 px-4">類別</th>
-                <th className="py-3 px-4 text-right">成本價</th>
-                <th
-                  onClick={() => handleSortToggle('sellingPrice')}
-                  className="py-3 px-4 text-right cursor-pointer hover:text-white transition select-none"
-                  title="點擊依售價排序"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span>建議售價</span>
-                    {sortBy === 'sellingPrice' ? (
-                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-400" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 text-amber-400" /> : <ArrowUp className="w-3 h-3 text-amber-400" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-600" />
                     )}
                   </div>
                 </th>
 
-                {/* 動態渲染已勾選之門市表頭 */}
+                {/* 凍結欄 2: 品名 (Sticky Top + Sticky Left: Z-40 加上陰影區隔) */}
+                <th 
+                  onClick={() => handleSortToggle('name')}
+                  className="sticky left-[130px] top-0 z-40 bg-slate-900 border-r border-b border-slate-700/80 shadow-[4px_0_8px_rgba(0,0,0,0.35)] min-w-[200px] w-[200px] px-3 py-2 cursor-pointer hover:text-white transition"
+                  title="點擊依品名排序"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>商品名稱</span>
+                    {sortBy === 'name' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 text-amber-400" /> : <ArrowUp className="w-3 h-3 text-amber-400" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
+                    )}
+                  </div>
+                </th>
+
+                {/* 右側一般滑動欄位 */}
+                <th className="min-w-[90px] w-[90px] px-3 py-2 border-r border-b border-slate-700/80">類別</th>
+
+                <th className="min-w-[95px] w-[95px] px-3 py-2 text-right border-r border-b border-slate-700/80">
+                  成本 (NT$)
+                </th>
+
+                <th
+                  onClick={() => handleSortToggle('sellingPrice')}
+                  className="min-w-[95px] w-[95px] px-3 py-2 text-right cursor-pointer hover:text-white transition border-r border-b border-slate-700/80"
+                  title="點擊依售價排序"
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span>售價</span>
+                    {sortBy === 'sellingPrice' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 text-amber-400" /> : <ArrowUp className="w-3 h-3 text-amber-400" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
+                    )}
+                  </div>
+                </th>
+
+                <th className="min-w-[90px] w-[90px] px-3 py-2 text-right border-r border-b border-slate-700/80" title="售價之 5% 自動連動回饋點數">
+                  點數 (5%)
+                </th>
+
+                {/* 動態多門市現貨欄位 */}
                 {stores.filter((s) => visibleStoreIds.includes(s.id)).map((s, idx) => {
-                  const colorThemes = [
-                    'bg-blue-950/20 text-blue-300 border-blue-500/20',
-                    'bg-amber-950/20 text-amber-300 border-amber-500/20',
-                    'bg-emerald-950/20 text-emerald-300 border-emerald-500/20',
-                    'bg-purple-950/20 text-purple-300 border-purple-500/20',
-                    'bg-cyan-950/20 text-cyan-300 border-cyan-500/20',
+                  const headerStyles = [
+                    'bg-blue-950/40 text-blue-200 border-blue-500/20',
+                    'bg-amber-950/40 text-amber-200 border-amber-500/20',
+                    'bg-emerald-950/40 text-emerald-200 border-emerald-500/20',
+                    'bg-purple-950/40 text-purple-200 border-purple-500/20',
+                    'bg-cyan-950/40 text-cyan-200 border-cyan-500/20',
                   ];
-                  const theme = colorThemes[idx % colorThemes.length];
+                  const theme = headerStyles[idx % headerStyles.length];
                   return (
-                    <th key={s.id} className={`py-3 px-4 text-center font-bold ${theme}`}>
-                      {s.name}庫存
+                    <th key={s.id} className={`min-w-[100px] w-[100px] px-3 py-2 text-center font-bold border-r border-b border-slate-700/80 ${theme}`}>
+                      {s.name}現貨
                     </th>
                   );
                 })}
 
                 <th
                   onClick={() => handleSortToggle('totalStock')}
-                  className="py-3 px-4 text-center cursor-pointer hover:text-white transition select-none"
-                  title="點擊依全店合計庫存排序"
+                  className="min-w-[95px] w-[95px] px-3 py-2 text-center cursor-pointer hover:text-white transition border-r border-b border-slate-700/80"
+                  title="所有門市庫存自動合計公式"
                 >
-                  <div className="flex items-center justify-center gap-1.5">
+                  <div className="flex items-center justify-center gap-1">
                     <span>全店合計</span>
                     {sortBy === 'totalStock' ? (
-                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-amber-400" /> : <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 text-amber-400" /> : <ArrowUp className="w-3 h-3 text-amber-400" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-600" />
                     )}
                   </div>
                 </th>
-                <th className="py-3 px-4 text-center">操作</th>
+
+                <th className="min-w-[90px] w-[90px] px-3 py-2 text-center border-r border-b border-slate-700/80">
+                  安全門檻
+                </th>
+
+                <th className="min-w-[80px] w-[80px] px-2 py-2 text-center border-b border-slate-700/80">
+                  更多
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/60 text-slate-200">
+
+            <tbody className="divide-y divide-slate-800 text-slate-200 font-mono">
               {loading ? (
                 <tr>
-                  <td colSpan={6 + visibleStoreIds.length} className="py-8 text-center text-slate-500">
-                    載入中...
+                  <td colSpan={8 + visibleStoreIds.length} className="py-12 text-center text-slate-500">
+                    <RotateCw className="w-5 h-5 animate-spin mx-auto text-amber-400 mb-2" />
+                    資料載入中...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6 + visibleStoreIds.length} className="py-8 text-center text-slate-500">
-                    查無商品庫存資料
+                  <td colSpan={8 + visibleStoreIds.length} className="py-12 text-center text-slate-500">
+                    查無符合條件之商品庫存
                   </td>
                 </tr>
               ) : (
                 items.map((item) => {
                   const visibleStores = stores.filter((s) => visibleStoreIds.includes(s.id));
                   return (
-                    <tr key={item.id} className="hover:bg-slate-750/50 transition">
-                      <td className="py-3.5 px-4 font-mono text-xs">
-                        <div className="font-semibold text-white">{item.id}</div>
-                        {item.barcode && <div className="text-[11px] text-slate-500">{item.barcode}</div>}
-                        {item.createdAt && (
-                          <div className="text-[10px] text-slate-500">
-                            {new Date(item.createdAt).toLocaleDateString()}
+                    <tr key={item.id} className="hover:bg-slate-800/40 transition">
+                      {/* 凍結欄 1: 貨號 / 條碼 (Sticky Left: Z-20) */}
+                      <td className={`sticky left-0 z-20 bg-slate-900 border-r border-b border-slate-800 min-w-[130px] w-[130px] ${cellPaddingClass} ${rowHeightClass}`}>
+                        <div className="font-semibold text-white truncate" title={item.id}>
+                          {item.id}
+                        </div>
+                        {item.barcode && (
+                          <div className="text-[10px] text-slate-500 truncate" title={item.barcode}>
+                            {item.barcode}
                           </div>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 font-medium text-white max-w-xs truncate">
-                        {item.name}
-                      </td>
-                      <td className="py-3.5 px-4 text-xs">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-700 text-slate-300">
-                          {item.category}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-mono text-slate-400">
-                        ${item.costPrice?.toLocaleString() || 0}
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-amber-400">
-                        ${item.sellingPrice?.toLocaleString() || 0}
+
+                      {/* 凍結欄 2: 品名 (Sticky Left: Z-20 加上陰影) */}
+                      <td 
+                        onClick={() => setActiveCell({ rowId: item.id, colId: 'name' })}
+                        onDoubleClick={() => {
+                          setActiveCell({ rowId: item.id, colId: 'name' });
+                          setEditingCell({ rowId: item.id, colId: 'name', value: item.name });
+                        }}
+                        className={`sticky left-[130px] z-20 bg-slate-900 border-r border-b border-slate-800 shadow-[4px_0_8px_rgba(0,0,0,0.35)] min-w-[200px] w-[200px] ${cellPaddingClass} ${rowHeightClass} ${
+                          activeCell?.rowId === item.id && activeCell?.colId === 'name' ? 'ring-2 ring-blue-500' : ''
+                        }`}
+                      >
+                        {editingCell?.rowId === item.id && editingCell?.colId === 'name' ? (
+                          <input
+                            type="text"
+                            autoFocus
+                            value={editingCell.value}
+                            onChange={(e) => setEditingCell({ ...editingCell, value: e.target.value })}
+                            onBlur={() => handleCellCommit(item.id, 'name', editingCell.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, item.id, 'name')}
+                            onFocus={(e) => e.target.select()}
+                            className="w-full bg-slate-800 text-white px-1 py-0.5 rounded outline-none border border-blue-400"
+                          />
+                        ) : (
+                          <div className="truncate text-white font-sans font-medium" title={item.name}>
+                            {item.name}
+                          </div>
+                        )}
                       </td>
 
-                      {/* 動態渲染各門市庫存 */}
+                      {/* 類別 */}
+                      {renderEditableCell(item, 'category', 'left', (val) => (
+                        <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 text-[11px]">
+                          {val || '未分類'}
+                        </span>
+                      ))}
+
+                      {/* 成本價 */}
+                      {renderEditableCell(item, 'costPrice', 'right', (val) => `$${Number(val || 0).toLocaleString()}`, 'text-slate-400')}
+
+                      {/* 售價 */}
+                      {renderEditableCell(item, 'sellingPrice', 'right', (val) => `$${Number(val || 0).toLocaleString()}`, 'font-bold text-amber-400')}
+
+                      {/* 點數 (5%) */}
+                      {renderEditableCell(item, 'suggestedPoints', 'right', (val) => `${Number(val || 0)} pt`, 'text-indigo-300')}
+
+                      {/* 動態多門市現貨 */}
                       {visibleStores.map((s, idx) => {
+                        const colKey = `store_${s.id}`;
                         const colorThemes = [
-                          { bg: 'bg-blue-950/10', text: 'text-blue-300' },
-                          { bg: 'bg-amber-950/10', text: 'text-amber-300' },
-                          { bg: 'bg-emerald-950/10', text: 'text-emerald-300' },
-                          { bg: 'bg-purple-950/10', text: 'text-purple-300' },
-                          { bg: 'bg-cyan-950/10', text: 'text-cyan-300' },
+                          'text-blue-300 font-bold',
+                          'text-amber-300 font-bold',
+                          'text-emerald-300 font-bold',
+                          'text-purple-300 font-bold',
+                          'text-cyan-300 font-bold',
                         ];
                         const theme = colorThemes[idx % colorThemes.length];
-                        const qty = item.storeStocks?.[s.id] ?? (s.id === 'chupei' ? item.chupeiStock : s.id === 'jinshan' ? item.jinshanStock : 0) ?? 0;
-                        const safety = item.safetyStocks?.[s.id] ?? item.safetyStock ?? 2;
-                        const isStoreLow = qty <= safety && safety > 0;
-                        return (
-                          <td key={s.id} className={`py-3.5 px-4 text-center font-bold font-mono ${theme.bg}`}>
-                            <span className={isStoreLow ? 'text-rose-400' : theme.text}>
-                              {qty}
-                            </span>
-                          </td>
+                        return renderEditableCell(
+                          item,
+                          colKey,
+                          'center',
+                          (qty) => {
+                            const num = Number(qty || 0);
+                            const isLow = num <= (item.safetyStock || 2);
+                            return (
+                              <span className={isLow ? 'text-rose-400' : theme}>
+                                {num}
+                              </span>
+                            );
+                          }
                         );
                       })}
 
-                      {/* 全店合計 */}
-                      <td className="py-3.5 px-4 text-center font-extrabold text-white">
+                      {/* 全店合計 (公式自動合計，唯讀) */}
+                      <td className={`border-b border-r border-slate-800 text-center font-extrabold text-white ${cellPaddingClass} ${rowHeightClass}`}>
                         {item.totalStock ?? 0}
                         {item.isLowStock && (
-                          <span className="ml-1.5 inline-block text-[10px] px-1.5 py-0.2 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded">
+                          <span className="ml-1 text-[10px] px-1 py-0.2 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded">
                             低量
                           </span>
                         )}
                       </td>
 
-                      {/* 操作按鈕 */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
+                      {/* 安全門檻 */}
+                      {renderEditableCell(item, 'safetyStock', 'center', (val) => `${val ?? 2}`, 'text-slate-400')}
+
+                      {/* 彈出 Modal 工具按鈕 */}
+                      <td className={`border-b border-slate-800 text-center ${cellPaddingClass} ${rowHeightClass}`}>
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => {
                               setEditProduct(item);
@@ -688,10 +1272,10 @@ export const InventoryView: React.FC = () => {
                               setCostPrice(item.costPrice || 0);
                               setEditError(null);
                             }}
-                            className="p-1.5 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition"
-                            title="修改價格與主檔"
+                            className="p-1 hover:bg-slate-700 text-slate-400 hover:text-white rounded transition"
+                            title="進階改價彈窗"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => {
@@ -701,10 +1285,10 @@ export const InventoryView: React.FC = () => {
                               setAdjustReason('');
                               setAdjustError(null);
                             }}
-                            className="p-1.5 hover:bg-slate-700 text-amber-400 hover:text-amber-300 rounded-lg transition"
-                            title="手動調撥/盤差調帳"
+                            className="p-1 hover:bg-slate-700 text-amber-400 hover:text-amber-300 rounded transition"
+                            title="進階調撥調帳彈窗"
                           >
-                            <Sliders className="w-4 h-4" />
+                            <Sliders className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -717,8 +1301,8 @@ export const InventoryView: React.FC = () => {
         </div>
       </div>
 
-      {/* 分頁控制器 Pagination Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60 text-xs">
+      {/* 分頁控制器 Pagination */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/60 p-3.5 rounded-2xl border border-slate-700/60 text-xs">
         <div className="flex items-center gap-3 text-slate-400">
           <span>
             顯示第 <span className="text-white font-mono font-semibold">{totalItems === 0 ? 0 : (page - 1) * pageSize + 1}</span> 至{' '}
@@ -761,7 +1345,6 @@ export const InventoryView: React.FC = () => {
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          {/* 頁碼按鈕 */}
           <div className="flex items-center gap-1 px-1">
             {generatePageNumbers(page, totalPages).map((p, idx) =>
               p === -1 ? (
@@ -803,7 +1386,7 @@ export const InventoryView: React.FC = () => {
         </div>
       </div>
 
-      {/* 修改價格 Modal (樂觀鎖版本號) */}
+      {/* 修改價格 Modal (輔助) */}
       {editProduct && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
@@ -1011,7 +1594,7 @@ export const InventoryView: React.FC = () => {
         </div>
       )}
 
-      {/* 手動新增單品主檔 Modal (支援多門市期初庫存與一鍵產號) */}
+      {/* 手動新增單品主檔 Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -1037,7 +1620,6 @@ export const InventoryView: React.FC = () => {
             )}
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
-              {/* 品名 */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
                   商品品名 <span className="text-rose-400">*</span>
@@ -1052,7 +1634,6 @@ export const InventoryView: React.FC = () => {
                 />
               </div>
 
-              {/* 貨號與條碼 (支援一鍵自動產號) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -1097,7 +1678,6 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              {/* 類別 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">商品類別</label>
@@ -1133,7 +1713,6 @@ export const InventoryView: React.FC = () => {
                 )}
               </div>
 
-              {/* 成本、售價、點數 */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">進貨成本價</label>
@@ -1177,7 +1756,6 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              {/* 動態多門市期初庫存量輸入 */}
               <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/60 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -1219,7 +1797,6 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              {/* 按鈕 */}
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"

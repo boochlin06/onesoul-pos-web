@@ -345,9 +345,9 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, message: '缺少門市代碼或商品編號' });
     }
 
-    if (!reason || reason.trim().length < 4) {
-      return reply.code(400).send({ success: false, message: '調帳理由不可空白且至少需 4 個字元' });
-    }
+    const effectiveReason = (reason && reason.trim().length >= 2)
+      ? reason.trim()
+      : '試算表原地單元格快速調帳';
 
     const currentInv = await prisma.storeInventory.findUnique({
       where: {
@@ -403,7 +403,7 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
           changeType: 'MANUAL_ADJUST',
           delta: calcDelta,
           balance: updated.quantity,
-          reason,
+          reason: effectiveReason,
           operator: operatorId,
         },
       });
@@ -416,7 +416,7 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
         beforeState: { quantity: beforeQty },
         afterState: { quantity: finalQty },
         delta: calcDelta,
-        reason,
+        reason: effectiveReason,
         ipAddress: request.ip,
       });
     });
@@ -430,6 +430,154 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
         beforeQty,
         finalQty,
         delta: calcDelta,
+      },
+    });
+  });
+
+  // 3.5 試算表級批次原地更新 (商品主檔 + 門市庫存調帳一次性原子提交)
+  fastify.post('/inventory/batch-update', async (request, reply) => {
+    const { productUpdates = [], stockAdjustments = [] } = request.body as any;
+    const operatorId = (request as any).user?.email || 'admin@onesoul.com';
+
+    if (!Array.isArray(productUpdates) && !Array.isArray(stockAdjustments)) {
+      return reply.code(400).send({ success: false, message: '無效的批次更新格式' });
+    }
+
+    if (productUpdates.length === 0 && stockAdjustments.length === 0) {
+      return reply.code(400).send({ success: false, message: '沒有任何待更新的變更項目' });
+    }
+
+    const updatedProductIds: string[] = [];
+    const updatedStockEntries: Array<{ storeId: string; productId: string; newQty: number }> = [];
+
+    await prisma.$transaction(async (tx: any) => {
+      // 1. 商品主檔更新
+      for (const prodUp of productUpdates) {
+        if (!prodUp.id) continue;
+        const existing = await tx.product.findUnique({ where: { id: prodUp.id } });
+        if (!existing) continue;
+
+        const updateData: any = {
+          version: { increment: 1 },
+        };
+        if (prodUp.name !== undefined) updateData.name = prodUp.name;
+        if (prodUp.sellingPrice !== undefined) updateData.sellingPrice = Number(prodUp.sellingPrice);
+        if (prodUp.costPrice !== undefined) updateData.costPrice = Number(prodUp.costPrice);
+        if (prodUp.suggestedPoints !== undefined) updateData.suggestedPoints = Number(prodUp.suggestedPoints);
+        if (prodUp.barcode !== undefined) updateData.barcode = prodUp.barcode ? String(prodUp.barcode).trim() : null;
+
+        const updated = await tx.product.update({
+          where: { id: prodUp.id },
+          data: updateData,
+        });
+
+        await recordAuditLog(tx, {
+          operatorId,
+          action: 'BATCH_PRODUCT_UPDATE',
+          targetType: 'Product',
+          targetId: prodUp.id,
+          beforeState: {
+            costPrice: existing.costPrice,
+            sellingPrice: existing.sellingPrice,
+            suggestedPoints: existing.suggestedPoints,
+          },
+          afterState: {
+            costPrice: updated.costPrice,
+            sellingPrice: updated.sellingPrice,
+            suggestedPoints: updated.suggestedPoints,
+          },
+          reason: '試算表批次原地修改主檔',
+          ipAddress: request.ip,
+        });
+        updatedProductIds.push(prodUp.id);
+      }
+
+      // 2. 門市庫存調帳
+      for (const stockAdj of stockAdjustments) {
+        const { storeId, productId, newQuantity, delta, reason } = stockAdj;
+        if (!storeId || !productId) continue;
+
+        const currentInv = await tx.storeInventory.findUnique({
+          where: { storeId_productId: { storeId, productId } },
+        });
+
+        const beforeQty = currentInv?.quantity ?? 0;
+        let finalQty = beforeQty;
+        let calcDelta = 0;
+
+        if (newQuantity !== undefined) {
+          finalQty = Math.max(0, Number(newQuantity));
+          calcDelta = finalQty - beforeQty;
+        } else if (delta !== undefined) {
+          calcDelta = Number(delta);
+          finalQty = Math.max(0, beforeQty + calcDelta);
+        }
+
+        if (calcDelta === 0 && currentInv) {
+          continue; // 無變更跳過
+        }
+
+        const effectiveReason = reason && reason.trim().length >= 2 
+          ? reason.trim() 
+          : '試算表原地批次更新庫存';
+
+        let updatedInv;
+        if (!currentInv) {
+          updatedInv = await tx.storeInventory.create({
+            data: {
+              storeId,
+              productId,
+              quantity: finalQty,
+              safetyStock: 2,
+              version: 1,
+            },
+          });
+        } else {
+          updatedInv = await tx.storeInventory.update({
+            where: { storeId_productId: { storeId, productId } },
+            data: {
+              quantity: finalQty,
+              version: { increment: 1 },
+            },
+          });
+        }
+
+        await tx.inventoryLog.create({
+          data: {
+            storeId,
+            productId,
+            changeType: 'MANUAL_ADJUST',
+            delta: calcDelta,
+            balance: finalQty,
+            reason: effectiveReason,
+            operator: operatorId,
+          },
+        });
+
+        await recordAuditLog(tx, {
+          operatorId,
+          action: 'BATCH_STOCK_ADJUST',
+          targetType: 'StoreInventory',
+          targetId: `${storeId}:${productId}`,
+          beforeState: { quantity: beforeQty },
+          afterState: { quantity: finalQty },
+          delta: calcDelta,
+          reason: effectiveReason,
+          ipAddress: request.ip,
+        });
+
+        updatedStockEntries.push({ storeId, productId, newQty: finalQty });
+      }
+    });
+
+    return reply.send({
+      success: true,
+      message: `成功更新 ${updatedProductIds.length} 筆商品主檔，${updatedStockEntries.length} 筆庫存紀錄`,
+      data: {
+        updatedProductCount: updatedProductIds.length,
+        updatedStockCount: updatedStockEntries.length,
+        productIds: updatedProductIds,
+        stockEntries: updatedStockEntries,
       },
     });
   });

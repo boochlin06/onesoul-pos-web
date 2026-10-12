@@ -69,10 +69,19 @@ export const inventoryApi = {
       body: JSON.stringify(data),
     });
   },
-  adjustStock: (storeId: string, productId: string, delta: number, reason: string) => {
+  adjustStock: (storeId: string, productId: string, delta: number, reason?: string, newQuantity?: number) => {
     return apiRequest('/admin/inventory/adjust-stock', {
       method: 'POST',
-      body: JSON.stringify({ storeId, productId, delta, reason }),
+      body: JSON.stringify({ storeId, productId, delta, reason, newQuantity }),
+    });
+  },
+  batchUpdate: (data: {
+    productUpdates?: Array<{ id: string; name?: string; sellingPrice?: number; costPrice?: number; suggestedPoints?: number; barcode?: string; version?: number }>;
+    stockAdjustments?: Array<{ productId: string; storeId: string; newQuantity?: number; delta?: number; reason?: string }>;
+  }) => {
+    return apiRequest('/admin/inventory/batch-update', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
   bulkImport: (items: any[]) => {
