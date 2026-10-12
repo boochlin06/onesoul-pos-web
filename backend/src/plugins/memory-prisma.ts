@@ -3,11 +3,13 @@ import path from 'path';
 
 // In-Memory Prisma Fallback Engine (支援無外部 DB 依賴下零配置啟動與測試，已全量預載 Google Sheets 遷移資料)
 export function createMemoryPrisma() {
+  const snapshotPath = path.resolve(__dirname, '../../data/cloud_snapshot/snapshot_store.json');
   const realStorePath = path.resolve(__dirname, '../../data/real_migrated_store.json');
   let realStore: any = null;
-  if (fs.existsSync(realStorePath)) {
+  const targetPath = fs.existsSync(snapshotPath) ? snapshotPath : (fs.existsSync(realStorePath) ? realStorePath : null);
+  if (targetPath) {
     try {
-      realStore = JSON.parse(fs.readFileSync(realStorePath, 'utf-8'));
+      realStore = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
     } catch {
       // fallback
     }
@@ -30,10 +32,10 @@ export function createMemoryPrisma() {
       { id: 'm2', phone: '0987654321', name: '李小華', points: 120, gender: '女', birthday: null, note: '新註冊會員', tier: 'GENERAL', registeredAt: new Date(), createdAt: new Date(), updatedAt: new Date() },
     ],
     // 🏢 門市主檔 (竹北旗艦店 vs 金山概念店)
-    stores: [
+    stores: ((realStore?.stores && realStore.stores.length > 0) ? realStore.stores : [
       { id: 'chupei', name: '竹北店', code: 'CHUPEI', isActive: true, openTime: '14:00', standardHours: 8, lateGraceMinutes: 15, createdAt: new Date(), updatedAt: new Date() },
       { id: 'jinshan', name: '金山店', code: 'JINSHAN', isActive: true, openTime: '16:00', standardHours: 6, lateGraceMinutes: 15, createdAt: new Date(), updatedAt: new Date() },
-    ],
+    ]) as Array<{ id: string; name: string; code?: string; isActive?: boolean; [key: string]: any }>,
     // 💼 來自 Google Sheets 班次與日結
     sessions: (realStore?.sessions && realStore.sessions.length > 0) ? [
       { id: 'sess-1', storeId: 'chupei', openingCash: 3000, openedBy: 'onesoul.chupei@gmail.com', status: 'OPEN', openedAt: new Date(), orders: [] },

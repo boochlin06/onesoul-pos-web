@@ -77,6 +77,10 @@ describe('OneSoul ERP Admin API Suite', () => {
       const json = res.json();
       expect(json.success).toBe(true);
       expect(json.data.length).toBeGreaterThan(0);
+      expect(json.stores).toBeDefined();
+      expect(json.stores.length).toBeGreaterThanOrEqual(2);
+      expect(json.data[0]).toHaveProperty('storeStocks');
+      expect(json.data[0]).toHaveProperty('safetyStocks');
       expect(json.data[0]).toHaveProperty('chupeiStock');
       expect(json.data[0]).toHaveProperty('jinshanStock');
       expect(json.data[0]).toHaveProperty('isLowStock');
@@ -146,6 +150,94 @@ describe('OneSoul ERP Admin API Suite', () => {
       });
       expect(res.statusCode).toBe(200);
       expect(res.json().data.successCount).toBe(2);
+    });
+
+    it('應支援動態排序 (價格降冪與升冪、最新建立優先)', async () => {
+      const resDesc = await app.inject({
+        method: 'GET',
+        url: '/api/admin/inventory/summary?sortBy=sellingPrice&sortOrder=desc&page=1&pageSize=10',
+      });
+      expect(resDesc.statusCode).toBe(200);
+      const listDesc = resDesc.json().data;
+      if (listDesc.length >= 2) {
+        expect(listDesc[0].sellingPrice).toBeGreaterThanOrEqual(listDesc[1].sellingPrice);
+      }
+
+      const resAsc = await app.inject({
+        method: 'GET',
+        url: '/api/admin/inventory/summary?sortBy=sellingPrice&sortOrder=asc&page=1&pageSize=10',
+      });
+      expect(resAsc.statusCode).toBe(200);
+      const listAsc = resAsc.json().data;
+      if (listAsc.length >= 2) {
+        expect(listAsc[0].sellingPrice).toBeLessThanOrEqual(listAsc[1].sellingPrice);
+      }
+    });
+
+    it('新增單品主檔：品名為必填，若為空應回傳 400', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/admin/inventory/products',
+        payload: {
+          name: '',
+          sellingPrice: 500,
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().message).toContain('品名為必填');
+    });
+
+    it('新增單品主檔：應支援自動計算 5% 點數、多門市期初入庫與庫存同步', async () => {
+      const newProdId = `TEST-PROD-${Date.now()}`;
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/admin/inventory/products',
+        payload: {
+          id: newProdId,
+          name: '測試公仔新單品',
+          category: 'FIGURE',
+          costPrice: 800,
+          sellingPrice: 1500,
+          barcode: '4719999001',
+          initialStocks: {
+            chupei: 8,
+            jinshan: 4,
+          },
+          safetyStock: 3,
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      const json = res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.id).toBe(newProdId);
+      expect(json.data.suggestedPoints).toBe(75); // 1500 * 0.05 = 75
+
+      // 透過 summary 查詢該商品驗證期初入庫與多門市庫存字典
+      const summaryRes = await app.inject({
+        method: 'GET',
+        url: `/api/admin/inventory/summary?q=${newProdId}`,
+      });
+      expect(summaryRes.statusCode).toBe(200);
+      const summaryJson = summaryRes.json();
+      const matched = summaryJson.data.find((p: any) => p.id === newProdId);
+      expect(matched).toBeDefined();
+      expect(matched.storeStocks['chupei']).toBe(8);
+      expect(matched.storeStocks['jinshan']).toBe(4);
+      expect(matched.totalStock).toBe(12);
+    });
+
+    it('新增單品主檔：貨號重複時應回傳 409 Conflict', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/admin/inventory/products',
+        payload: {
+          id: 'GEN001', // 已存在的商品 ID
+          name: '重複貨號測試',
+          sellingPrice: 600,
+        },
+      });
+      expect(res.statusCode).toBe(409);
+      expect(res.json().message).toContain('已存在');
     });
   });
 

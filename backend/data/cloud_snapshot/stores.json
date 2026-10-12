@@ -1,0 +1,28 @@
+[
+  {
+    "id": "chupei",
+    "name": "竹北旗艦店",
+    "code": "CHUPEI",
+    "address": null,
+    "phone": null,
+    "isActive": true,
+    "openTime": "14:00",
+    "standardHours": 8,
+    "lateGraceMinutes": 15,
+    "createdAt": "2026-10-11T19:39:36.842Z",
+    "updatedAt": "2026-10-12T06:06:42.284Z"
+  },
+  {
+    "id": "jinshan",
+    "name": "金山概念店",
+    "code": "JINSHAN",
+    "address": null,
+    "phone": null,
+    "isActive": true,
+    "openTime": "16:00",
+    "standardHours": 6,
+    "lateGraceMinutes": 15,
+    "createdAt": "2026-10-11T19:39:36.855Z",
+    "updatedAt": "2026-10-12T06:06:42.302Z"
+  }
+]
