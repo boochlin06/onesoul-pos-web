@@ -16,3 +16,7 @@ dist/
 .env.prod
 backend/.env
 !*.env.example
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/
