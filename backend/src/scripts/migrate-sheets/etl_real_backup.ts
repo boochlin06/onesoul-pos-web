@@ -87,18 +87,35 @@ export function runRealEtl(): CleanedDataset {
     const location = normalizeStoreId(row['地點'] || row['branch']);
     const qty = parseNumber(row['可銷售數量（庫存-已出貨-配置中）'] || row['實際剩餘數量（庫存-已出貨）'] || row['進貨量'] || 0, 0);
 
+    // 🛡️ 過濾 Google Sheet 底部預留空白佔位行 (無品名且無成本、無售價、無庫存)
+    if (!name && cost === 0 && price === 0 && qty === 0) {
+      continue;
+    }
+
+    // 處理少數無品名但有歷史成本/售價的特例商品
+    let finalName = name;
+    if (!finalName) {
+      if (prodId === '3935') {
+        finalName = '隨便加扣點-備用';
+      } else {
+        finalName = `[待補品名-${category || '商品'}-${prodId}]`;
+      }
+    }
+
     if (!productMap.has(prodId)) {
+      // 基準時間戳: 依試算表原始順序遞增，確保最新錄入的商品 createdAt 較新
+      const itemTimestamp = new Date('2026-01-01T00:00:00Z').getTime() + productMap.size * 60000;
       productMap.set(prodId, {
         id: prodId,
         barcode: `471${prodId.padStart(6, '0')}`,
-        name: name || prodId,
+        name: finalName,
         category,
         costPrice: cost,
         sellingPrice: price,
         suggestedPoints: points,
         version: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date(itemTimestamp),
+        updatedAt: new Date(itemTimestamp),
       });
       inventoryMap.set(prodId, { chupei: 0, jinshan: 0 });
     }

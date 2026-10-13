@@ -27,7 +27,12 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
       const body = res.json();
       expect(body.success).toBe(true);
       expect(body.data.length).toBe(50);
-      expect(body.pagination.total).toBeGreaterThanOrEqual(4041);
+      expect(body.pagination.total).toBeGreaterThanOrEqual(3148);
+
+      // 驗證回傳商品品名絕無試算表純數字代號
+      body.data.forEach((item: any) => {
+        expect(item.name).not.toMatch(/^\d+$/);
+      });
 
       // 驗證每一筆資料的門市庫存合計等於 totalStock (動態公式校驗)
       body.data.forEach((item: any) => {

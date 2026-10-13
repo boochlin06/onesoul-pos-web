@@ -61,8 +61,13 @@ describe('OneSoul ERP 線上真實資料同步驗證 Suite (Cloud Synced Real Da
       expect(json.success).toBe(true);
       expect(json.stores).toBeDefined();
       expect(json.stores.length).toBe(2);
-      expect(json.pagination.total).toBeGreaterThanOrEqual(4041);
+      expect(json.pagination.total).toBeGreaterThanOrEqual(3148);
       expect(json.data.length).toBe(20);
+
+      // 驗證回傳商品品名皆為有效真實名稱，絕無試算表純數字代號
+      json.data.forEach((item: any) => {
+        expect(item.name).not.toMatch(/^\d+$/);
+      });
 
       // 驗證最新建立之單品排在最頂端 (createdAt DESC)
       const topItem = json.data[0];

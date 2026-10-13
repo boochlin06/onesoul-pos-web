@@ -99,6 +99,12 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
         }
       }
 
+      // 🛡️ 防護過濾：排除無效空白佔位幽靈商品 (品名為純數字且與 ID 相同、成本=0、售價=0、庫存=0)
+      const isGhostRow = /^\d+$/.test(prod.name) && prod.name === prod.id && (prod.costPrice || 0) === 0 && (prod.sellingPrice || 0) === 0 && inv.totalStock === 0;
+      if (isGhostRow) {
+        continue;
+      }
+
       allSummaries.push({
         id: prod.id,
         barcode: prod.barcode || '',
@@ -129,6 +135,16 @@ export const adminInventoryRoutes: FastifyPluginAsync = async (fastify) => {
         const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         diff = tA - tB;
+        // 次級排序: 若時間戳相同，依貨號遞增/遞減排序 (大編號新商品在前)
+        if (diff === 0) {
+          const numA = parseInt(a.id, 10);
+          const numB = parseInt(b.id, 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            diff = numA - numB;
+          } else {
+            diff = a.id.localeCompare(b.id);
+          }
+        }
       } else if (sortBy === 'updatedAt') {
         const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
         const tB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
