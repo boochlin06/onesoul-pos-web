@@ -1,6 +1,6 @@
 # OneSoul POS 庫存主檔工作台規格書 (Inventory Workbench Specification)
 
-**版本**: v1.2.0  
+**版本**: v1.3.0  
 **日期**: 2026-10-13  
 **系統目標**: 為 OneSoul 實體玩具公仔連鎖門市提供旗艦級 Google Sheets 體驗之庫存主檔工作台，支援多門市動態水平對照、原地單元格鍵盤流編輯、雙軌即時/批次儲存，以及高並發原子級交易防護。
 
@@ -55,7 +55,18 @@ erDiagram
     }
 ```
 
-### 1.2 多門市動態擴展與 O(1) 雜湊聚合架構
+### 1.2 Google Sheet 試算表歷史資料清洗與品名 100% 精確對齊 (Data Cleansing)
+- **試算表空白公式佔位行 (Ghost Rows Filtering)**：
+  - 歷史 Google Sheet 的 `items` 試算表底部存在 888 筆由公式 `=IF(...)` 預填貨號流水號（`3262` ~ `4107`）之空白預留列（品名為空、成本=0、售價=0、庫存=0）。
+  - ETL 清洗引擎與查詢 API 嚴格執行幽靈行防護過濾：凡無品名且成本=0、售價=0、庫存=0 者一律拋棄，禁止污染商品主檔。
+- **品名 100% 精確對齊**：
+  - 全量 3,148 筆真實公仔商品品名（如海賊王、寶可夢、火影、GK雕像等）100% 與 Google Sheet 歷史庫存品名精確對應。
+  - 絕不以貨號/純數字代號作為品名之 fallback 遮蔽。
+- **最新到舊動態排序與次級排序 (Secondary Sort)**：
+  - 預設按 `createdAt DESC` 排序。
+  - 當時間戳相同時，依貨號遞減次級排序（大編號新品在前），確保使用者打開第 1 頁看到的永遠是最新進貨與最新手動建立之公仔品名。
+
+### 1.3 多門市動態擴展與 O(1) 雜湊聚合架構
 - **門市動態擴展**：拒絕固定寫死竹北/金山欄位。後端動態查詢所有 `isActive = true` 門市，回傳門市陣列與字典。
 - **O(1) 雜湊映射算法**：
   - 記憶體中建立 `Map<productId, { storeStocks: Record<string, number>, safetyStocks: Record<string, number>, totalStock: number, maxSafetyStock: number }>`。
