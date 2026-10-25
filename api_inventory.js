@@ -5,33 +5,51 @@
 // ── 8. 取得商品資料庫 API ─────────────────────────────────
 function apiGetStockList(branch) {
   try {
-    var tempApp = SpreadsheetApp.openById(appBackground);
-    var sheet = tempApp.getSheetByName(sheetItemDB);
-    if (!sheet) return { success: false, message: '找不到貨品資料庫分頁' };
-    var data = sheet.getDataRange().getValues();
-    var results = [];
-    
-    // 跳過標題列
-    for (var i = 1; i < data.length; i++) {
-        var row = data[i];
-        var id = row[0] ? row[0].toString().trim() : '';
-        if (!id) continue;
-        
-        var rowBranch = row[16] ? row[16].toString().trim() : ''; // q 行
-        // 依照前端選擇的店面過濾 (若有指定)
-        if (branch && branch !== '全部' && rowBranch && rowBranch !== branch) continue;
-        
-        results.push({
-            id: id,                                    // a 行
-            name: row[1] ? row[1].toString() : '',     // b 行
-            points: Number(row[4]) || 0,               // e 行
-            category: row[9] ? row[9].toString() : '', // j 行
-            quantity: Number(row[15]) || 0,            // p 行
-            remark: '',
-            branch: rowBranch
-        });
+    // 1. 優先命中記憶體分塊快取 (約 300ms，徹底杜絕全表 4,000 筆掃描引發之逾時與假性 CORS)
+    var allItems = typeof getChunkedCache === 'function' ? getChunkedCache('STOCK_LIST_ALL') : null;
+
+    if (!allItems) {
+      var tempApp = SpreadsheetApp.openById(appBackground);
+      var sheet = tempApp.getSheetByName(sheetItemDB);
+      if (!sheet) return { success: false, message: '找不到貨品資料庫分頁' };
+      var data = sheet.getDataRange().getValues();
+      allItems = [];
+      
+      // 跳過標題列
+      for (var i = 1; i < data.length; i++) {
+          var row = data[i];
+          var id = row[0] ? row[0].toString().trim() : '';
+          if (!id) continue;
+          
+          var rowBranch = row[16] ? row[16].toString().trim() : ''; // q 行
+          allItems.push({
+              id: id,                                    // a 行
+              name: row[1] ? row[1].toString() : '',     // b 行
+              points: Number(row[4]) || 0,               // e 行
+              category: row[9] ? row[9].toString() : '', // j 行
+              quantity: Number(row[15]) || 0,            // p 行
+              remark: '',
+              branch: rowBranch
+          });
+      }
+      if (typeof setChunkedCache === 'function') {
+        setChunkedCache('STOCK_LIST_ALL', allItems, 21600); // 6 小時
+      }
     }
-    return { success: true, data: results };
+
+    // 依照前端選擇的店面過濾 (若指定 '全部' 或未指定則回傳全量)
+    if (!branch || branch === '全部') {
+      return { success: true, data: allItems, fromCache: true };
+    }
+
+    var filtered = [];
+    for (var j = 0; j < allItems.length; j++) {
+      var item = allItems[j];
+      if (!item.branch || item.branch === branch) {
+        filtered.push(item);
+      }
+    }
+    return { success: true, data: filtered, fromCache: true };
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 
@@ -83,11 +101,32 @@ function apiGetBlindBoxList() {
 function apiGetStockItemByNo(itemNo) {
   try {
     if (!itemNo) return { success: false, message: '請輸入貨號' };
+    var target = itemNo.toString().trim();
+
+    // 1. 優先查記憶體快取 (0ms 命中)
+    if (typeof getChunkedCache === 'function') {
+      var cached = getChunkedCache('STOCK_LIST_ALL');
+      if (cached && Array.isArray(cached)) {
+        for (var k = 0; k < cached.length; k++) {
+          if (cached[k].id === target) {
+            return {
+              success: true,
+              data: {
+                id: cached[k].id,
+                name: cached[k].name,
+                points: cached[k].points
+              },
+              fromCache: true
+            };
+          }
+        }
+      }
+    }
+
     var tempApp = SpreadsheetApp.openById(appBackground);
     var sheet = tempApp.getSheetByName(sheetItemDB);
     if (!sheet) return { success: false, message: '找不到貨品資料庫' };
     var data = sheet.getDataRange().getValues();
-    var target = itemNo.toString().trim();
     
     for (var i = 1; i < data.length; i++) {
       var id = data[i][0] ? data[i][0].toString().trim() : '';
@@ -242,6 +281,9 @@ function apiApplyInventoryCheck(payload, callerEmail) {
       }
       // 更新盤點單狀態
       checkSheet.getRange(i + 1, 9).setValue('已寫入');
+    }
+    if (typeof invalidateChunkedCache === 'function') {
+      invalidateChunkedCache('STOCK_LIST_ALL');
     }
     return { success: true, message: '已將 ' + updated + ' 筆盤點結果寫入貨品資料庫' };
   } catch(e) {
