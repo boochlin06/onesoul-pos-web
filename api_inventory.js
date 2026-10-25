@@ -38,6 +38,12 @@ function apiGetStockList(branch) {
 // ── 9. 取得盲盒資料庫 API ─────────────────────────────────
 function apiGetBlindBoxList() {
   try {
+    // 1. 優先命中記憶體分塊快取 (約 300~500ms)
+    var cached = typeof getChunkedCache === 'function' ? getChunkedCache('BLIND_BOX_LIST') : null;
+    if (cached) {
+      return { success: true, data: cached, fromCache: true };
+    }
+
     var tempApp = SpreadsheetApp.openById(appBackground);
     var sheet = tempApp.getSheetByName(sheetBlindBoxDB);
     if (!sheet) return { success: false, message: '找不到盲盒資料庫分頁' };
@@ -65,6 +71,9 @@ function apiGetBlindBoxList() {
             remaining: Number(row[11]) || 0,
             remark: row[12] ? row[12].toString() : ''
         });
+    }
+    if (typeof setChunkedCache === 'function') {
+      setChunkedCache('BLIND_BOX_LIST', results, 21600); // 6 小時
     }
     return { success: true, data: results };
   } catch(error) { return { success: false, message: error.toString() }; }

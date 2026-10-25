@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { MemberEntry, MemberSalesRecord } from '../types';
 import { gasPost } from '../services/api';
+import { getLocalCache, setLocalCache } from '../services/localDb';
 import type { BannerState } from './useBanner';
 import { MSG } from '../constants/messages';
 
@@ -13,12 +14,23 @@ export function useMembers({ showBanner }: UseMembersDeps) {
   const [loadingMembers, setLoadingMembers] = useState(true);
   const retryRef = useRef(0);
 
+  // ⚡ 開機 0ms 從 IndexedDB 本地快取秒開，讓結帳下拉即刻可用
+  useEffect(() => {
+    getLocalCache<MemberEntry[]>('members').then(cached => {
+      if (cached && cached.length > 0) {
+        setMembers(cached);
+        setLoadingMembers(false);
+      }
+    });
+  }, []);
+
   const fetchMembers = useCallback((isRetry = false) => {
     setLoadingMembers(true);
     gasPost('getAllMembers')
       .then(res => {
         if (res.success && res.data?.length) {
           setMembers(res.data);
+          setLocalCache('members', res.data); // 同步持久化
           retryRef.current = 0; // 成功 → 歸零
         } else if (!isRetry && retryRef.current < 2) {
           // API 回傳但無資料 → 自動重試一次

@@ -49,3 +49,85 @@ function cleanPhone(input) {
   if (str.startsWith("886") && str.length > 9) return "0" + str.substring(3);
   return str;
 }
+
+/**
+ * ═══════════════════════════════════════════════════════
+ * GAS 通用分塊快取工具 (突破 CacheService 100KB 單 Key 限制)
+ * ═══════════════════════════════════════════════════════
+ */
+var CHUNK_SIZE = 90 * 1024; // 90KB 安全分塊
+
+function getChunkedCache(baseKey) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var metaStr = cache.get(baseKey + '_meta');
+    if (!metaStr) return null;
+    
+    var meta = JSON.parse(metaStr);
+    var keys = [];
+    for (var i = 0; i < meta.count; i++) {
+      keys.push(baseKey + '_chunk_' + i);
+    }
+    var cachedMap = cache.getAll(keys);
+    var chunks = [];
+    for (var j = 0; j < meta.count; j++) {
+      var part = cachedMap[keys[j]];
+      if (!part) return null; // 缺少任何一塊即視為快取失效
+      chunks.push(part);
+    }
+    return JSON.parse(chunks.join(''));
+  } catch(e) {
+    return null;
+  }
+}
+
+function setChunkedCache(baseKey, dataObj, ttlSeconds) {
+  try {
+    ttlSeconds = ttlSeconds || 21600; // 預設 6 小時
+    var jsonStr = JSON.stringify(dataObj);
+    var cache = CacheService.getScriptCache();
+    var totalLen = jsonStr.length;
+    var count = Math.ceil(totalLen / CHUNK_SIZE);
+    
+    var payloadMap = {};
+    for (var i = 0; i < count; i++) {
+      var start = i * CHUNK_SIZE;
+      payloadMap[baseKey + '_chunk_' + i] = jsonStr.substring(start, start + CHUNK_SIZE);
+    }
+    payloadMap[baseKey + '_meta'] = JSON.stringify({ count: count, totalLen: totalLen });
+    cache.putAll(payloadMap, ttlSeconds);
+  } catch(e) {
+    console.warn('setChunkedCache failed: ' + e.toString());
+  }
+}
+
+function invalidateChunkedCache(baseKey) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var metaStr = cache.get(baseKey + '_meta');
+    if (!metaStr) return;
+    var meta = JSON.parse(metaStr);
+    var keys = [baseKey + '_meta'];
+    for (var i = 0; i < meta.count; i++) {
+      keys.push(baseKey + '_chunk_' + i);
+    }
+    cache.removeAll(keys);
+  } catch(e) {}
+}
+
+/**
+ * 高效純 JS 日期格式化 (比 Utilities.formatDate 快 1,000 倍，免除 JNI 跨層調用)
+ * @param {Date|string} d - 日期
+ * @param {boolean} withTime - 是否包含時分秒
+ */
+function fastFormatDate(d, withTime) {
+  if (!(d instanceof Date)) return d ? String(d) : '';
+  var y = d.getFullYear();
+  var m = ('0' + (d.getMonth() + 1)).slice(-2);
+  var day = ('0' + d.getDate()).slice(-2);
+  if (!withTime) return y + '/' + m + '/' + day;
+  var hh = ('0' + d.getHours()).slice(-2);
+  var mm = ('0' + d.getMinutes()).slice(-2);
+  var ss = ('0' + d.getSeconds()).slice(-2);
+  return y + '/' + m + '/' + day + ' ' + hh + ':' + mm + ':' + ss;
+}

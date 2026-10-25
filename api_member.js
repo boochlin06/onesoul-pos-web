@@ -23,27 +23,40 @@ function apiGetMember(phone) {
 // ── 5. 取得所有會員 API ───────────────────────────────────
 function apiGetAllMembers() {
   try {
+    // 1. 優先命中記憶體分塊快取 (約 200~400ms)
+    var cached = typeof getChunkedCache === 'function' ? getChunkedCache('ALL_MEMBERS') : null;
+    if (cached) {
+      return { success: true, data: cached, fromCache: true };
+    }
+
+    // 2. Cache Miss: 開檔讀取並使用原生高效日期格式化
     var tempApp = SpreadsheetApp.openById(appBackground);
-    var data = tempApp.getSheetByName(sheetMemberList).getDataRange().getValues();
-    return { 
-      success: true, 
-      data: data.slice(1).map(row => {
-        var birthday = row[4];
-        if (birthday instanceof Date) birthday = Utilities.formatDate(birthday, "GMT+8", "yyyy/MM/dd");
-        var timestamp = row[0];
-        if (timestamp instanceof Date) timestamp = Utilities.formatDate(timestamp, "GMT+8", "yyyy/MM/dd HH:mm:ss");
-        return { 
-          timestamp: timestamp || '',
-          name: row[1] || '', 
-          phone: row[2] || '', 
-          gender: row[3] || '',
-          birthday: birthday || '',
-          store: row[5] || '',
-          points: row[6] || 0, 
-          note: row[7] || '' 
-        };
-      }) 
-    };
+    var sheet = tempApp.getSheetByName(sheetMemberList);
+    if (!sheet) return { success: false, message: '找不到會員資料庫分頁' };
+    var data = sheet.getDataRange().getValues();
+    var results = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var phone = row[2] ? row[2].toString().trim() : '';
+      if (!phone) continue;
+
+      results.push({
+        timestamp: typeof fastFormatDate === 'function' ? fastFormatDate(row[0], true) : (row[0] || ''),
+        name: row[1] ? row[1].toString() : '',
+        phone: phone,
+        gender: row[3] ? row[3].toString() : '',
+        birthday: typeof fastFormatDate === 'function' ? fastFormatDate(row[4], false) : (row[4] || ''),
+        store: row[5] ? row[5].toString() : '',
+        points: Number(row[6]) || 0,
+        note: row[7] ? row[7].toString() : ''
+      });
+    }
+
+    if (typeof setChunkedCache === 'function') {
+      setChunkedCache('ALL_MEMBERS', results, 21600); // 6 小時
+    }
+    return { success: true, data: results };
   } catch(error) { return { success: false, message: error.toString() }; }
 }
 

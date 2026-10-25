@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
 import { useStickyState } from './useStickyState';
 import { gasPost, apiSaveDraft, apiClearDraft } from '../services/api';
+import { setLocalCache } from '../services/localDb';
 import type { BannerState } from './useBanner';
 import { MSG } from '../constants/messages';
 import {
@@ -24,7 +25,7 @@ interface UseCheckoutDeps {
 }
 
 export function useCheckout({
-  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner, email,
+  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers: _unusedFetchMembers, showBanner, email,
 }: UseCheckoutDeps) {
   // ── Draft monitoring ──
   const sessionIdRef = useRef(Date.now().toString(36) + Math.random().toString(36).slice(2));
@@ -180,9 +181,12 @@ export function useCheckout({
         showBanner(MSG.checkout.success(res.newPoints), 'ok');
         if (typeof res.newPoints !== 'undefined') {
           const rawPhone = customer.phoneName.split(/[- ]/)[0];
-          setMembers(prev => prev.map(m => String(m.phone).trim() === rawPhone ? { ...m, points: res.newPoints } : m));
+          setMembers(prev => {
+            const next = prev.map(m => String(m.phone).trim() === rawPhone ? { ...m, points: res.newPoints } : m);
+            setLocalCache('members', next);
+            return next;
+          });
         }
-        fetchMembers();
         resetFormValues();
         // 清除監控草稿
         lastDraftRef.current = '';
@@ -190,7 +194,7 @@ export function useCheckout({
       } else { showBanner(MSG.checkout.fail(res.message), 'err'); }
     } catch { showBanner(MSG.checkout.networkError, 'err'); }
     finally { setIsSubmitting(false); }
-  }, [branch, customer, payment, lotteries, merchandises, summary, orderNote, isSubmitting, showBanner, setMembers, fetchMembers]);
+  }, [branch, customer, payment, lotteries, merchandises, summary, orderNote, isSubmitting, showBanner, setMembers]);
 
   return {
     customer, setCustomer,

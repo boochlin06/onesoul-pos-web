@@ -158,6 +158,9 @@ function _addPointsUnsafe(phoneNumber, pointsToAdd) {
       var newPoints = currentPoints + pointsToAdd;
       if (newPoints < 0) return -2; // 點數不足
       memberSheet.getRange("G" + (i + 1)).setValue(newPoints);
+      if (typeof invalidateChunkedCache === 'function') {
+        invalidateChunkedCache('ALL_MEMBERS');
+      }
       return newPoints;
     }
   }

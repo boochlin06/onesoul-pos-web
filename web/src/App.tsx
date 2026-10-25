@@ -79,10 +79,12 @@ function PosApp() {
   const clockIn = useClockIn({ branch, email: auth.user?.email, isAuthenticated: auth.isAuthenticated, showBanner });
   const inventoryCheck = useInventoryCheck(branch);
 
-  // ── Initial data load（登入後只載入當前門市核心開抽資料）──
+  // ── Initial data load（登入後背景靜默同步核心快取）──
   useEffect(() => {
     if (!auth.isAuthenticated) return;
     prizes.fetchLibrary();
+    fetchMembers();
+    fetchBlindBoxes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.isAuthenticated]);
 

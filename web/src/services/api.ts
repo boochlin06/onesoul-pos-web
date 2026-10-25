@@ -26,30 +26,61 @@ function roundFields(obj: any): any {
   return out;
 }
 
-// ── Sequential Request Queue (防並發雷暴與超時) ───────────
-let queuePromise: Promise<any> = Promise.resolve();
+// ── In-Flight Deduplication & Dual-Queue ─────────────────
+const inFlightRequests = new Map<string, Promise<any>>();
+let backgroundQueue: Promise<any> = Promise.resolve();
 
-function enqueueGasTask<T>(task: () => Promise<T>): Promise<T> {
-  const result = queuePromise.then(task, task);
-  queuePromise = result.catch(() => {});
-  return result;
+// 核心高優先級操作清單（收銀生命線，絕不可被背景讀取阻塞）
+const HIGH_PRIORITY_ACTIONS = new Set([
+  'checkout',
+  'getMember',
+  'setOpeningCash',
+  'getOpeningCash',
+  'closeDay',
+  'deleteDailySales',
+]);
+
+async function executeFetch(action: string, payload?: object) {
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      action,
+      payload: payload ?? {},
+      apiKey: API_KEY,
+      idToken: getIdToken(),
+    }),
+  });
+  const json = await res.json();
+  return roundFields(json);
 }
 
 export async function gasPost(action: string, payload?: object) {
-  return enqueueGasTask(async () => {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action,
-        payload: payload ?? {},
-        apiKey: API_KEY,
-        idToken: getIdToken(),
-      }),
-    });
-    const json = await res.json();
-    return roundFields(json);
-  });
+  // 1. 高優先級操作即到即發，直通執行，終結隊頭阻塞
+  if (HIGH_PRIORITY_ACTIONS.has(action)) {
+    return executeFetch(action, payload);
+  }
+
+  // 2. 背景請求去重 (In-Flight Deduplication)
+  const reqKey = `${action}_${JSON.stringify(payload ?? {})}`;
+  if (inFlightRequests.has(reqKey)) {
+    return inFlightRequests.get(reqKey)!;
+  }
+
+  // 3. 背景低優先級單軌排隊（避免同時發射擊垮 GAS）
+  const task = async () => {
+    try {
+      return await executeFetch(action, payload);
+    } finally {
+      inFlightRequests.delete(reqKey);
+    }
+  };
+
+  const currentPromise = backgroundQueue.then(task, task);
+  backgroundQueue = currentPromise.catch(() => {});
+  inFlightRequests.set(reqKey, currentPromise);
+
+  return currentPromise;
 }
 
 // ── Members ────────────────────────────────────────────
