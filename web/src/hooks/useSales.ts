@@ -62,8 +62,12 @@ export function useDailySales({ branch, showBanner, fetchMembers }: UseDailySale
   const handleSetOpeningCash = useCallback(async (amt: number) => {
     showBanner(MSG.sales.openingCashSetting, 'loading', false);
     const res = await gasPost('setOpeningCash', { branch, amount: amt }).catch(() => null);
-    if (res?.success) { setOpeningCash(amt); showBanner(MSG.sales.openingCashSuccess, 'ok'); }
-    else showBanner(MSG.sales.openingCashFail, 'err');
+    if (res?.success) {
+      setOpeningCash(amt);
+      showBanner(MSG.sales.openingCashSuccess, 'ok');
+    } else {
+      showBanner(MSG.sales.openingCashFail(res?.message), 'err');
+    }
   }, [branch, showBanner]);
 
   const handleConfirmCloseDay = useCallback(async (data: {

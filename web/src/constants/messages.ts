@@ -35,7 +35,7 @@ export const MSG = {
     voidNetworkFail: '網路異常，無法作廢',
     openingCashSetting: '設定開櫃現金中…',
     openingCashSuccess: '✓ 開櫃現金設定成功',
-    openingCashFail: '✗ 設定失敗',
+    openingCashFail: (msg?: string) => (msg ? `✗ 設定失敗：${msg}` : '✗ 設定失敗'),
     closingDay: '系統關帳與結算中…',
     closeDayFail: (msg: string) => `✗ 關帳失敗: ${msg}`,
   },

@@ -35,9 +35,12 @@ export function DailySalesView({ branch, records, members, isLoading, onDelete, 
   }, [openingCash, branch]);
 
   const commitOpeningCash = () => {
-    const val = Number(localCash) || 0;
+    if (readOnly) return;
+    const val = Math.max(0, Math.floor(Number(localCash) || 0));
     if (val !== (openingCash ?? 0)) {
       onSetOpeningCash(val);
+    } else {
+      setLocalCash(openingCash != null ? String(openingCash) : '');
     }
   };
 
@@ -144,12 +147,14 @@ export function DailySalesView({ branch, records, members, isLoading, onDelete, 
             <span className="text-sm text-indigo-400 font-bold">NT$</span>
             <input
               type="number"
-            className="w-full bg-transparent outline-none font-bold text-xl text-indigo-700 tracking-tight"
-            value={localCash}
-            placeholder="0"
-            onChange={(e) => setLocalCash(e.target.value)}
-            onBlur={commitOpeningCash}
-            onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
+              min="0"
+              className={`w-full bg-transparent outline-none font-bold text-xl tracking-tight ${readOnly ? 'text-slate-400 cursor-not-allowed' : 'text-indigo-700'}`}
+              disabled={readOnly}
+              value={localCash}
+              placeholder="0"
+              onChange={(e) => setLocalCash(e.target.value)}
+              onBlur={commitOpeningCash}
+              onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
             />
           </div>
         </div>
