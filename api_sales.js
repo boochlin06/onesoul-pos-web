@@ -213,11 +213,23 @@ function apiCloseDay(payload, callerEmail) {
 
 // ── 2. 關帳 API 與 現金管理 API ────────────────────────────
 function apiSetOpeningCash(branch, amount) {
+  var props = PropertiesService.getScriptProperties();
   try {
-    var props = PropertiesService.getScriptProperties();
     props.setProperty('openingCash_' + branch, amount.toString());
     return { success: true, message: '開櫃現金設定成功', amount: Number(amount) };
   } catch(error) {
+    // 🛡️ 若遇到容量超限，自動針對性清理過期草稿與歷史計數器並重試
+    if (error.toString().indexOf('storage quota') !== -1 || error.toString().indexOf('quota') !== -1) {
+      try {
+        if (typeof purgeLegacyQuotaAndDraftProperties === 'function') {
+          purgeLegacyQuotaAndDraftProperties();
+        }
+        props.setProperty('openingCash_' + branch, amount.toString());
+        return { success: true, message: '開櫃現金設定成功 (已自動釋放過期屬性)', amount: Number(amount) };
+      } catch(retryErr) {
+        return { success: false, message: '設定開櫃現金失敗: ' + retryErr.toString() };
+      }
+    }
     return { success: false, message: '設定開櫃現金失敗: ' + error.toString() };
   }
 }

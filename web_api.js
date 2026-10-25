@@ -149,6 +149,9 @@ function doPost(e) {
       case "clearDraft":
         result = apiClearDraft(payload.sessionId, payload.branch);
         break;
+      case "purgeLegacyProperties":
+        result = purgeLegacyQuotaAndDraftProperties();
+        break;
       case "sendLineMessage":
         result = apiSendLineMessage(payload, tokenEmail);
         break;

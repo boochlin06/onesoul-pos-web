@@ -91,7 +91,12 @@ function apiCheckout(payload) {
 }
 
 /**
- * 儲存結帳草稿到 ScriptProperties
+ * 結帳草稿 TTL (3 小時，單位：秒)
+ */
+var DRAFT_CACHE_TTL_SEC = 3 * 60 * 60;
+
+/**
+ * 儲存結帳草稿到 CacheService（徹底隔離，不佔用 ScriptProperties 500KB 配額）
  * Key: draft_{branch}_{sessionId}
  */
 function apiSaveDraft(payload) {
@@ -102,9 +107,30 @@ function apiSaveDraft(payload) {
     var data = payload.data || {};
     if (!branch || !sessionId) return { success: false, message: '缺少 branch 或 sessionId' };
 
+    var cache = CacheService.getScriptCache();
     var key = 'draft_' + branch + '_' + sessionId;
     var value = JSON.stringify({ email: email, data: data, ts: Date.now() });
-    PropertiesService.getScriptProperties().setProperty(key, value);
+
+    // 存入 CacheService，設定 3 小時自動焚毀
+    cache.put(key, value, DRAFT_CACHE_TTL_SEC);
+
+    // 維護門市活躍 Session 索引列表（輕量字串陣列）
+    var indexKey = 'draft_idx_' + branch;
+    var sessionList = [];
+    try {
+      sessionList = JSON.parse(cache.get(indexKey) || '[]');
+    } catch(e) { sessionList = []; }
+
+    if (sessionList.indexOf(sessionId) === -1) {
+      sessionList.push(sessionId);
+      cache.put(indexKey, JSON.stringify(sessionList), DRAFT_CACHE_TTL_SEC);
+    }
+
+    // 同步清理舊版可能殘留在 ScriptProperties 中的同名 key
+    try {
+      PropertiesService.getScriptProperties().deleteProperty(key);
+    } catch(ign) {}
+
     return { success: true };
   } catch(error) {
     return { success: false, message: error.toString() };
@@ -112,37 +138,44 @@ function apiSaveDraft(payload) {
 }
 
 /**
- * 取得指定門市的所有活躍草稿（過期自動清除）
+ * 取得指定門市的所有活躍草稿（過期由 CacheService 自動回收）
  */
 function apiGetDrafts(branch) {
   try {
     if (!branch) return { success: false, message: '缺少 branch' };
-    var props = PropertiesService.getScriptProperties();
-    var allProps = props.getProperties();
-    var prefix = 'draft_' + branch + '_';
-    var now = Date.now();
-    var results = [];
+    var cache = CacheService.getScriptCache();
+    var indexKey = 'draft_idx_' + branch;
+    var sessionList = [];
+    try {
+      sessionList = JSON.parse(cache.get(indexKey) || '[]');
+    } catch(e) { sessionList = []; }
 
-    for (var key in allProps) {
-      if (key.indexOf(prefix) !== 0) continue;
+    var results = [];
+    var validSessions = [];
+    var now = Date.now();
+
+    for (var i = 0; i < sessionList.length; i++) {
+      var sId = sessionList[i];
+      var raw = cache.get('draft_' + branch + '_' + sId);
+      if (!raw) continue; // 已過期或被自動清除
       try {
-        var val = JSON.parse(allProps[key]);
-        if (now - val.ts > DRAFT_EXPIRE_MS) {
-          props.deleteProperty(key); // 清除過期
-          continue;
-        }
-        var sessionId = key.substring(prefix.length);
+        var val = JSON.parse(raw);
         results.push({
-          sessionId: sessionId,
+          sessionId: sId,
           email: val.email || '',
           data: val.data || {},
           ts: val.ts,
           ago: Math.round((now - val.ts) / 1000) // 秒前
         });
-      } catch(e) {
-        props.deleteProperty(key); // 格式錯誤也清掉
-      }
+        validSessions.push(sId);
+      } catch(e) {}
     }
+
+    // 更新索引，剔除失效 session
+    if (validSessions.length !== sessionList.length) {
+      cache.put(indexKey, JSON.stringify(validSessions), DRAFT_CACHE_TTL_SEC);
+    }
+
     return { success: true, data: results };
   } catch(error) {
     return { success: false, message: error.toString() };
@@ -155,8 +188,22 @@ function apiGetDrafts(branch) {
 function apiClearDraft(sessionId, branch) {
   try {
     if (!sessionId || !branch) return { success: false, message: '缺少參數' };
+    var cache = CacheService.getScriptCache();
     var key = 'draft_' + branch + '_' + sessionId;
-    PropertiesService.getScriptProperties().deleteProperty(key);
+    cache.remove(key);
+
+    var indexKey = 'draft_idx_' + branch;
+    try {
+      var sessionList = JSON.parse(cache.get(indexKey) || '[]');
+      var filtered = sessionList.filter(function(id) { return id !== sessionId; });
+      cache.put(indexKey, JSON.stringify(filtered), DRAFT_CACHE_TTL_SEC);
+    } catch(e) {}
+
+    // 同步清理舊版可能殘留在 ScriptProperties 中的同名 key
+    try {
+      PropertiesService.getScriptProperties().deleteProperty(key);
+    } catch(ign) {}
+
     return { success: true };
   } catch(error) {
     return { success: false, message: error.toString() };
