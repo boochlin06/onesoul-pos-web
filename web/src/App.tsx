@@ -79,16 +79,14 @@ function PosApp() {
   const clockIn = useClockIn({ branch, email: auth.user?.email, isAuthenticated: auth.isAuthenticated, showBanner });
   const inventoryCheck = useInventoryCheck(branch);
 
-  // ── Initial data load（登入後才發請求）──
+  // ── Initial data load（登入後只載入當前門市核心開抽資料）──
   useEffect(() => {
     if (!auth.isAuthenticated) return;
     prizes.fetchLibrary();
-    fetchMembers();
-    fetchBlindBoxes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.isAuthenticated]);
 
-  // ── Tab-driven fetching（登入後才發請求）──
+  // ── Tab-driven fetching（登入後按需載入各分頁資料）──
   const initialFetchDone = useRef(false);
   useEffect(() => {
     if (!auth.isAuthenticated) return;
@@ -98,6 +96,10 @@ function PosApp() {
       sales.fetchSalesRecords(isPageLoad);
     } else if (activeTab === 'daily') {
       daily.fetchDailySales();
+    } else if (activeTab === 'members' && members.length === 0) {
+      fetchMembers();
+    } else if (activeTab === 'blindbox' && blindBoxes.length === 0) {
+      fetchBlindBoxes();
     }
     initialFetchDone.current = true;
     // 離開 daily tab 時，確保 branch 在允許範圍內
