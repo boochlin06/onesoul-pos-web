@@ -26,18 +26,30 @@ function roundFields(obj: any): any {
   return out;
 }
 
+// ── Sequential Request Queue (防並發雷暴與超時) ───────────
+let queuePromise: Promise<any> = Promise.resolve();
+
+function enqueueGasTask<T>(task: () => Promise<T>): Promise<T> {
+  const result = queuePromise.then(task, task);
+  queuePromise = result.catch(() => {});
+  return result;
+}
+
 export async function gasPost(action: string, payload?: object) {
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-      action,
-      payload: payload ?? {},
-      apiKey: API_KEY,
-      idToken: getIdToken(),
-    }),
+  return enqueueGasTask(async () => {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action,
+        payload: payload ?? {},
+        apiKey: API_KEY,
+        idToken: getIdToken(),
+      }),
+    });
+    const json = await res.json();
+    return roundFields(json);
   });
-  const json = await res.json();
-  return roundFields(json);
 }
 
 // ── Members ────────────────────────────────────────────

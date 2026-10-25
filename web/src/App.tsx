@@ -84,9 +84,7 @@ function PosApp() {
     if (!auth.isAuthenticated) return;
     prizes.fetchLibrary();
     fetchMembers();
-    fetchStocks();
     fetchBlindBoxes();
-    fetchAllStocks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.isAuthenticated]);
 
