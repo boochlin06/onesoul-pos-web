@@ -35,10 +35,10 @@ export function isActiveLottery(l: LotteryItem): boolean {
     l.prize ||
     l.setName ||
     l.prizeName ||
-    l.amount > 0 ||
-    (l.pointsCost || 0) > 0 ||
-    (l.totalPoints || 0) > 0 ||
-    l.draws > 1 ||
+    l.amount !== 0 ||
+    (l.pointsCost || 0) !== 0 ||
+    (l.totalPoints || 0) !== 0 ||
+    l.draws !== 1 ||
     (l.remark && l.remark.trim() !== '')
   );
 }
@@ -47,11 +47,11 @@ export function isActiveMerch(m: MerchItem): boolean {
   return Boolean(
     m.id ||
     m.name ||
-    m.quantity > 1 ||
-    m.unitAmount > 0 ||
-    m.actualAmount > 0 ||
-    (m.totalPoints || 0) > 0 ||
-    (m.suggestedPoints || 0) > 0 ||
+    m.quantity !== 1 ||
+    m.unitAmount !== 0 ||
+    m.actualAmount !== 0 ||
+    (m.totalPoints || 0) !== 0 ||
+    (m.suggestedPoints || 0) !== 0 ||
     (m.remark && m.remark.trim() !== '')
   );
 }
@@ -101,8 +101,23 @@ export function applyLotteryUpdate(
     const wasPointsSet = item.remark === '點數套';
     const normalizedPrize = String(value).trim().toLowerCase();
     const prizeEntry = prizes.find(p => p.setId === updated.id && String(p.prize).trim().toLowerCase() === normalizedPrize);
-    if (prizeEntry) { updated.prizeId = prizeEntry.prizeId; updated.prizeName = prizeEntry.prizeName; updated.unitPoints = prizeEntry.points; }
-    else { updated.prizeId = ''; updated.prizeName = ''; updated.unitPoints = 0; updated.draws = 0; updated.amount = 0; updated.totalPoints = 0; }
+    if (prizeEntry) {
+      updated.prizeId = prizeEntry.prizeId;
+      updated.prizeName = prizeEntry.prizeName;
+      updated.unitPoints = prizeEntry.points;
+      if (updated.draws > prizeEntry.draws) {
+        updated.draws = prizeEntry.draws;
+      } else if (updated.draws < 1) {
+        updated.draws = 1;
+      }
+    } else {
+      updated.prizeId = '';
+      updated.prizeName = '';
+      updated.unitPoints = 0;
+      updated.draws = 0;
+      updated.amount = 0;
+      updated.totalPoints = 0;
+    }
     if (!wasPointsSet) {
       if (value === '88888') updated.remark = '送1點';
       else if (value === '99999') updated.remark = '扣1點';
@@ -221,13 +236,16 @@ export function isWalkInCustomer(phoneOrName: string | null | undefined): boolea
   if (!phoneOrName) return true;
   const clean = String(phoneOrName).trim().toUpperCase();
   const raw = clean.split(/[- ]/)[0].trim();
+  const stripped = clean.replace(/[-_\s]/g, '');
   return (
     WALK_IN_CODES.includes(clean) ||
     WALK_IN_CODES.includes(raw) ||
-    clean.includes('散客') ||
-    clean.includes('WALKIN') ||
-    clean.includes('WALK_IN') ||
-    clean.includes('現場')
+    stripped.includes('散客') ||
+    stripped.includes('WALKIN') ||
+    stripped.includes('現場') ||
+    stripped.includes('非會員') ||
+    stripped.includes('臨時客') ||
+    stripped.includes('訪客')
   );
 }
 
@@ -313,7 +331,7 @@ export function validateCheckout(input: ValidationInput): string | null {
   const itemPtsCost = summary.pointsChange < 0 ? Math.abs(summary.pointsChange) : 0;
   const totalPtsCost = itemPtsCost + (payment.pointsUsed || 0);
   const currentPts = customer.currentPoints ?? 0;
-  if (totalPtsCost > currentPts) {
+  if (totalPtsCost > 0 && totalPtsCost > currentPts) {
     return MSG.validation.insufficientPoints(totalPtsCost, currentPts);
   }
 
