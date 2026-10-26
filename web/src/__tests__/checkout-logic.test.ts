@@ -548,6 +548,14 @@ describe('isWalkInCustomer (散客識別邏輯)', () => {
     expect(isWalkInCustomer('現場客')).toBe(true);
     expect(isWalkInCustomer('WALKIN')).toBe(true);
     expect(isWalkInCustomer('walk_in')).toBe(true);
+    expect(isWalkInCustomer('walk-in')).toBe(true);
+    expect(isWalkInCustomer('Walk-In')).toBe(true);
+    expect(isWalkInCustomer('walk in')).toBe(true);
+    expect(isWalkInCustomer('WALK IN')).toBe(true);
+    expect(isWalkInCustomer('散 客')).toBe(true);
+    expect(isWalkInCustomer('非會員')).toBe(true);
+    expect(isWalkInCustomer('臨時客')).toBe(true);
+    expect(isWalkInCustomer('訪客')).toBe(true);
     expect(isWalkInCustomer('門市現場')).toBe(true);
   });
 
@@ -874,12 +882,19 @@ describe('isActiveLottery & isActiveMerch 精確活性判定', () => {
     expect(isActiveMerch({ ...emptyMerch(), remark: '特別備註' })).toBe(true);
   });
 
-  it('抽獎項目有金額或扣抵點數時，正確判定為活性 (true)', () => {
-    expect(isActiveLottery({ ...emptyLottery(), amount: 700 })).toBe(true);
-    expect(isActiveLottery({ ...emptyLottery(), pointsCost: 20 })).toBe(true);
-    expect(isActiveLottery({ ...emptyLottery(), totalPoints: 10 })).toBe(true);
-    expect(isActiveLottery({ ...emptyLottery(), draws: 3 })).toBe(true);
-    expect(isActiveLottery({ ...emptyLottery(), remark: '點數套' })).toBe(true);
+  it('直購商品有負數或異常數量時，正確判定為活性 (true) 防漏檢', () => {
+    expect(isActiveMerch({ ...emptyMerch(), actualAmount: -500 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), unitAmount: -300 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), totalPoints: -10 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), suggestedPoints: -5 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), quantity: 0 })).toBe(true);
+  });
+
+  it('抽獎項目有負數或異常抽數時，正確判定為活性 (true) 防漏檢', () => {
+    expect(isActiveLottery({ ...emptyLottery(), amount: -700 })).toBe(true);
+    expect(isActiveLottery({ ...emptyLottery(), pointsCost: -20 })).toBe(true);
+    expect(isActiveLottery({ ...emptyLottery(), totalPoints: -10 })).toBe(true);
+    expect(isActiveLottery({ ...emptyLottery(), draws: 0 })).toBe(true);
   });
 });
 
@@ -1021,6 +1036,49 @@ describe('Adversarial Edge Cases: validateCheckout 核心不變量與防竄改',
     input.payment.remittance = 0.5;
     const err = validateCheckout(input);
     expect(err).toContain('整數');
+  });
+
+  it('會員點數負數餘額時，全額現金支付順利通過 (totalPtsCost === 0 不受負點數誤判阻擋)', () => {
+    const input = baseValidInput();
+    input.customer.currentPoints = -10; // 歷史點數透支/負數
+    input.payment.cash = 700;
+    input.payment.pointsUsed = 0;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('散客名稱或電話為 WALK-IN、Walk In、散 客、非會員 意圖折抵點數時一律嚴格阻斷', () => {
+    const walkInVariants = ['WALK-IN', 'Walk In', '散 客', '非會員', '臨時客', '訪客'];
+    for (const variant of walkInVariants) {
+      const input = baseValidInput();
+      input.customer.phoneName = '0911000000';
+      input.customer.name = variant;
+      input.payment.pointsUsed = 10;
+      input.payment.cash = 690;
+      const err = validateCheckout(input);
+      expect(err).toContain('散客');
+      expect(err).toContain('點數');
+    }
+  });
+
+  it('抽獎項目含負數金額時被正確標記為活性，validateCheckout 嚴格阻擋而非視為空白漏網', () => {
+    const input = baseValidInput();
+    input.lotteries.push({
+      ...emptyLottery(),
+      amount: -500, // 惡意負數項目
+    });
+    input.summary.dueAmount = 200; // 700 - 500
+    input.payment.cash = 200;
+    const err = validateCheckout(input);
+    expect(err).toBeTruthy();
+  });
+
+  it('applyLotteryUpdate 選中獎項時若先前輸入之 draws 超過獎項上限，自動限縮至該獎項上限', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'S1', prizes);
+    item = applyLotteryUpdate(item, 'draws', 99, prizes);
+    expect(item.draws).toBe(99);
+    // prizes 中 S1 的 A 賞只有 1 抽
+    item = applyLotteryUpdate(item, 'prize', 'A', prizes);
+    expect(item.draws).toBe(1);
   });
 });
 

@@ -150,22 +150,26 @@ export function useCheckout({
 
   // ── Pre-Submit Validation ──
   const handlePreCheckout = useCallback(() => {
-    const error = validateCheckout({ lotteries, merchandises, customer, payment, summary, orderNote });
+    const filteredLotteries = lotteries.filter(isActiveLottery);
+    const filteredMerch = merchandises.filter(isActiveMerch);
+    const expectedSummary = calcSummary(filteredLotteries, filteredMerch);
+    const error = validateCheckout({ lotteries, merchandises, customer, payment, summary: expectedSummary, orderNote });
     if (error) { 
       showBanner(error, 'err'); 
       return; 
     }
     setIsConfirmModalOpen(true);
-  }, [lotteries, merchandises, customer, payment, summary, orderNote, showBanner]);
+  }, [lotteries, merchandises, customer, payment, orderNote, showBanner]);
 
   // ── Submit Checkout ──
   const handleCheckout = useCallback(async () => {
     setIsConfirmModalOpen(false);
     const filteredLotteries = lotteries.filter(isActiveLottery);
     const filteredMerch = merchandises.filter(isActiveMerch);
+    const expectedSummary = calcSummary(filteredLotteries, filteredMerch);
 
     // Double check just in case
-    const error = validateCheckout({ lotteries, merchandises, customer, payment, summary, orderNote });
+    const error = validateCheckout({ lotteries, merchandises, customer, payment, summary: expectedSummary, orderNote });
     if (error) { showBanner(error, 'err'); return; }
 
     if (isSubmitting) return;
@@ -175,7 +179,7 @@ export function useCheckout({
       const totalReceived = payment.cash + payment.remittance + payment.creditCard;
       const payloadPayment = { ...payment, receivedAmount: totalReceived };
       const { currentPoints: _unused, ...customerPayload } = customer;
-      const res = await gasPost('checkout', { branch, customer: customerPayload, payment: payloadPayment, summary, lotteries: filteredLotteries, merchandises: filteredMerch, orderNote });
+      const res = await gasPost('checkout', { branch, customer: customerPayload, payment: payloadPayment, summary: expectedSummary, lotteries: filteredLotteries, merchandises: filteredMerch, orderNote });
       if (res.success) {
         showBanner(MSG.checkout.success(res.newPoints), 'ok');
         if (typeof res.newPoints !== 'undefined') {

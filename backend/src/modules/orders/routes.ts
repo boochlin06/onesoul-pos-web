@@ -64,16 +64,21 @@ const checkoutSchema = z.object({
   checkoutUID: z.string().optional(),
 });
 
-function isWalkInCustomer(phone: string | null | undefined): boolean {
-  if (!phone) return true;
-  const clean = phone.trim().toUpperCase();
+function isWalkInCustomer(phoneOrName: string | null | undefined): boolean {
+  if (!phoneOrName) return true;
+  const clean = String(phoneOrName).trim().toUpperCase();
+  const raw = clean.split(/[- ]/)[0].trim();
+  const stripped = clean.replace(/[-_\s]/g, '');
   const WALK_IN_CODES = ['111111', '222222', '333333', '88888', '99999'];
   return (
     WALK_IN_CODES.includes(clean) ||
-    clean.includes('散客') ||
-    clean.includes('WALKIN') ||
-    clean.includes('WALK_IN') ||
-    clean.includes('現場')
+    WALK_IN_CODES.includes(raw) ||
+    stripped.includes('散客') ||
+    stripped.includes('WALKIN') ||
+    stripped.includes('現場') ||
+    stripped.includes('非會員') ||
+    stripped.includes('臨時客') ||
+    stripped.includes('訪客')
   );
 }
 
@@ -89,12 +94,13 @@ export async function orderRoutes(fastify: FastifyInstance) {
     const storeId = payload.branch === '金山' ? 'jinshan' : 'chupei';
     const user = (request as any).user;
     const phoneInput = payload.customer.phone || payload.customer.phoneName || '';
-    const phone = phoneInput.split(/[- ]/)[0].trim();
+    const isWalkIn = isWalkInCustomer(phoneInput) || isWalkInCustomer(payload.customer.name);
+    const phone = isWalkIn ? (phoneInput || 'WALKIN') : phoneInput.split(/[- ]/)[0].trim();
 
     // 生成或使用客戶端 checkoutUID (散客附加隨機高熵值防止碰撞吞單)
     const checkoutUID =
       payload.checkoutUID?.trim() ||
-      `${phone ? phone + '_' : 'WALKIN_'}${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      `${isWalkIn ? 'WALKIN' : (phone || 'WALKIN')}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     // ── 1. 冪等性檢查 (Idempotency Check: 命中已完成訂單直接返回) ──
     const existingOrder = await prisma.order.findUnique({
@@ -112,8 +118,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
     }
 
     // ── 1.1 散客身分防護 (杜絕 111111/222222 散客點數零元購穿透) ──
-    const isWalkIn = isWalkInCustomer(phone);
-
     if (isWalkIn) {
       const hasPointsUsage = payload.payment?.pointsUsed && payload.payment.pointsUsed > 0;
       const hasMerchPoints = payload.merchandises?.some((m: any) => m.paymentType === '點數' || m.paymentType === 'POINTS');
@@ -165,9 +169,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
         // ── 3. 查詢/鎖定會員 (行級鎖保護避免 Race Condition，攔截散客代碼) ──
         let member = null;
-        const isCustomerWalkIn = isWalkInCustomer(phone);
+        const isCustomerWalkIn = isWalkIn;
 
-        if (!isCustomerWalkIn && phone) {
+        if (!isCustomerWalkIn && phone && phone !== 'WALKIN') {
           member = await tx.member.findUnique({ where: { phone } });
           if (!member) {
             member = await tx.member.create({

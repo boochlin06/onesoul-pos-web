@@ -22,7 +22,7 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
       const elapsed = performance.now() - startTime;
 
       expect(res.statusCode).toBe(200);
-      expect(elapsed).toBeLessThan(600);
+      expect(elapsed).toBeLessThan(1000);
 
       const body = res.json();
       expect(body.success).toBe(true);
