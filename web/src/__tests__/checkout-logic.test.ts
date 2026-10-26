@@ -1080,6 +1080,138 @@ describe('Adversarial Edge Cases: validateCheckout 核心不變量與防竄改',
     item = applyLotteryUpdate(item, 'prize', 'A', prizes);
     expect(item.draws).toBe(1);
   });
+
+  // ── 格式化散客電話防逃逸與穿透阻斷 ──
+  it('散客電話含符號與空格變體 (111-111, 111 111, 222-222, 88-888, 000000) 均正確識別為散客', () => {
+    const formattedWalkIns = ['111-111', '111 111', '222-222', '333-333', '88-888', '99-999', '000000', '888888', '999999'];
+    for (const code of formattedWalkIns) {
+      expect(isWalkInCustomer(code)).toBe(true);
+    }
+  });
+
+  it('散客使用格式化電話 (111-111) 意圖扣抵點數時嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.customer.phoneName = '111-111';
+    input.customer.name = '現場客戶';
+    input.payment.pointsUsed = 10;
+    input.payment.cash = 690;
+    const err = validateCheckout(input);
+    expect(err).toContain('散客');
+    expect(err).toContain('點數');
+  });
+
+  // ── 特殊代碼切換至一般商品時 paymentType 重置防呆 ──
+  it('商品行原為 88888 (贈送)，切換為一般商品時 paymentType 自動重置為現金且計入應收', () => {
+    let item = applyMerchUpdate(emptyMerch(), 'id', '88888', stocks, blindBoxes);
+    expect(item.paymentType).toBe('贈送');
+    expect(item.actualAmount).toBe(0);
+
+    // 切換為盲盒商品 BB001 (售價 200)
+    item = applyMerchUpdate(item, 'id', 'BB001', stocks, blindBoxes);
+    expect(item.paymentType).toBe('現金');
+    expect(item.actualAmount).toBe(200);
+    expect(item.totalPoints).toBe(0);
+  });
+
+  it('商品行原為 88888，清空貨號時 paymentType 自動重置為現金', () => {
+    let item = applyMerchUpdate(emptyMerch(), 'id', '88888', stocks, blindBoxes);
+    expect(item.paymentType).toBe('贈送');
+
+    item = applyMerchUpdate(item, 'id', '', stocks, blindBoxes);
+    expect(item.paymentType).toBe('現金');
+    expect(item.actualAmount).toBe(0);
+  });
+
+  // ── 一番賞備註與套組清空重置防呆 ──
+  it('一番賞套號清空時，若先前為點數套則 remark 與 type 正確清除重置', () => {
+    const pointsPrizesFixture: PrizeEntry[] = [
+      makePrize('PS1', 'A', { unitPrice: 400, isPointsSet: true, draws: 5 }),
+    ];
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizesFixture);
+    expect(item.remark).toBe('點數套');
+
+    // 清空套號
+    item = applyLotteryUpdate(item, 'id', '', pointsPrizesFixture);
+    expect(item.remark).toBe('');
+    expect(item.type).toBe('帶走');
+    expect(item.pointsCost).toBe(0);
+  });
+
+  it('一番賞獎項從 X (盲盒) 切換為一般 A 賞時，自動清除先前的「盲盒」備註', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'SET-1', prizes);
+    item = applyLotteryUpdate(item, 'prize', 'x', prizes);
+    expect(item.remark).toBe('盲盒');
+
+    // 切換為 A 賞
+    item = applyLotteryUpdate(item, 'prize', 'A', prizes);
+    expect(item.remark).toBe('');
+  });
+
+  it('一番賞獎項從 88888 切換為一般 A 賞時，自動清除先前的「送1點」備註', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'SET-1', prizes);
+    item = applyLotteryUpdate(item, 'prize', '88888', prizes);
+    expect(item.remark).toBe('送1點');
+
+    // 切換為 A 賞
+    item = applyLotteryUpdate(item, 'prize', 'A', prizes);
+    expect(item.remark).toBe('');
+  });
+
+  // ── 原生 LINE Pay 支付與四重混合支付 ──
+  it('全額 LINE Pay (linePay: 700) 支付通過', () => {
+    const input = baseValidInput();
+    input.payment.cash = 0;
+    input.payment.linePay = 700;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('四重混合支付 (現金 $300 + LINE Pay $200 + 信用卡 $100 + 匯款 $100 = $700) 通過', () => {
+    const input = baseValidInput();
+    input.payment.cash = 300;
+    input.payment.linePay = 200;
+    input.payment.creditCard = 100;
+    input.payment.remittance = 100;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('LINE Pay 為負數或小數時嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.payment.cash = 750;
+    input.payment.linePay = -50;
+    expect(validateCheckout(input)).toContain('負數');
+
+    const input2 = baseValidInput();
+    input2.payment.cash = 600;
+    input2.payment.linePay = 100.5;
+    input2.summary.dueAmount = 700.5;
+    expect(validateCheckout(input2)).toContain('整數');
+  });
+
+  // ── 點數套防竄改與品項層級整數防禦 ──
+  it('限定點數套 pointsCost > 0 但惡意清空 remark 且輸入非零金額時嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.lotteries[0] = {
+      ...input.lotteries[0],
+      remark: '自訂偽造',
+      pointsCost: 17,
+      amount: 350,
+    };
+    input.summary.dueAmount = 700;
+    input.payment.cash = 700;
+    const err = validateCheckout(input);
+    expect(err).toContain('限定點數套');
+    expect(err).toContain('$0');
+  });
+
+  it('品項金額或點數含小數點 (如 amount: 350.5) 嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.lotteries[0].amount = 350.5;
+    input.merchandises = [{ ...emptyMerch(), id: 'M1', name: '測試商品', actualAmount: 349.5, quantity: 1, paymentType: '現金' }];
+    input.summary.dueAmount = 700;
+    input.payment.cash = 700;
+    const err = validateCheckout(input);
+    expect(err).toContain('整數');
+  });
 });
 
 

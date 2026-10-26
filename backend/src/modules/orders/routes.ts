@@ -69,10 +69,11 @@ function isWalkInCustomer(phoneOrName: string | null | undefined): boolean {
   const clean = String(phoneOrName).trim().toUpperCase();
   const raw = clean.split(/[- ]/)[0].trim();
   const stripped = clean.replace(/[-_\s]/g, '');
-  const WALK_IN_CODES = ['111111', '222222', '333333', '88888', '99999'];
+  const WALK_IN_CODES = ['111111', '222222', '333333', '88888', '99999', '000000', '888888', '999999'];
   return (
     WALK_IN_CODES.includes(clean) ||
     WALK_IN_CODES.includes(raw) ||
+    WALK_IN_CODES.includes(stripped) ||
     stripped.includes('散客') ||
     stripped.includes('WALKIN') ||
     stripped.includes('現場') ||

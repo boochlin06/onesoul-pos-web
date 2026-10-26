@@ -248,4 +248,30 @@ describe('廠商預購與長期追蹤管理 (Pre-orders & Procurement Lifecycle)
     const ghostMember = await prisma.member.findUnique({ where: { phone: '散客' } });
     expect(ghostMember).toBeNull();
   });
+
+  it('8. 散客格式化電話 (111-111, 88-888) 防護：禁止使用點數或建立假會員', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/orders/checkout',
+      headers: authHeaders,
+      payload: {
+        branch: '竹北',
+        customer: { phone: '111-111', name: '現場客' },
+        lotteries: [],
+        merchandises: [],
+        payment: {
+          receivedAmount: 100,
+          cash: 0,
+          pointsUsed: 10,
+        },
+        summary: { dueAmount: 100, pointsChange: -10 },
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain('散客不可使用點數折抵');
+
+    const ghost = await prisma.member.findUnique({ where: { phone: '111-111' } });
+    expect(ghost).toBeNull();
+  });
 });

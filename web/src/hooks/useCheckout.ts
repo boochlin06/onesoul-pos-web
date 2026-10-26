@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
+import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry, PaymentInfo } from '../types';
 import { useStickyState } from './useStickyState';
 import { gasPost, apiSaveDraft, apiClearDraft } from '../services/api';
 import type { BannerState } from './useBanner';
@@ -34,8 +34,8 @@ export function useCheckout({
     'os_checkout_customer',
   );
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
-  const [payment, setPayment] = useStickyState(
-    { receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 },
+  const [payment, setPayment] = useStickyState<PaymentInfo>(
+    { receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0, linePay: 0 },
     'os_checkout_payment',
   );
   const [lotteries, setLotteries] = useStickyState<LotteryItem[]>(
@@ -134,7 +134,7 @@ export function useCheckout({
   // ── Reset ──
   const resetFormValues = useCallback(() => {
     setCustomer({ phoneName: '', name: '', gender: '', birthday: '', currentPoints: 0 });
-    setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0 });
+    setPayment({ receivedAmount: 0, remittance: 0, creditCard: 0, cash: 0, pointsUsed: 0, linePay: 0 });
     setLotteries(Array(5).fill(null).map(emptyLottery));
     setMerchandises(Array(2).fill(null).map(emptyMerch));
     setOrderNote('');
@@ -176,7 +176,7 @@ export function useCheckout({
     setIsSubmitting(true);
     showBanner(MSG.checkout.sending, 'loading', false);
     try {
-      const totalReceived = payment.cash + payment.remittance + payment.creditCard;
+      const totalReceived = payment.cash + payment.remittance + payment.creditCard + (payment.linePay || 0);
       const payloadPayment = { ...payment, receivedAmount: totalReceived };
       const { currentPoints: _unused, ...customerPayload } = customer;
       const res = await gasPost('checkout', { branch, customer: customerPayload, payment: payloadPayment, summary: expectedSummary, lotteries: filteredLotteries, merchandises: filteredMerch, orderNote });
