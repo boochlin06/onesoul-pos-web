@@ -2,6 +2,7 @@ import { Search, Users, Receipt, BookOpen, Plus, Trash2, Archive, ShoppingCart }
 import type { Dispatch, SetStateAction } from 'react';
 import type { Branch, LotteryItem, MerchItem, MemberEntry, CustomerInfo, PaymentInfo, Tab } from '../../types';
 import { branchBadge, branchGradient } from '../../constants';
+import { isActiveLottery, isActiveMerch } from '../../logic/checkout';
 
 
 
@@ -137,7 +138,7 @@ export function CardCheckoutView({
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-sm font-bold">3</div>
             <span className="text-sm font-bold text-amber-900">抽獎福袋</span>
-            <span className="text-xs bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-full">{lotteries.filter(l => l.id || l.setName || l.amount > 0).length} 筆</span>
+            <span className="text-xs bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-full">{lotteries.filter(isActiveLottery).length} 筆</span>
           </div>
           <div className="flex gap-2">
             <button onClick={() => setActiveTab('library')} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-white border border-amber-200 hover:bg-amber-100 text-amber-700 rounded-lg font-bold transition-all active:scale-95">
@@ -243,7 +244,7 @@ export function CardCheckoutView({
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-full bg-rose-500 text-white flex items-center justify-center text-sm font-bold">4</div>
             <span className="text-sm font-bold text-rose-900">直購商品</span>
-            <span className="text-xs bg-rose-200 text-rose-800 font-bold px-2 py-0.5 rounded-full">{merchandises.filter(m => m.id || m.name).length} 筆</span>
+            <span className="text-xs bg-rose-200 text-rose-800 font-bold px-2 py-0.5 rounded-full">{merchandises.filter(isActiveMerch).length} 筆</span>
           </div>
           <button onClick={addMerchRow} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-bold transition-all active:scale-95">
             <Plus className="w-3.5 h-3.5" /> 新增

@@ -7,7 +7,7 @@ import { MSG } from '../constants/messages';
 import {
   emptyLottery, emptyMerch,
   calcSummary, applyLotteryUpdate, applyMerchUpdate,
-  filterMembers, validateCheckout,
+  filterMembers, validateCheckout, isActiveLottery, isActiveMerch,
 } from '../logic/checkout';
 
 interface UseCheckoutDeps {
@@ -161,8 +161,8 @@ export function useCheckout({
   // ── Submit Checkout ──
   const handleCheckout = useCallback(async () => {
     setIsConfirmModalOpen(false);
-    const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName || l.amount > 0);
-    const filteredMerch = merchandises.filter(m => m.id || m.name || m.quantity > 1);
+    const filteredLotteries = lotteries.filter(isActiveLottery);
+    const filteredMerch = merchandises.filter(isActiveMerch);
 
     // Double check just in case
     const error = validateCheckout({ lotteries, merchandises, customer, payment, summary, orderNote });

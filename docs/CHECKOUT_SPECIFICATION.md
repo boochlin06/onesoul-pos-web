@@ -79,7 +79,13 @@ flowchart TD
   $$\text{WALK\_IN\_CODES} = \{ \text{'111111'}, \text{'222222'}, \text{'333333'}, \text{'88888'}, \text{'99999'} \}$$
   包含文字 `散客`、`WALKIN`、`WALK_IN`、`現場` 均無條件判定為散客。
 
-### 2.5 `validateCheckout(input)`
+### 2.5 `isActiveLottery(lottery)` & `isActiveMerch(merch)`
+- **職責**：精確判定抽獎列與商品列是否具備實質輸入（活性），杜絕預設空白列或半填寫欄位引發之算費與結帳送出脫鉤漏洞。
+- **活性標準**：
+  - 商品列：包含貨號、名稱、數量 > 1、單價 > 0、實收 > 0、點數 > 0 或備註任一者。
+  - 福袋列：包含單號、獎項、套名、獎名、金額 > 0、扣點 > 0、抽數 > 1 或備註任一者。
+
+### 2.6 `validateCheckout(input)`
 - **職責**：結帳送出前之全維度嚴格前置防呆。
 - **回傳值**：合法回傳 `null`；失敗回傳明確繁體中文錯誤訊息字串。
 
@@ -95,7 +101,7 @@ flowchart TD
 | **X 賞 (盲盒賞)** | 抽中 X 賞 | 選擇「點數」 | `type = '點數'` | $+\text{單抽價} \times \text{抽數}$ | $+10 \text{ 點} \times \text{抽數}$ | 不出庫實體商品，自動發放點數 |
 | **Z 賞 (保底小賞)** | 抽中 Z 賞 | 選擇「帶走」 | `type = '帶走'` | $+\text{單抽價} \times \text{抽數}$ | $0$ 點 | 門市小周邊現貨實體帶走 |
 | **Z 賞 (保底小賞)** | 抽中 Z 賞 | 選擇「點數」 | `type = '點數'` | $+\text{單抽價} \times \text{抽數}$ | $+1 \text{ 點} \times \text{抽數}$ | 不出庫實體商品，保底 1 點入帳 |
-| **限定點數套** | 載入點數套 ID | 預設開抽 | `remark = '點數套'` | $\$0$ (應收歸零) | $-\lfloor \text{單價}/20 \rfloor \times \text{抽數}$ | 抽中大賞帶走時原子扣除門市現貨 |
+| **限定點數套** | 載入點數套 ID | 預設開抽 | `remark = '點數套'` | $\$0$ (應收強制歸零) | $-\lfloor \text{單價}/20 \rfloor \times \text{抽數}$ | 抽中大賞帶走時原子扣除門市現貨 |
 | **散客結帳** | 散客身份識別 | 意圖扣抵點數 | 驗證攔截阻斷 | 拒絕提交 | 拒絕提交 | 嚴格阻斷零元購穿透，禁止交易 |
 
 ---
@@ -115,8 +121,11 @@ flowchart TD
 2. **點數上限不變量**：
    $$\text{pointsCost}_{\text{items}} + \text{pointsUsed} \le \text{customer.currentPoints}$$
    若會員餘額不足，立即阻斷並標註所需點數與現有點數。
-3. **非負數防護**：
-   $$\text{cash} \ge 0, \quad \text{remittance} \ge 0, \quad \text{creditCard} \ge 0, \quad \text{pointsUsed} \ge 0, \quad \text{dueAmount} \ge 0$$
+3. **限定點數套金額歸零不變量**：
+   $$\text{isPointsSet} \implies \text{amount} = 0 \quad \land \quad \text{pointsCost} > 0 \quad (\text{整數})$$
+   防止以 $0 點或非零金額非法提領大賞。
+4. **非負數與整數防護**：
+   $$\text{cash}, \text{remittance}, \text{creditCard}, \text{pointsUsed} \in \mathbb{Z}_{\ge 0}, \quad \text{dueAmount} \ge 0, \quad \text{pointsCost} \ge 0$$
 
 ---
 
@@ -124,15 +133,15 @@ flowchart TD
 
 ### 5.1 前端單元測試 (Vitest)
 - **執行指令**：`npm --prefix web run test`
-- **成果**：14 個測試套件、287 項測試 100% 通過（耗時 1.96 秒）。
+- **成果**：14 個測試套件、300 項測試 100% 通過（耗時 ~1.9 秒）。
 - **涵蓋範圍**：
-  - `checkout-logic.test.ts` (89 tests)：純函數算費、X/Z賞點數注入、散客識別、散客穿透阻斷不變量、多重混合支付矩陣。
+  - `checkout-logic.test.ts` (102 tests)：純函數算費、X/Z賞點數注入、散客識別、散客穿透阻斷不變量、多重混合支付矩陣、活性判定防脫鉤、無效 ID 清空防呆、限定點數套金額歸零與非負數防禦。
   - `useCheckout.test.ts` (9 tests)：Hook 狀態機初始化、增刪行、草稿連動、預檢防呆與重置。
   - `auth.test.ts`, `api.test.ts`, `race-condition.test.ts`, `monitor.test.ts` 等完整回歸通過。
 
 ### 5.2 前端端對端測試 (Playwright E2E)
 - **執行指令**：`npm --prefix web run test:e2e`
-- **成果**：36 項端對端瀏覽器流程測試 100% 通過（耗時 12.2 秒）。
+- **成果**：36 項端對端瀏覽器流程測試 100% 通過（耗時 ~12.5 秒）。
 - **涵蓋範圍**：
   - `checkout_matrix.spec.ts`：現金結帳、混合支付、散客點數穿透阻斷、一番賞 X/Z 賞換發點數。
   - `pos_checkout.spec.ts`：登入閘門、會員查詢防呆、貨號動態抓取、開套流程、廢套流程、作廢訂單。
@@ -140,7 +149,7 @@ flowchart TD
 
 ### 5.3 後端單元與整合測試 (Vitest Fastify)
 - **執行指令**：`npm --prefix backend run test`
-- **成果**：12 個測試套件、125 項測試 100% 通過（耗時 1.90 秒）。
+- **成果**：12 個測試套件、125 項測試 100% 通過（耗時 ~1.8 秒）。
 - **涵蓋範圍**：
   - 金額防竄改重新計算校驗。
   - 散客點數零元購穿透拒絕（回傳 HTTP 400）。

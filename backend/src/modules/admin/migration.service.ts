@@ -556,7 +556,7 @@ class MigrationManager extends EventEmitter {
             if ((existingData.orders?.length || 0) > fullStore.orders.length) {
               this.addLog('warn', `🛡️ 偵測到既有儲存庫包含全量歷史訂單 (${existingData.orders.length} 筆 > ${fullStore.orders.length} 筆)，保護歷史清洗成果，防止降級覆蓋。`);
               fullStore.orders = existingData.orders;
-              fullStore.orderItems = existingData.orderItems || [];
+              (fullStore as any).orderItems = existingData.orderItems || [];
               if ((existingData.luckyBags?.length || 0) > fullStore.luckyBags.length) {
                 fullStore.luckyBags = existingData.luckyBags;
                 fullStore.luckyBagPrizes = existingData.luckyBagPrizes || [];
@@ -564,7 +564,7 @@ class MigrationManager extends EventEmitter {
               if ((existingData.products?.length || 0) >= fullStore.products.length) {
                 fullStore.products = existingData.products;
                 fullStore.inventories = existingData.inventories || [];
-                fullStore.storeInventories = existingData.storeInventories || [];
+                (fullStore as any).storeInventories = existingData.storeInventories || [];
               }
               if (existingData.blindBoxes?.length) {
                 (fullStore as any).blindBoxes = existingData.blindBoxes;
