@@ -113,13 +113,12 @@ async function main() {
   ];
 
   for (const p of prizes1) {
-    await prisma.luckyBagPrize.upsert({
-      where: {
-        bagId_prizeGrade: { bagId: p.bagId, prizeGrade: p.prizeGrade },
-      },
-      update: {},
-      create: p,
+    const existing = await prisma.luckyBagPrize.findFirst({
+      where: { bagId: p.bagId, prizeGrade: p.prizeGrade },
     });
+    if (!existing) {
+      await prisma.luckyBagPrize.create({ data: p });
+    }
   }
 
   // 點數套
@@ -141,13 +140,12 @@ async function main() {
   ];
 
   for (const p of prizes2) {
-    await prisma.luckyBagPrize.upsert({
-      where: {
-        bagId_prizeGrade: { bagId: p.bagId, prizeGrade: p.prizeGrade },
-      },
-      update: {},
-      create: p,
+    const existing = await prisma.luckyBagPrize.findFirst({
+      where: { bagId: p.bagId, prizeGrade: p.prizeGrade },
     });
+    if (!existing) {
+      await prisma.luckyBagPrize.create({ data: p });
+    }
   }
 
   // 6. 測試會員
