@@ -49,12 +49,12 @@ export function buildApp(): FastifyInstance {
       const isAllowed =
         isLocalhost ||
         config.corsOriginsList.some(
-          (allowed) => origin === allowed || allowed === '*'
+          (allowed) => origin === allowed
         );
       if (isAllowed) {
         cb(null, true);
       } else {
-        cb(new Error(`CORS 存取被拒：網域 ${origin} 不在許可名單`), false);
+        cb(null, false);
       }
     },
     credentials: true,

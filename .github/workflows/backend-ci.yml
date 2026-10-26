@@ -82,4 +82,5 @@ jobs:
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onesoul_pos_ci?schema=public
+          CORS_ORIGINS: http://localhost:5173,https://boochlin06.github.io
         run: npm test
