@@ -1,4 +1,4 @@
-import { PrismaClient, ProductCategory, SessionStatus } from '@prisma/client';
+import { PrismaClient, SessionStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -40,10 +40,10 @@ async function main() {
 
   // 2. 特殊虛擬商品 (88888 加點 / 99999 扣點) 與實體商品
   const products = [
-    { id: '88888', name: '手動加點 (隨便加)', category: ProductCategory.GENERAL, isSpecial: true, suggestedPoints: 0 },
-    { id: '99999', name: '手動扣點 (隨便扣)', category: ProductCategory.GENERAL, isSpecial: true, suggestedPoints: 0 },
-    { id: '2905', name: 'WAWA飛翔坊寶寶A款', category: ProductCategory.GK, costPrice: 1200, sellingPrice: 2200, suggestedPoints: 80 },
-    { id: '2906', name: 'WAWA飛翔坊寶寶B款', category: ProductCategory.GK, costPrice: 1200, sellingPrice: 2200, suggestedPoints: 80 },
+    { id: '88888', name: '手動加點 (隨便加)', category: 'GENERAL', isSpecial: true, suggestedPoints: 0 },
+    { id: '99999', name: '手動扣點 (隨便扣)', category: 'GENERAL', isSpecial: true, suggestedPoints: 0 },
+    { id: '2905', name: 'WAWA飛翔坊寶寶A款', category: 'GK', costPrice: 1200, sellingPrice: 2200, suggestedPoints: 80 },
+    { id: '2906', name: 'WAWA飛翔坊寶寶B款', category: 'GK', costPrice: 1200, sellingPrice: 2200, suggestedPoints: 80 },
   ];
 
   for (const p of products) {
