@@ -71,13 +71,14 @@ flowchart TD
 ### 2.3 `applyMerchUpdate(item, field, value, stocks, blindBoxes, allStocks, branch)`
 - **職責**：依商品貨號自動帶出名稱、類別、售價與點數。
 - **GK 自動導流規則**：若商品類別為 GK 雕像（`isGkItem(entry) === true`），預設付款方式強制轉移為 `'點數'`，保障實體資產不被現金低價誤售。
+- **特殊代碼防呆回退**：若品項原為 `88888` 或 `99999`（強制標記為 `贈送`），切換至一般商品或清空時自動重置 `paymentType` 為 `'現金'`，防止一般商品因歷史狀態殘留導致 $0 元零元購漏收。
 - **跨店查詢 fallback**：若當店無現貨，自動查核全門市總庫存，並自動於備註標註「在金山店」或「在竹北店」。
 
 ### 2.4 `isWalkInCustomer(phoneOrName)`
 - **職責**：權威判定客戶是否屬於未綁定會員之散客。
-- **判定規則**：未輸入電話、或電話/姓名命中黑名單集合：
-  $$\text{WALK\_IN\_CODES} = \{ \text{'111111'}, \text{'222222'}, \text{'333333'}, \text{'88888'}, \text{'99999'} \}$$
-  經符號與空白去敏（`clean.replace(/[-_\s]/g, '')`）後，包含關鍵字 `散客`、`WALKIN`、`現場`、`非會員`、`臨時客`、`訪客` 均無條件判定為散客（完整相容 `WALK-IN`、`walk in`、`散 客` 等現場變體）。
+- **判定規則**：未輸入電話、或電話/姓名命中黑名單集合（包含去除符號與空格之純數字比對 `WALK_IN_CODES.includes(stripped)`）：
+  $$\text{WALK\_IN\_CODES} = \{ \text{'111111'}, \text{'222222'}, \text{'333333'}, \text{'88888'}, \text{'99999'}, \text{'000000'}, \text{'888888'}, \text{'999999'} \}$$
+  經符號與空白去敏（`clean.replace(/[-_\s]/g, '')`）後，包含關鍵字 `散客`、`WALKIN`、`現場`、`非會員`、`臨時客`、`訪客` 均無條件判定為散客（完整相容 `111-111`、`111 111`、`WALK-IN`、`walk in`、`散 客` 等現場變體）。
 
 ### 2.5 `isActiveLottery(lottery)` & `isActiveMerch(merch)`
 - **職責**：精確判定抽獎列與商品列是否具備實質輸入（活性），杜絕預設空白列或惡意負數/零值逃逸引發之算費與結帳送出脫鉤漏洞。
@@ -89,6 +90,7 @@ flowchart TD
 - **職責**：結帳送出前之全維度嚴格前置防呆。
 - **回傳值**：合法回傳 `null`；失敗回傳明確繁體中文錯誤訊息字串。
 - **點數透支防呆**：僅當總扣點需求 $\text{totalPtsCost} > 0$ 時檢核會員可用點數，避免純現金結帳因歷史點數負額被誤判阻擋。
+- **品項金額與點數整數防禦**：全面檢驗商品與抽獎項目金額及點數是否為整數，阻絕小數點差額逃逸。
 
 ---
 
@@ -111,13 +113,14 @@ flowchart TD
 
 ### 4.1 支付方式明細
 1. **現金 (cash)**：門市現鈔收款，計入當日櫃台現金抽屜與 Z-Report 結算。
-2. **匯款 / LINE Pay (remittance)**：電子行動支付或線上轉帳。
-3. **信用卡 (creditCard)**：實體刷卡機過卡交易。
-4. **點數折抵 (pointsUsed)**：會員點數折抵金額（1 點 = $1）。
+2. **LINE Pay (linePay)**：電子行動支付條碼掃描。
+3. **匯款 / 行動轉帳 (remittance)**：銀行轉帳或外部支付。
+4. **信用卡 (creditCard)**：實體刷卡機過卡交易。
+5. **點數折抵 (pointsUsed)**：會員點數折抵金額（1 點 = $1）。
 
 ### 4.2 核心校驗不變量公式
 1. **收支平衡不變量**：
-   $$\text{cash} + \text{remittance} + \text{creditCard} = \text{dueAmount}$$
+   $$\text{cash} + \text{linePay} + \text{remittance} + \text{creditCard} = \text{dueAmount}$$
    任何溢收或短收均於前端立即阻斷並提示確切差額。
 2. **點數上限不變量**：
    $$\text{pointsCost}_{\text{items}} + \text{pointsUsed} \le \text{customer.currentPoints}$$
@@ -126,7 +129,7 @@ flowchart TD
    $$\text{isPointsSet} \implies \text{amount} = 0 \quad \land \quad \text{pointsCost} > 0 \quad (\text{整數})$$
    防止以 $0 點或非零金額非法提領大賞。
 4. **非負數與整數防護**：
-   $$\text{cash}, \text{remittance}, \text{creditCard}, \text{pointsUsed} \in \mathbb{Z}_{\ge 0}, \quad \text{dueAmount} \ge 0, \quad \text{pointsCost} \ge 0$$
+   $$\text{cash}, \text{linePay}, \text{remittance}, \text{creditCard}, \text{pointsUsed} \in \mathbb{Z}_{\ge 0}, \quad \text{dueAmount} \ge 0, \quad \text{pointsCost} \ge 0$$
 
 ---
 
@@ -134,24 +137,26 @@ flowchart TD
 
 ### 5.1 前端單元測試 (Vitest)
 - **執行指令**：`npm --prefix web run test`
-- **成果**：14 個測試套件、305 項測試 100% 通過（耗時 ~1.9 秒）。
+- **成果**：15 個測試套件、324 項測試 100% 通過（耗時 ~2.3 秒）。
 - **涵蓋範圍**：
-  - `checkout-logic.test.ts` (107 tests)：純函數算費、X/Z賞點數注入、散客全變體識別（`WALK-IN`、`walk in`、`散 客`、`非會員`）、散客穿透阻斷不變量、多重混合支付矩陣、活性判定非零防脫鉤、無效 ID 清空防呆、限定點數套金額歸零、負點數會員純現金結帳放行與非負整數防禦。
+  - `checkout-logic.test.ts` (119 tests)：純函數算費、X/Z賞點數注入、散客格式化變體識別（`111-111`、`111 111`、`WALK-IN`、`散 客`、`非會員`）、散客穿透阻斷不變量、原生 LINE Pay 與四重混合支付矩陣、活性判定非零防脫鉤、無效 ID 清空防呆、特殊代碼切換付款方式重置防呆、一番賞清空套組備註重置、限定點數套金額防竄改、負點數會員純現金結帳放行與品項層級非負整數防禦。
+  - `ConfirmCheckoutModal.test.tsx` (7 tests)：結帳確認彈窗渲染、大獎換點強制打勾二次確認、小獎帶走警示、套組抽數匯總與多重支付管道明細顯示。
   - `useCheckout.test.ts` (9 tests)：Hook 狀態機初始化、增刪行、草稿連動、預檢防呆與重置。
   - `auth.test.ts`, `api.test.ts`, `race-condition.test.ts`, `monitor.test.ts` 等完整回歸通過。
 
 ### 5.2 前端端對端測試 (Playwright E2E)
 - **執行指令**：`npm --prefix web run test:e2e`
-- **成果**：36 項端對端瀏覽器流程測試 100% 通過（耗時 ~12.5 秒）。
+- **成果**：36 項端對端瀏覽器流程測試 100% 通過（耗時 ~13.4 秒）。
 - **涵蓋範圍**：
   - `checkout_matrix.spec.ts`：現金結帳、混合支付、散客點數穿透阻斷、一番賞 X/Z 賞換發點數。
   - `pos_checkout.spec.ts`：登入閘門、會員查詢防呆、貨號動態抓取、開套流程、廢套流程、作廢訂單。
   - `customer.spec.ts` & `monitor.spec.ts`：客戶面兌換清單與監控端點全量通過。
 
-### 5.3 後端單元與整合測試 (Vitest Fastify)
+### 5.3 後端單元整合測試 (Vitest Fastify)
 - **執行指令**：`npm --prefix backend run test`
-- **成果**：12 個測試套件、125 項測試 100% 通過（耗時 ~1.8 秒）。
+- **成果**：12 個測試套件、126 項測試 100% 通過（耗時 ~2.1 秒）。
 - **涵蓋範圍**：
+  - `preorders.test.ts`：格式化散客電話（`111-111`）阻絕與防建立幽靈會員驗證。
   - 金額防竄改重新計算校驗。
   - 散客點數零元購穿透拒絕（回傳 HTTP 400，涵蓋姓名/電話散客變體，阻止建立散客會員記錄）。
   - 多商品併發鎖序字典序防死鎖不變量（`localeCompare`）。

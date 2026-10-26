@@ -9,7 +9,7 @@ interface ConfirmCheckoutModalProps {
   lotteries: LotteryItem[];
   merchandises: MerchItem[];
   summary: { dueAmount: number; pointsChange: number };
-  payment: { cash: number; remittance: number; creditCard: number };
+  payment: { cash: number; remittance: number; creditCard: number; linePay?: number };
 }
 
 export function ConfirmCheckoutModal({
@@ -127,10 +127,11 @@ export function ConfirmCheckoutModal({
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
               <p className="text-xs text-slate-400 font-bold tracking-wider mb-1">應收總金額</p>
               <p className="text-3xl font-black text-slate-800">NT$ {summary.dueAmount.toLocaleString()}</p>
-              <div className="mt-2 text-xs flex gap-2 font-medium">
+              <div className="mt-2 text-xs flex flex-wrap gap-2 font-medium">
                 {payment.cash > 0 && <span className="text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded">現 ${payment.cash}</span>}
                 {payment.remittance > 0 && <span className="text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded">匯 ${payment.remittance}</span>}
                 {payment.creditCard > 0 && <span className="text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded">刷 ${payment.creditCard}</span>}
+                {payment.linePay !== undefined && payment.linePay > 0 && <span className="text-teal-600 bg-teal-50 px-2.5 py-0.5 rounded">LINE ${payment.linePay}</span>}
               </div>
             </div>
             <div className={`p-4 rounded-xl border ${summary.pointsChange >= 0 ? 'bg-indigo-50 border-indigo-100' : 'bg-rose-50 border-rose-100'}`}>

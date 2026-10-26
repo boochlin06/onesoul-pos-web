@@ -95,7 +95,22 @@ export function applyLotteryUpdate(
         if (item.remark === '點數套') { updated.remark = ''; updated.pointsCost = 0; updated.type = '帶走'; }
       }
     }
-    else { updated.setName = ''; updated.unitPrice = 0; updated.prize = ''; updated.prizeId = ''; updated.prizeName = ''; updated.unitPoints = 0; updated.draws = 0; updated.amount = 0; updated.totalPoints = 0; updated.pointsCost = 0; }
+    else {
+      updated.setName = '';
+      updated.unitPrice = 0;
+      updated.prize = '';
+      updated.prizeId = '';
+      updated.prizeName = '';
+      updated.unitPoints = 0;
+      updated.draws = 0;
+      updated.amount = 0;
+      updated.totalPoints = 0;
+      updated.pointsCost = 0;
+      if (item.remark === '點數套') {
+        updated.remark = '';
+        updated.type = '帶走';
+      }
+    }
   }
   if (field === 'prize') {
     const wasPointsSet = item.remark === '點數套';
@@ -122,7 +137,14 @@ export function applyLotteryUpdate(
       if (value === '88888') updated.remark = '送1點';
       else if (value === '99999') updated.remark = '扣1點';
       else if (normalizedPrize === 'x') updated.remark = '盲盒';
-      else if (normalizedPrize === 'z') { updated.remark = ''; updated.prizeName = updated.prizeName || '非GK'; }
+      else {
+        if (item.remark === '盲盒' || item.remark === '送1點' || item.remark === '扣1點') {
+          updated.remark = '';
+        }
+        if (normalizedPrize === 'z') {
+          updated.prizeName = updated.prizeName || '非GK';
+        }
+      }
     }
   }
   // 抽數防呆：不可超過該獎項的總抽數
@@ -176,6 +198,9 @@ export function applyMerchUpdate(
     } else if (value === '99999') {
       Object.assign(updated, { name: '手動扣點 (隨便扣)', suggestedPoints: 0, unitAmount: 0, paymentType: '贈送', remark: '扣點', isGk: false });
     } else {
+      if (item.id === '88888' || item.id === '99999') {
+        updated.paymentType = '現金';
+      }
       const stockEntry = stocks.find(s => s.id === String(value));
       if (stockEntry) {
         updated.name = stockEntry.name; updated.suggestedPoints = stockEntry.points;
@@ -200,6 +225,7 @@ export function applyMerchUpdate(
           } else {
             // 未命中任何庫存或貨號被清空時，重置所有關聯欄位
             updated.name = ''; updated.suggestedPoints = 0; updated.unitAmount = 0; updated.actualAmount = 0; updated.totalPoints = 0; updated.remark = ''; updated.isGk = false;
+            if (item.id === '88888' || item.id === '99999') updated.paymentType = '現金';
           }
         }
       }
@@ -230,7 +256,7 @@ export function filterMembers<T extends { phone: string | number; name: string }
   ).slice(0, limit);
 }
 
-export const WALK_IN_CODES = ['111111', '222222', '333333', '88888', '99999'];
+export const WALK_IN_CODES = ['111111', '222222', '333333', '88888', '99999', '000000', '888888', '999999'];
 
 export function isWalkInCustomer(phoneOrName: string | null | undefined): boolean {
   if (!phoneOrName) return true;
@@ -240,6 +266,7 @@ export function isWalkInCustomer(phoneOrName: string | null | undefined): boolea
   return (
     WALK_IN_CODES.includes(clean) ||
     WALK_IN_CODES.includes(raw) ||
+    WALK_IN_CODES.includes(stripped) ||
     stripped.includes('散客') ||
     stripped.includes('WALKIN') ||
     stripped.includes('現場') ||
@@ -254,7 +281,7 @@ export interface ValidationInput {
   lotteries: LotteryItem[];
   merchandises: MerchItem[];
   customer: { phoneName: string; name: string; currentPoints: number };
-  payment: { cash: number; remittance: number; creditCard: number; pointsUsed: number };
+  payment: { cash: number; remittance: number; creditCard: number; pointsUsed: number; linePay?: number };
   summary: { dueAmount: number; pointsChange: number };
   orderNote?: string;
 }
@@ -293,7 +320,7 @@ export function validateCheckout(input: ValidationInput): string | null {
       return MSG.validation.lotteryIncomplete(i + 1);
     }
     // 限定點數套不變量防護
-    if (l.remark === '點數套') {
+    if (l.remark === '點數套' || (l.pointsCost || 0) > 0) {
       if (l.amount !== 0) {
         return `無法結帳：福袋區第 ${i + 1} 項為限定點數套，金額必須為 $0`;
       }
@@ -312,7 +339,8 @@ export function validateCheckout(input: ValidationInput): string | null {
     }
   }
 
-  const isNeg = payment.cash < 0 || payment.remittance < 0 || payment.creditCard < 0 || payment.pointsUsed < 0;
+  const linePayAmount = payment.linePay || 0;
+  const isNeg = payment.cash < 0 || payment.remittance < 0 || payment.creditCard < 0 || linePayAmount < 0 || payment.pointsUsed < 0;
   const isNegPrice = filteredLotteries.some(l => l.amount < 0 || (l.pointsCost || 0) < 0 || (l.totalPoints || 0) < 0) ||
                      filteredMerch.some(m => m.actualAmount < 0 || (m.totalPoints || 0) < 0);
   if (isNeg || isNegPrice || summary.dueAmount < 0) return MSG.validation.negativeValues;
@@ -320,12 +348,21 @@ export function validateCheckout(input: ValidationInput): string | null {
   const isNonInteger = !Number.isInteger(payment.cash) ||
                        !Number.isInteger(payment.remittance) ||
                        !Number.isInteger(payment.creditCard) ||
+                       !Number.isInteger(linePayAmount) ||
                        !Number.isInteger(payment.pointsUsed);
-  if (isNonInteger) {
+  const isNonIntegerItem = filteredLotteries.some(l =>
+    !Number.isInteger(l.amount) ||
+    !Number.isInteger(l.pointsCost || 0) ||
+    !Number.isInteger(l.totalPoints || 0)
+  ) || filteredMerch.some(m =>
+    !Number.isInteger(m.actualAmount) ||
+    !Number.isInteger(m.totalPoints || 0)
+  );
+  if (isNonInteger || isNonIntegerItem) {
     return '無法結帳：付款金額與折抵點數必須為整數';
   }
 
-  const totalReceived = payment.cash + payment.remittance + payment.creditCard;
+  const totalReceived = payment.cash + payment.remittance + payment.creditCard + linePayAmount;
   if (totalReceived !== summary.dueAmount) return MSG.validation.amountMismatch(totalReceived, summary.dueAmount);
 
   const itemPtsCost = summary.pointsChange < 0 ? Math.abs(summary.pointsChange) : 0;

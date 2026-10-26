@@ -167,4 +167,5 @@ export interface PaymentInfo {
   creditCard: number;
   cash: number;
   pointsUsed: number;
+  linePay?: number;
 }
