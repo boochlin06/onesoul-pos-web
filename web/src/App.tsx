@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Archive, LogOut } from 'lucide-react';
+import { Archive, LogOut, Sun, Moon } from 'lucide-react';
 import type { Branch, Tab } from './types';
 import { TABS, branchGradient, CROSS_BRANCH_DAILY_VIEW, ADMIN_EMAILS } from './constants';
 import { useStickyState } from './hooks/useStickyState';
@@ -33,6 +33,7 @@ import { ClockInModal } from './components/ui/ClockInModal';
 import { LateReminderModal } from './components/ui/LateReminderModal';
 import CustomerApp from './pages/customer/CustomerApp';
 import { ScrollToTop } from './components/ui/ScrollToTop';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 /** 判斷是否為客戶面路由 */
 function isCustomerRoute(): boolean {
@@ -41,6 +42,14 @@ function isCustomerRoute(): boolean {
 }
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <MainApp />
+    </ThemeProvider>
+  );
+}
+
+function MainApp() {
   const [isCustomer, setIsCustomer] = useState(isCustomerRoute);
 
   useEffect(() => {
@@ -56,6 +65,7 @@ export default function App() {
 
 function PosApp() {
   const auth = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useStickyState<Tab>('checkout', 'pos_active_tab');
   const [branch, setBranch] = useStickyState<Branch>('竹北', 'pos_branch');
 
@@ -186,6 +196,25 @@ function PosApp() {
                 <Archive className="w-4 h-4" /> 執行關帳
               </button>
             )}
+            {/* 主題切換按鈕 (明亮 / 夜間) */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-black/20 hover:bg-black/35 text-white rounded-lg text-xs font-semibold backdrop-blur-sm transition-all border border-white/15 cursor-pointer shadow-sm"
+              title={theme === 'dark' ? '切換為白天明亮模式' : '切換為夜間護眼模式'}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="hidden sm:inline">明亮</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-indigo-200" />
+                  <span className="hidden sm:inline">夜間</span>
+                </>
+              )}
+            </button>
+
             {/* User info + Logout */}
             <div className="flex items-center gap-2">
               {auth.user?.picture && <img src={auth.user.picture} className="w-7 h-7 rounded-full border-2 border-white/30" alt="" />}

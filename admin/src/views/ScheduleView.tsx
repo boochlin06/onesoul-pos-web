@@ -22,7 +22,7 @@ export const ScheduleView: React.FC = () => {
 
   // 編輯單日排班 Modal
   const [editDay, setEditDay] = useState<string | null>(null);
-  const [staffName, setStaffName] = useState('王小明');
+  const [staffName, setStaffName] = useState('');
   const [shiftType, setShiftType] = useState('FULL');
   const [isClosed, setIsClosed] = useState(false);
   const [note, setNote] = useState('');
@@ -30,7 +30,7 @@ export const ScheduleView: React.FC = () => {
 
   // 補打卡 Modal
   const [showClockInModal, setShowClockInModal] = useState(false);
-  const [clockInStaff, setClockInStaff] = useState('王小明');
+  const [clockInStaff, setClockInStaff] = useState('');
   const [clockInTime, setClockInTime] = useState('');
   const [clockInLoading, setClockInLoading] = useState(false);
   const [clockInResult, setClockInResult] = useState<any | null>(null);
@@ -174,7 +174,7 @@ export const ScheduleView: React.FC = () => {
               key={date}
               onClick={() => {
                 setEditDay(date);
-                setStaffName(entry?.staffName || '王小明');
+                setStaffName(entry?.staffName || '');
                 setShiftType(entry?.shiftType || 'FULL');
                 setIsClosed(entry?.isClosed || false);
                 setNote(entry?.note || '');

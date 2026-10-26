@@ -35,7 +35,7 @@ export const MSG = {
     voidNetworkFail: '網路異常，無法作廢',
     openingCashSetting: '設定開櫃現金中…',
     openingCashSuccess: '✓ 開櫃現金設定成功',
-    openingCashFail: '✗ 設定失敗',
+    openingCashFail: (msg?: string) => (msg ? `✗ 設定失敗：${msg}` : '✗ 設定失敗'),
     closingDay: '系統關帳與結算中…',
     closeDayFail: (msg: string) => `✗ 關帳失敗: ${msg}`,
   },
@@ -69,5 +69,6 @@ export const MSG = {
     negativeValues: '無法結帳：輸入的收款明細、系統應收總額，以及單項商品金額均不能為負數',
     amountMismatch: (received: number, due: number) => `無法結帳：實收總額 (${received}) 與系統應付總額 (${due}) 不符`,
     insufficientPoints: (cost: number, current: number) => `無法結帳：點數餘額不足！本單需扣除：${cost} 點，會員目前僅有：${current} 點`,
+    walkInNoPoints: '無法結帳：散客無會員帳號，嚴禁使用點數折抵、兌換商品或抽取限定點數套，請先為顧客建檔綁定會員手機號碼。',
   },
 } as const;

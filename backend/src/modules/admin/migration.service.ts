@@ -546,6 +546,35 @@ class MigrationManager extends EventEmitter {
           auditLogs: [],
         };
 
+        // 🛡️ 資料防降級防護 (Data Downgrade Protection):
+        // 若既有 real_migrated_store.json 已包含海量全量清洗數據 (如 6,000+ 歷史訂單或 3,500+ 商品)，
+        // 嚴禁以過時的局部 CSV 備份覆蓋全量歷史主庫！
+        if (fs.existsSync(storeJsonPath)) {
+          try {
+            const existingRaw = fs.readFileSync(storeJsonPath, 'utf-8');
+            const existingData = JSON.parse(existingRaw);
+            if ((existingData.orders?.length || 0) > fullStore.orders.length) {
+              this.addLog('warn', `🛡️ 偵測到既有儲存庫包含全量歷史訂單 (${existingData.orders.length} 筆 > ${fullStore.orders.length} 筆)，保護歷史清洗成果，防止降級覆蓋。`);
+              fullStore.orders = existingData.orders;
+              fullStore.orderItems = existingData.orderItems || [];
+              if ((existingData.luckyBags?.length || 0) > fullStore.luckyBags.length) {
+                fullStore.luckyBags = existingData.luckyBags;
+                fullStore.luckyBagPrizes = existingData.luckyBagPrizes || [];
+              }
+              if ((existingData.products?.length || 0) >= fullStore.products.length) {
+                fullStore.products = existingData.products;
+                fullStore.inventories = existingData.inventories || [];
+                fullStore.storeInventories = existingData.storeInventories || [];
+              }
+              if (existingData.blindBoxes?.length) {
+                (fullStore as any).blindBoxes = existingData.blindBoxes;
+              }
+            }
+          } catch (e) {
+            this.addLog('error', `讀取既有儲存庫校驗失敗: ${e}`);
+          }
+        }
+
         fs.mkdirSync(path.dirname(storeJsonPath), { recursive: true });
         fs.writeFileSync(storeJsonPath, JSON.stringify(fullStore, null, 2), 'utf-8');
         this.addLog('success', `💾 已原子同步至持久化 JSON 儲存庫: ${storeJsonPath}`);

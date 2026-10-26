@@ -280,7 +280,7 @@ export function CheckoutView({
                   <td className="px-1 py-2"><input type="number" min="0" className={numInp + ' text-xs font-bold !w-12 !min-w-[3rem] !px-1'} value={item.quantity} onChange={e => updateMerch(idx, 'quantity', Number(e.target.value))} /></td>
                   <td className="px-1 py-2">
                     <select className={`${inp} text-xs font-bold !w-16 !min-w-[4rem] !px-1 ${item.paymentType === '現金' ? '!text-rose-700 !bg-rose-50 !border-rose-300' : item.paymentType === '點數' ? '!text-indigo-700 !bg-indigo-50 !border-indigo-300' : '!text-emerald-700 !bg-emerald-50 !border-emerald-300'}`} value={item.paymentType} onChange={e => updateMerch(idx, 'paymentType', e.target.value as '現金' | '點數' | '贈送')}>
-                      {!item.isGk && <option>現金</option>}
+                      <option>現金</option>
                       <option>點數</option>
                       <option>贈送</option>
                     </select>
@@ -324,9 +324,22 @@ export function CheckoutView({
           <div className="flex gap-8">
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">點數異動</span>
-              <span className={`text-2xl font-bold ${summary.pointsChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {summary.pointsChange > 0 ? '+' : ''}{summary.pointsChange}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-2xl font-bold ${summary.pointsChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {summary.pointsChange > 0 ? '+' : ''}{summary.pointsChange}
+                </span>
+                {summary.pointsChange < 0 && (
+                  customer.currentPoints < Math.abs(summary.pointsChange) || !customer.name ? (
+                    <span className="px-2.5 py-0.5 bg-rose-100 text-rose-700 text-xs font-bold rounded-full flex items-center gap-1 border border-rose-300 animate-pulse">
+                      ⚠️ 點數不足 (現有 {customer.currentPoints} pts)
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full font-mono">
+                      扣後餘額 {customer.currentPoints - Math.abs(summary.pointsChange)} pts
+                    </span>
+                  )
+                )}
+              </div>
             </div>
             <div className="w-px bg-slate-200" />
             <div className="flex flex-col">

@@ -1,28 +1,30 @@
 [
   {
     "id": "chupei",
-    "name": "竹北旗艦店",
+    "name": "竹北店",
     "code": "CHUPEI",
-    "address": null,
-    "phone": null,
+    "type": "RETAIL",
+    "address": "新竹縣竹北市光明六路",
+    "phone": "03-5551234",
     "isActive": true,
     "openTime": "14:00",
     "standardHours": 8,
     "lateGraceMinutes": 15,
-    "createdAt": "2026-10-11T19:39:36.842Z",
-    "updatedAt": "2026-10-12T06:06:42.284Z"
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
   },
   {
     "id": "jinshan",
-    "name": "金山概念店",
+    "name": "金山店",
     "code": "JINSHAN",
-    "address": null,
-    "phone": null,
+    "type": "RETAIL",
+    "address": "新竹市東區金山街",
+    "phone": "03-6665678",
     "isActive": true,
     "openTime": "16:00",
     "standardHours": 6,
     "lateGraceMinutes": 15,
-    "createdAt": "2026-10-11T19:39:36.855Z",
-    "updatedAt": "2026-10-12T06:06:42.302Z"
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
   }
 ]

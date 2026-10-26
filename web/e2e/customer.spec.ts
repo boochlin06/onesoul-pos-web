@@ -29,9 +29,9 @@ test.describe('會員登入頁 (#/member)', () => {
   });
 
   test('底部 nav 有三個項目', async ({ page }) => {
-    await expect(page.getByText('會員')).toBeVisible();
-    await expect(page.getByText('兌換清單')).toBeVisible();
-    await expect(page.getByText('連結')).toBeVisible();
+    await expect(page.locator('nav').getByText('會員')).toBeVisible();
+    await expect(page.locator('nav').getByText('兌換清單')).toBeVisible();
+    await expect(page.locator('nav').getByText('連結')).toBeVisible();
   });
 
   test('空白表單不能送出', async ({ page }) => {

@@ -1,770 +1,102 @@
 [
   {
-    "id": "1548",
+    "id": "LB-chupei-1548",
     "storeId": "chupei",
     "name": "WAWA飛翔坊寶寶A款",
     "unitPrice": 350,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.011Z",
-    "updatedAt": "2026-10-12T06:06:42.011Z",
-    "prizes": [
-      {
-        "id": "p-1548-1",
-        "bagId": "1548",
-        "prizeGrade": "A",
-        "prizeName": "WAWA飛翔坊寶寶A款",
-        "productId": "2905",
-        "points": 80,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.011Z",
-        "updatedAt": "2026-10-12T06:06:42.011Z"
-      },
-      {
-        "id": "p-1548-2",
-        "bagId": "1548",
-        "prizeGrade": "B",
-        "prizeName": "WAWA飛翔坊寶寶B款",
-        "productId": "2906",
-        "points": 80,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.011Z",
-        "updatedAt": "2026-10-12T06:06:42.011Z"
-      },
-      {
-        "id": "p-1548-3",
-        "bagId": "1548",
-        "prizeGrade": "C",
-        "prizeName": "神隱坊寶寶與烏鴉僕人吃餅乾",
-        "productId": "2882",
-        "points": 100,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.011Z",
-        "updatedAt": "2026-10-12T06:06:42.011Z"
-      },
-      {
-        "id": "p-1548-4",
-        "bagId": "1548",
-        "prizeGrade": "D",
-        "prizeName": "LAPUTA老鼠少爺",
-        "productId": "2861",
-        "points": 110,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.011Z",
-        "updatedAt": "2026-10-12T06:06:42.011Z"
-      },
-      {
-        "id": "p-1548-5",
-        "bagId": "1548",
-        "prizeGrade": "D",
-        "prizeName": "神隱解咒坊寶寶(全新)",
-        "productId": "2828",
-        "points": 100,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1548-6",
-        "bagId": "1548",
-        "prizeGrade": "D",
-        "prizeName": "神隱坊寶寶的心藝(全新)",
-        "productId": "2815",
-        "points": 110,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1548-7",
-        "bagId": "1548",
-        "prizeGrade": "D",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 154,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      }
-    ]
+    "createdAt": "2026-01-25T01:45:20.860000Z",
+    "updatedAt": "2026-01-25T01:45:20.860000Z"
   },
   {
-    "id": "1556",
+    "id": "LB-chupei-1556",
     "storeId": "chupei",
     "name": "神隱卡西法1.0(紅)",
     "unitPrice": 350,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.012Z",
-    "updatedAt": "2026-10-12T06:06:42.012Z",
-    "prizes": [
-      {
-        "id": "p-1556-1",
-        "bagId": "1556",
-        "prizeGrade": "A",
-        "prizeName": "神隱卡西法1.0(紅)",
-        "productId": "2852",
-        "points": 90,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1556-2",
-        "bagId": "1556",
-        "prizeGrade": "B",
-        "prizeName": "神隱煎蛋卡西法低配",
-        "productId": "2385",
-        "points": 90,
-        "draws": 2,
-        "drawnCount": 1,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1556-3",
-        "bagId": "1556",
-        "prizeGrade": "C",
-        "prizeName": "砸臉福袋卡西法(大)",
-        "productId": "2870",
-        "points": 90,
-        "draws": 2,
-        "drawnCount": 1,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1556-4",
-        "bagId": "1556",
-        "prizeGrade": "D",
-        "prizeName": "龍喵聖誕卡西法",
-        "productId": "2876",
-        "points": 110,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1556-5",
-        "bagId": "1556",
-        "prizeGrade": "D",
-        "prizeName": "喵喵島聖誕卡西法",
-        "productId": "2878",
-        "points": 110,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1556-6",
-        "bagId": "1556",
-        "prizeGrade": "D",
-        "prizeName": "神隱藍色卡西法1.0(全新)",
-        "productId": "2694",
-        "points": 90,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1556-7",
-        "bagId": "1556",
-        "prizeGrade": "D",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 154,
-        "drawnCount": 74,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      }
-    ]
+    "createdAt": "2026-01-25T01:45:20.860000Z",
+    "updatedAt": "2026-01-25T01:45:20.860000Z"
   },
   {
-    "id": "1626",
+    "id": "LB-chupei-1626",
     "storeId": "chupei",
     "name": "Moss侍酒雷電將軍(全新)",
     "unitPrice": 600,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.012Z",
-    "updatedAt": "2026-10-12T06:06:42.012Z",
-    "prizes": [
-      {
-        "id": "p-1626-1",
-        "bagId": "1626",
-        "prizeGrade": "A",
-        "prizeName": "Moss侍酒雷電將軍(全新)",
-        "productId": "2762",
-        "points": 490,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1626-2",
-        "bagId": "1626",
-        "prizeGrade": "B",
-        "prizeName": "YY國風八重常服",
-        "productId": "2758",
-        "points": 260,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1626-3",
-        "bagId": "1626",
-        "prizeGrade": "C",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 98,
-        "drawnCount": 11,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      }
-    ]
+    "createdAt": "2026-03-01T06:22:23.457000Z",
+    "updatedAt": "2026-03-01T06:22:23.457000Z"
   },
   {
-    "id": "1648",
+    "id": "LB-chupei-1648",
     "storeId": "chupei",
     "name": "DAYU凱多尼卡S+",
     "unitPrice": 700,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.012Z",
-    "updatedAt": "2026-10-12T06:06:42.012Z",
-    "prizes": [
-      {
-        "id": "p-1648-1",
-        "bagId": "1648",
-        "prizeGrade": "A",
-        "prizeName": "DAYU凱多尼卡S+",
-        "productId": "3086",
-        "points": 660,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1648-2",
-        "bagId": "1648",
-        "prizeGrade": "B",
-        "prizeName": "LZ業火(全新)",
-        "productId": "3084",
-        "points": 300,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1648-3",
-        "bagId": "1648",
-        "prizeGrade": "C",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 118,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      }
-    ]
+    "createdAt": "2026-03-16T06:49:32.189000Z",
+    "updatedAt": "2026-03-16T06:49:32.189000Z"
   },
   {
-    "id": "1650",
+    "id": "LB-chupei-1650",
     "storeId": "chupei",
     "name": "精靈屋火箭隊",
     "unitPrice": 450,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.012Z",
-    "updatedAt": "2026-10-12T06:06:42.012Z",
-    "prizes": [
-      {
-        "id": "p-1650-1",
-        "bagId": "1650",
-        "prizeGrade": "A",
-        "prizeName": "精靈屋火箭隊",
-        "productId": "3051",
-        "points": 320,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1650-2",
-        "bagId": "1650",
-        "prizeGrade": "B",
-        "prizeName": "Watercres金色鯉魚王(透明)",
-        "productId": "3002",
-        "points": 100,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1650-3",
-        "bagId": "1650",
-        "prizeGrade": "C",
-        "prizeName": "MAR妙蛙",
-        "productId": "3004",
-        "points": 50,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1650-4",
-        "bagId": "1650",
-        "prizeGrade": "D",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 97,
-        "drawnCount": 2,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      }
-    ]
+    "createdAt": "2026-03-16T06:49:32.189000Z",
+    "updatedAt": "2026-03-16T06:49:32.189000Z"
   },
   {
-    "id": "1657",
+    "id": "LB-chupei-1657",
     "storeId": "chupei",
     "name": "十年百忍卡卡西須佐能乎高配",
     "unitPrice": 580,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.012Z",
-    "updatedAt": "2026-10-12T06:06:42.012Z",
-    "prizes": [
-      {
-        "id": "p-1657-1",
-        "bagId": "1657",
-        "prizeGrade": "A",
-        "prizeName": "十年百忍卡卡西須佐能乎高配",
-        "productId": "3034",
-        "points": 430,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1657-2",
-        "bagId": "1657",
-        "prizeGrade": "B",
-        "prizeName": "奇點鳴人",
-        "productId": "2813",
-        "points": 300,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1657-3",
-        "bagId": "1657",
-        "prizeGrade": "C",
-        "prizeName": "涅槃佐助咒印版(全新)",
-        "productId": "3063",
-        "points": 100,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1657-4",
-        "bagId": "1657",
-        "prizeGrade": "D",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 117,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      }
-    ]
+    "createdAt": "2026-03-16T07:18:27.933000Z",
+    "updatedAt": "2026-03-16T07:18:27.933000Z"
   },
   {
-    "id": "1681",
+    "id": "LB-chupei-1681",
     "storeId": "chupei",
     "name": "wake 音速小子",
     "unitPrice": 480,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.012Z",
-    "updatedAt": "2026-10-12T06:06:42.012Z",
-    "prizes": [
-      {
-        "id": "p-1681-1",
-        "bagId": "1681",
-        "prizeGrade": "A",
-        "prizeName": "wake 音速小子",
-        "productId": "2445",
-        "points": 550,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1681-2",
-        "bagId": "1681",
-        "prizeGrade": "B",
-        "prizeName": "雀神水管工馬力歐 X 玩貝工作室",
-        "productId": "3130",
-        "points": 120,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1681-3",
-        "bagId": "1681",
-        "prizeGrade": "C",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 118,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      }
-    ]
+    "createdAt": "2026-04-04T22:23:46.322000Z",
+    "updatedAt": "2026-04-04T22:23:46.322000Z"
   },
   {
-    "id": "1683",
+    "id": "LB-chupei-1683",
     "storeId": "chupei",
     "name": "UP+bard千尋豪華版",
     "unitPrice": 900,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.012Z",
-    "updatedAt": "2026-10-12T06:06:42.012Z",
-    "prizes": [
-      {
-        "id": "p-1683-1",
-        "bagId": "1683",
-        "prizeGrade": "A",
-        "prizeName": "UP+bard千尋豪華版",
-        "productId": "3039",
-        "points": 940,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1683-2",
-        "bagId": "1683",
-        "prizeGrade": "B",
-        "prizeName": "神隱貓巴士",
-        "productId": "2032",
-        "points": 220,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1683-3",
-        "bagId": "1683",
-        "prizeGrade": "C",
-        "prizeName": "神隱契約焰印·卡西法(全新)",
-        "productId": "2554",
-        "points": 110,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1683-4",
-        "bagId": "1683",
-        "prizeGrade": "D",
-        "prizeName": "POKER卡西法",
-        "productId": "1517",
-        "points": 70,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1683-5",
-        "bagId": "1683",
-        "prizeGrade": "D",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 116,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      }
-    ]
+    "createdAt": "2026-04-05T06:45:32.800000Z",
+    "updatedAt": "2026-04-05T06:45:32.800000Z"
   },
   {
-    "id": "1685",
+    "id": "LB-chupei-1685",
     "storeId": "chupei",
     "name": "瘋兔費倫A版本(拆擺)",
     "unitPrice": 350,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.012Z",
-    "updatedAt": "2026-10-12T06:06:42.012Z",
-    "prizes": [
-      {
-        "id": "p-1685-1",
-        "bagId": "1685",
-        "prizeGrade": "A",
-        "prizeName": "瘋兔費倫A版本(拆擺)",
-        "productId": "2629",
-        "points": 260,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1685-2",
-        "bagId": "1685",
-        "prizeGrade": "B",
-        "prizeName": "RF芙莉蓮",
-        "productId": "3010",
-        "points": 280,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1685-3",
-        "bagId": "1685",
-        "prizeGrade": "C",
-        "prizeName": "RF芙莉蓮",
-        "productId": "2665",
-        "points": 280,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1685-4",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "APEX芙莉蓮",
-        "productId": "2668",
-        "points": 300,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1685-5",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "POPO芙莉蓮",
-        "productId": "2676",
-        "points": 80,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1685-6",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "無名芙莉蓮(拆擺)",
-        "productId": "3096",
-        "points": 100,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1685-7",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "ANE芙莉蓮拆擺",
-        "productId": "2567",
-        "points": 180,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.012Z",
-        "updatedAt": "2026-10-12T06:06:42.012Z"
-      },
-      {
-        "id": "p-1685-8",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "BUFF童年菲倫",
-        "productId": "2393",
-        "points": 90,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1685-9",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "Buding Toys Q版紙箱芙莉蓮",
-        "productId": "2956",
-        "points": 90,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1685-10",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "POPO費倫",
-        "productId": "3131",
-        "points": 90,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1685-11",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "WAWA芙莉蓮(全新)",
-        "productId": "2650",
-        "points": 80,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1685-12",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "GoGoDu工作室冬日回憶芙利蓮",
-        "productId": "3021",
-        "points": 90,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1685-13",
-        "bagId": "1685",
-        "prizeGrade": "D",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 488,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      }
-    ]
+    "createdAt": "2026-04-15T07:06:59.912000Z",
+    "updatedAt": "2026-04-15T07:06:59.912000Z"
   },
   {
-    "id": "1692",
+    "id": "LB-chupei-1692",
     "storeId": "chupei",
     "name": "LSP覺醒索隆1/4",
     "unitPrice": 650,
     "isPointsSet": false,
     "status": "ACTIVE",
-    "createdAt": "2026-10-12T06:06:42.013Z",
-    "updatedAt": "2026-10-12T06:06:42.013Z",
-    "prizes": [
-      {
-        "id": "p-1692-1",
-        "bagId": "1692",
-        "prizeGrade": "A",
-        "prizeName": "LSP覺醒索隆1/4",
-        "productId": "2901",
-        "points": 630,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1692-2",
-        "bagId": "1692",
-        "prizeGrade": "B",
-        "prizeName": "IU大和",
-        "productId": "2417",
-        "points": 90,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1692-3",
-        "bagId": "1692",
-        "prizeGrade": "C",
-        "prizeName": "腦洞奔月尼卡",
-        "productId": "2415",
-        "points": 90,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1692-4",
-        "bagId": "1692",
-        "prizeGrade": "D",
-        "prizeName": "櫻花財神喬巴",
-        "productId": "2414",
-        "points": 80,
-        "draws": 1,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      },
-      {
-        "id": "p-1692-5",
-        "bagId": "1692",
-        "prizeGrade": "D",
-        "prizeName": "非GK",
-        "productId": null,
-        "points": 1,
-        "draws": 116,
-        "drawnCount": 0,
-        "createdAt": "2026-10-12T06:06:42.013Z",
-        "updatedAt": "2026-10-12T06:06:42.013Z"
-      }
-    ]
+    "createdAt": "2026-04-15T07:06:59.912000Z",
+    "updatedAt": "2026-04-15T07:06:59.912000Z"
   }
 ]

@@ -9,6 +9,10 @@ import { adminScheduleRoutes } from './schedule.routes.js';
 import { adminSettingsRoutes } from './settings.routes.js';
 import { adminAuditRoutes } from './audit.routes.js';
 import { adminMigrationRoutes } from './migration.routes.js';
+import { adminAllocationRoutes } from './allocation.routes.js';
+import { adminSessionsRoutes } from './sessions.routes.js';
+import { adminBlindBoxesRoutes } from './blindboxes.routes.js';
+import { adminPreOrdersRoutes } from './preorders.routes.js';
 import { processOutboxTasks } from './outbox.service.js';
 
 export const adminPlugin: FastifyPluginAsync = async (fastify) => {
@@ -19,7 +23,11 @@ export const adminPlugin: FastifyPluginAsync = async (fastify) => {
   // 註冊 Admin 各模組子路由
   await fastify.register(adminMembersRoutes);
   await fastify.register(adminInventoryRoutes);
+  await fastify.register(adminBlindBoxesRoutes);
+  await fastify.register(adminPreOrdersRoutes);
   await fastify.register(adminLotteryRoutes);
+  await fastify.register(adminAllocationRoutes);
+  await fastify.register(adminSessionsRoutes);
   await fastify.register(adminReportsRoutes);
   await fastify.register(adminScheduleRoutes);
   await fastify.register(adminSettingsRoutes);

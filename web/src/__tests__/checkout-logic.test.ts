@@ -3,7 +3,7 @@ import {
   emptyLottery, emptyMerch,
   calcSummary,
   applyLotteryUpdate, applyMerchUpdate,
-  filterMembers, validateCheckout,
+  filterMembers, validateCheckout, isWalkInCustomer,
 } from '../logic/checkout';
 import type { PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
 
@@ -152,10 +152,10 @@ describe('applyLotteryUpdate', () => {
   });
 
   // ── 點數套相關測試 (covers L47-49, L79-81) ──
-  it('field=id 命中點數套 → type=點數, amount=0, remark=點數套', () => {
+  it('field=id 命中點數套 → 預設 type=帶走 (抽中帶走), amount=0, remark=點數套', () => {
     const pointsPrizes = [makePrize('PS1', 'A', { isPointsSet: true, unitPrice: 400 })];
     const result = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
-    expect(result.type).toBe('點數');
+    expect(result.type).toBe('帶走');
     expect(result.amount).toBe(0);
     expect(result.remark).toBe('點數套');
     expect(result.setName).toBe('套PS1');
@@ -176,7 +176,10 @@ describe('applyLotteryUpdate', () => {
     const result = applyLotteryUpdate(itemWithDraws3, 'prize', 'A', pointsPrizes);
     expect(result.pointsCost).toBe(60); // floor(400/20) * 3 = 60
     expect(result.amount).toBe(0);
-    expect(result.totalPoints).toBe(15); // 3 * 5
+    expect(result.totalPoints).toBe(0); // 預設「帶走」不折點
+    // 若顧客選擇不要大賞折為點數
+    const resultAsPoints = applyLotteryUpdate(result, 'type', '點數', pointsPrizes);
+    expect(resultAsPoints.totalPoints).toBe(15); // 3 * 5 = 15 點
   });
 
   it('從點數套切到正常套 → 清除 remark/pointsCost/type', () => {
@@ -240,6 +243,30 @@ describe('applyLotteryUpdate', () => {
     const item = { ...emptyLottery(), id: 'S1' };
     const result = applyLotteryUpdate(item, 'prize', 'x', prizes);
     expect(result.remark).toBe('盲盒');
+  });
+
+  it('X 賞盲盒選「點數」(不要帶走) → 自動計算每抽 10 點', () => {
+    let item = { ...emptyLottery(), id: 'S1' };
+    item = applyLotteryUpdate(item, 'prize', 'x', prizes);
+    item = applyLotteryUpdate(item, 'draws', 3, prizes);
+    item = applyLotteryUpdate(item, 'type', '點數', prizes);
+    expect(item.totalPoints).toBe(30); // 3抽 * 10點 = 30點
+  });
+
+  it('X 賞盲盒選「帶走」 → totalPoints = 0 (實體取貨不發點數)', () => {
+    let item = { ...emptyLottery(), id: 'S1' };
+    item = applyLotteryUpdate(item, 'prize', 'x', prizes);
+    item = applyLotteryUpdate(item, 'draws', 3, prizes);
+    item = applyLotteryUpdate(item, 'type', '帶走', prizes);
+    expect(item.totalPoints).toBe(0);
+  });
+
+  it('Z 賞小賞選「點數」(不要帶走) → 自動計算每抽 1 點', () => {
+    let item = { ...emptyLottery(), id: 'S1' };
+    item = applyLotteryUpdate(item, 'prize', 'z', prizes);
+    item = applyLotteryUpdate(item, 'draws', 5, prizes);
+    item = applyLotteryUpdate(item, 'type', '點數', prizes);
+    expect(item.totalPoints).toBe(5); // 5抽 * 1點 = 5點
   });
 });
 
@@ -444,9 +471,381 @@ describe('validateCheckout', () => {
     expect(validateCheckout(input)).toContain('點數餘額不足');
   });
 
+  it('抽點數套但會員點數不足時嚴格阻擋', () => {
+    const input = baseInput();
+    input.lotteries = [{
+      ...emptyLottery(),
+      id: 'PS1',
+      prize: 'A',
+      setName: '限定點數套',
+      prizeName: 'GK公仔',
+      unitPrice: 400,
+      draws: 2,
+      amount: 0,
+      pointsCost: 40, // 400/20 * 2 = 40 點
+      type: '帶走',
+    }];
+    input.summary = { dueAmount: 0, pointsChange: -40 };
+    input.customer.currentPoints = 30; // 僅有 30 點
+    expect(validateCheckout(input)).toContain('點數餘額不足');
+  });
+
+  it('抽點數套且會員點數足夠時順利通過結帳', () => {
+    const input = baseInput();
+    input.lotteries = [{
+      ...emptyLottery(),
+      id: 'PS1',
+      prize: 'A',
+      setName: '限定點數套',
+      prizeName: 'GK公仔',
+      unitPrice: 400,
+      draws: 2,
+      amount: 0,
+      pointsCost: 40,
+      type: '帶走',
+    }];
+    input.summary = { dueAmount: 0, pointsChange: -40 };
+    input.customer.currentPoints = 100; // 有 100 點
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('會員點數欄位為 undefined 時嚴格阻擋並報點數不足', () => {
+    const input = baseInput();
+    input.merchandises = [{ ...emptyMerch(), id: '88888', name: '測試商品', paymentType: '現金', actualAmount: 0, quantity: 1 }];
+    input.summary = { dueAmount: 0, pointsChange: -10 };
+    (input.customer as any).currentPoints = undefined;
+    expect(validateCheckout(input)).toContain('點數餘額不足');
+  });
+
   it('合法輸入回傳 null', () => {
     const input = baseInput();
     input.merchandises = [{ ...emptyMerch(), id: '88888', name: '手動加點 (隨便加)', paymentType: '贈送', quantity: 1 }];
     expect(validateCheckout(input)).toBeNull();
   });
 });
+
+// ═══════════════════════════════════════════════════
+// isWalkInCustomer (散客識別邏輯)
+// ═══════════════════════════════════════════════════
+describe('isWalkInCustomer (散客識別邏輯)', () => {
+  it('識別所有標準散客號碼', () => {
+    expect(isWalkInCustomer('111111')).toBe(true);
+    expect(isWalkInCustomer('222222')).toBe(true);
+    expect(isWalkInCustomer('333333')).toBe(true);
+    expect(isWalkInCustomer('88888')).toBe(true);
+    expect(isWalkInCustomer('99999')).toBe(true);
+  });
+
+  it('識別帶有後綴的散客號碼與格式', () => {
+    expect(isWalkInCustomer('111111-散客')).toBe(true);
+    expect(isWalkInCustomer('111111 現場客')).toBe(true);
+    expect(isWalkInCustomer('222222-WALKIN')).toBe(true);
+  });
+
+  it('識別散客關鍵字', () => {
+    expect(isWalkInCustomer('散客')).toBe(true);
+    expect(isWalkInCustomer('現場客')).toBe(true);
+    expect(isWalkInCustomer('WALKIN')).toBe(true);
+    expect(isWalkInCustomer('walk_in')).toBe(true);
+    expect(isWalkInCustomer('門市現場')).toBe(true);
+  });
+
+  it('空值或未定義視為散客', () => {
+    expect(isWalkInCustomer('')).toBe(true);
+    expect(isWalkInCustomer(null)).toBe(true);
+    expect(isWalkInCustomer(undefined)).toBe(true);
+  });
+
+  it('正常會員號碼與名稱不應被識別為散客', () => {
+    expect(isWalkInCustomer('0912345678')).toBe(false);
+    expect(isWalkInCustomer('0988776655')).toBe(false);
+    expect(isWalkInCustomer('王小明')).toBe(false);
+    expect(isWalkInCustomer('VIP客戶林先生')).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// 散客點數零元購穿透阻斷不變量 (Invariant #1)
+// ═══════════════════════════════════════════════════
+describe('散客點數零元購穿透阻斷不變量 (Invariant #1)', () => {
+  const walkInInput = () => ({
+    lotteries: [] as ReturnType<typeof emptyLottery>[],
+    merchandises: [] as ReturnType<typeof emptyMerch>[],
+    customer: { phoneName: '111111', name: '散客', currentPoints: 0 },
+    payment: { cash: 0, remittance: 0, creditCard: 0, pointsUsed: 0 },
+    summary: { dueAmount: 0, pointsChange: 0 },
+  });
+
+  it('散客全額現金結帳正常通過', () => {
+    const input = walkInInput();
+    input.merchandises = [{ ...emptyMerch(), id: 'GEN001', name: '展示盒', actualAmount: 300, paymentType: '現金', quantity: 1 }];
+    input.summary = { dueAmount: 300, pointsChange: 0 };
+    input.payment.cash = 300;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('散客全額信用卡結帳正常通過', () => {
+    const input = walkInInput();
+    input.merchandises = [{ ...emptyMerch(), id: 'GEN001', name: '展示盒', actualAmount: 500, paymentType: '現金', quantity: 1 }];
+    input.summary = { dueAmount: 500, pointsChange: 0 };
+    input.payment.creditCard = 500;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('散客嘗試使用 pointsUsed 扣抵點數 → 嚴格阻斷', () => {
+    const input = walkInInput();
+    input.merchandises = [{ ...emptyMerch(), id: 'GEN001', name: '展示盒', actualAmount: 300, paymentType: '現金', quantity: 1 }];
+    input.summary = { dueAmount: 300, pointsChange: 0 };
+    input.payment.cash = 250;
+    input.payment.pointsUsed = 50; // 惡意折抵 50 點
+    const err = validateCheckout(input);
+    expect(err).toContain('散客');
+    expect(err).toContain('點數');
+  });
+
+  it('散客嘗試使用「點數」兌換商品 → 嚴格阻斷', () => {
+    const input = walkInInput();
+    input.merchandises = [{ ...emptyMerch(), id: 'GK001', name: '限定GK雕像', paymentType: '點數', suggestedPoints: 100, totalPoints: 100, quantity: 1 }];
+    input.summary = { dueAmount: 0, pointsChange: -100 };
+    const err = validateCheckout(input);
+    expect(err).toContain('散客');
+    expect(err).toContain('點數');
+  });
+
+  it('散客嘗試抽取限定點數套 → 嚴格阻斷', () => {
+    const input = walkInInput();
+    input.lotteries = [{
+      ...emptyLottery(),
+      id: 'PS1',
+      prize: 'A',
+      setName: '限定點數套',
+      prizeName: 'GK特賞',
+      unitPrice: 400,
+      draws: 1,
+      amount: 0,
+      pointsCost: 20,
+      remark: '點數套',
+      type: '帶走',
+    }];
+    input.summary = { dueAmount: 0, pointsChange: -20 };
+    const err = validateCheckout(input);
+    expect(err).toContain('散客');
+    expect(err).toContain('點數');
+  });
+
+  it('散客抽一番賞嘗試選擇「點數」換發點數 → 嚴格阻斷', () => {
+    const input = walkInInput();
+    input.lotteries = [{
+      ...emptyLottery(),
+      id: 'S1',
+      prize: 'X',
+      setName: '海賊王一番賞',
+      prizeName: '盲盒賞',
+      unitPrice: 350,
+      draws: 1,
+      amount: 350,
+      unitPoints: 10,
+      totalPoints: 10,
+      type: '點數', // 換發 10 點
+    }];
+    input.summary = { dueAmount: 350, pointsChange: 10 };
+    input.payment.cash = 350;
+    const err = validateCheckout(input);
+    expect(err).toContain('散客');
+    expect(err).toContain('點數');
+  });
+
+  it('不同散客號碼代碼 (222222, 333333, WALKIN) 扣點均被阻斷', () => {
+    const codes = ['222222', '333333', 'WALKIN', '現場散客'];
+    for (const code of codes) {
+      const input = walkInInput();
+      input.customer.phoneName = code;
+      input.merchandises = [{ ...emptyMerch(), id: 'GEN001', name: '展示盒', actualAmount: 300, paymentType: '現金', quantity: 1 }];
+      input.summary = { dueAmount: 300, pointsChange: 0 };
+      input.payment.cash = 200;
+      input.payment.pointsUsed = 100;
+      const err = validateCheckout(input);
+      expect(err).toContain('散客');
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// 多重混合支付矩陣與金額校驗 (Payment Matrix)
+// ═══════════════════════════════════════════════════
+describe('多重混合支付矩陣與金額校驗 (Payment Matrix)', () => {
+  const baseInput = () => ({
+    lotteries: [] as ReturnType<typeof emptyLottery>[],
+    merchandises: [{ ...emptyMerch(), id: 'GEN001', name: '熱門商品', actualAmount: 1000, paymentType: '現金' as const, quantity: 1 }],
+    customer: { phoneName: '0912345678', name: '王小明', currentPoints: 500 },
+    payment: { cash: 0, remittance: 0, creditCard: 0, pointsUsed: 0 },
+    summary: { dueAmount: 1000, pointsChange: 0 },
+  });
+
+  it('全額現金支付：實收與應付相符通過', () => {
+    const input = baseInput();
+    input.payment.cash = 1000;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('全額 LINE Pay / 匯款支付 (remittance)：實收與應付相符通過', () => {
+    const input = baseInput();
+    input.payment.remittance = 1000;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('全額信用卡支付 (creditCard)：實收與應付相符通過', () => {
+    const input = baseInput();
+    input.payment.creditCard = 1000;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('三重混合支付 (現金 $500 + LINE Pay $300 + 信用卡 $200 = $1000) 通過', () => {
+    const input = baseInput();
+    input.payment.cash = 500;
+    input.payment.remittance = 300;
+    input.payment.creditCard = 200;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('多重混合支付短少收款 ($500 + $300 + $100 = $900 < $1000) 嚴格阻斷', () => {
+    const input = baseInput();
+    input.payment.cash = 500;
+    input.payment.remittance = 300;
+    input.payment.creditCard = 100;
+    const err = validateCheckout(input);
+    expect(err).toContain('不符');
+    expect(err).toContain('900');
+    expect(err).toContain('1000');
+  });
+
+  it('多重混合支付超額收款 ($500 + $300 + $300 = $1100 > $1000) 嚴格阻斷', () => {
+    const input = baseInput();
+    input.payment.cash = 500;
+    input.payment.remittance = 300;
+    input.payment.creditCard = 300;
+    const err = validateCheckout(input);
+    expect(err).toContain('不符');
+    expect(err).toContain('1100');
+    expect(err).toContain('1000');
+  });
+
+  it('支付方式含負數 (例如 cash: -100) 嚴格阻斷', () => {
+    const input = baseInput();
+    input.payment.cash = -100;
+    input.payment.creditCard = 1100;
+    expect(validateCheckout(input)).toContain('負數');
+  });
+
+  it('應收總額為負數 (dueAmount: -50) 嚴格阻斷', () => {
+    const input = baseInput();
+    input.summary.dueAmount = -50;
+    input.payment.cash = -50;
+    expect(validateCheckout(input)).toContain('負數');
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// 會員點數折抵上限與防呆 (Points Deduction Bounds)
+// ═══════════════════════════════════════════════════
+describe('會員點數折抵上限與防呆 (Points Deduction Bounds)', () => {
+  const baseInput = () => ({
+    lotteries: [] as ReturnType<typeof emptyLottery>[],
+    merchandises: [{ ...emptyMerch(), id: 'GEN001', name: '商品', actualAmount: 500, paymentType: '現金' as const, quantity: 1 }],
+    customer: { phoneName: '0912345678', name: '王小明', currentPoints: 100 },
+    payment: { cash: 500, remittance: 0, creditCard: 0, pointsUsed: 0 },
+    summary: { dueAmount: 500, pointsChange: 0 },
+  });
+
+  it('會員持有 100 點，折抵 100 點整順利通過', () => {
+    const input = baseInput();
+    input.payment.pointsUsed = 100;
+    expect(validateCheckout(input)).toBeNull();
+  });
+
+  it('會員持有 100 點，折抵 101 點嚴格阻斷', () => {
+    const input = baseInput();
+    input.payment.pointsUsed = 101;
+    const err = validateCheckout(input);
+    expect(err).toContain('點數餘額不足');
+    expect(err).toContain('101');
+    expect(err).toContain('100');
+  });
+
+  it('商品兌換扣點 80 點 + payment.pointsUsed 折抵 30 點 (合計 110 點) 嚴格阻斷', () => {
+    const input = baseInput();
+    input.merchandises = [
+      { ...emptyMerch(), id: 'GK001', name: '小雕像', paymentType: '點數', suggestedPoints: 80, totalPoints: 80, quantity: 1 },
+      { ...emptyMerch(), id: 'GEN001', name: '配件', actualAmount: 200, paymentType: '現金', quantity: 1 },
+    ];
+    input.summary = { dueAmount: 200, pointsChange: -80 };
+    input.payment.cash = 200;
+    input.payment.pointsUsed = 30; // 80 + 30 = 110 > 100
+    const err = validateCheckout(input);
+    expect(err).toContain('點數餘額不足');
+    expect(err).toContain('110');
+  });
+
+  it('會員點數為 0 時，嘗試使用 1 點折抵嚴格阻斷', () => {
+    const input = baseInput();
+    input.customer.currentPoints = 0;
+    input.payment.pointsUsed = 1;
+    expect(validateCheckout(input)).toContain('點數餘額不足');
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// 限定點數套公式與狀態機轉移 (Points Set Transitions)
+// ═══════════════════════════════════════════════════
+describe('限定點數套公式與狀態機轉移 (Points Set Transitions)', () => {
+  const pointsPrizes: PrizeEntry[] = [
+    makePrize('PS1', 'A', { unitPrice: 400, isPointsSet: true, draws: 5 }),
+    makePrize('PS1', 'B', { unitPrice: 400, isPointsSet: true, draws: 5 }),
+    makePrize('PS2', 'A', { unitPrice: 450, isPointsSet: true, draws: 10 }),
+    makePrize('NORMAL1', 'A', { unitPrice: 350, isPointsSet: false, draws: 5 }),
+  ];
+
+  it('選入限定點數套：amount 歸零、type 預設帶走、remark 標記為點數套', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    expect(item.amount).toBe(0);
+    expect(item.type).toBe('帶走');
+    expect(item.remark).toBe('點數套');
+  });
+
+  it('限定點數套每抽扣點公式：floor(400 / 20) * 1 = 20 點', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    item = applyLotteryUpdate(item, 'prize', 'A', pointsPrizes);
+    item = applyLotteryUpdate(item, 'draws', 1, pointsPrizes);
+    expect(item.amount).toBe(0);
+    expect(item.pointsCost).toBe(20);
+  });
+
+  it('限定點數套每抽扣點公式：floor(450 / 20) * 3 = 22 * 3 = 66 點', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS2', pointsPrizes);
+    item = applyLotteryUpdate(item, 'prize', 'A', pointsPrizes);
+    item = applyLotteryUpdate(item, 'draws', 3, pointsPrizes);
+    expect(item.amount).toBe(0);
+    expect(item.pointsCost).toBe(66);
+  });
+
+  it('限定點數套切換為普通套組：清空點數套狀態，恢復正常單抽計價', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    expect(item.remark).toBe('點數套');
+    // 切換至一般套組
+    item = applyLotteryUpdate(item, 'id', 'NORMAL1', pointsPrizes);
+    item = applyLotteryUpdate(item, 'prize', 'A', pointsPrizes);
+    item = applyLotteryUpdate(item, 'draws', 2, pointsPrizes);
+    expect(item.remark).toBe('');
+    expect(item.pointsCost).toBe(0);
+    expect(item.amount).toBe(700); // 2 * 350 = 700
+  });
+
+  it('限定點數套抽中大賞預設「帶走」，totalPoints 歸零不發點數', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    item = applyLotteryUpdate(item, 'prize', 'A', pointsPrizes);
+    item = applyLotteryUpdate(item, 'draws', 1, pointsPrizes);
+    item = applyLotteryUpdate(item, 'type', '帶走', pointsPrizes);
+    expect(item.totalPoints).toBe(0);
+  });
+});
+

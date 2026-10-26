@@ -43,6 +43,8 @@ model Store {
   attendanceRecords AttendanceRecord[]
   transfersOut      TransferOrder[]       @relation("SourceStore")
   transfersIn       TransferOrder[]       @relation("TargetStore")
+  allocationPlans   PrizeAllocationPlan[]
+  preOrders         PreOrder[]
 
   @@map("stores")
 }
@@ -237,11 +239,14 @@ model Product {
   barcode          String?             @unique // 條碼
   name             String
   categoryId       String?             @map("category_id")
-  category         String              @default("GENERAL") // 維持向下相容舊字串
+  mainCategory     String              @default("GK") @map("main_category") // 大項: "GK" | "BLIND_BOX" | "GENERAL"
+  subCategory      String?             @map("sub_category")                 // 次項 / IP 名稱 (如: 海賊王, 寶可夢, 火影)
+  category         String              @default("GENERAL")                  // 維持向下相容舊字串 (IP 或 BLIND_BOX)
   brand            String?             // 品牌 (萬代/MegaHouse/集模堂)
   series           String?             // 系列 (MASTERLISE/POP/景品)
   condition        ProductCondition    @default(NEW)
   costPrice        Int                 @default(0) @map("cost_price")
+  allocationCost   Int?                @default(0) @map("allocation_cost") // 配賞用成本 (防虧專用)
   sellingPrice     Int                 @default(0) @map("selling_price")
   suggestedPoints  Int                 @default(0) @map("suggested_points")
   version          Int                 @default(0) // 樂觀鎖版本號
@@ -260,8 +265,11 @@ model Product {
   orderItems       OrderItem[]
   luckyBagPrizes   LuckyBagPrize[]
   transferItems    TransferOrderItem[]
+  preOrders        PreOrder[]
 
   @@index([category])
+  @@index([mainCategory])
+  @@index([mainCategory, subCategory])
   @@index([categoryId])
   @@index([parentId])
   @@index([condition])
@@ -701,4 +709,94 @@ model AuditLog {
   @@index([operatorId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────
+// 12. 採購單與預購單管理 (Purchase Orders & Pre-orders)
+// ─────────────────────────────────────────────────────────────
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SUBMITTED
+  PARTIALLY_RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id          String              @id @default(uuid())
+  orderNo     String              @unique @map("order_no")
+  title       String              // 採購品項/說明
+  supplier    String?             // 廠商
+  status      PurchaseOrderStatus @default(DRAFT)
+  unitPrice   Int                 @default(0) @map("unit_price")
+  qtyChupei   Int                 @default(0) @map("qty_chupei")
+  qtyJinshan  Int                 @default(0) @map("qty_jinshan")
+  totalQty    Int                 @default(0) @map("total_qty")
+  totalAmount Int                 @default(0) @map("total_amount")
+  note        String?
+  rawQuote    String?             @map("raw_quote")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  @@map("purchase_orders")
+}
+
+enum PreOrderStatus {
+  PENDING     // 等待發貨 (已付訂金)
+  COMPLETED   // 已補款驗收入庫
+  CANCELLED   // 砍單退訂作廢
+}
+
+model PreOrder {
+  id            String         @id @default(uuid())
+  name          String         // 預購商品名稱
+  version       String?        // 版本 (如: 業火巨雕S+版, EX版)
+  quantity      Int            @default(1)
+  deposit       Int            @default(0) // 預付訂金
+  finalPayment  Int            @default(0) @map("final_payment") // 補款尾款
+  shippingFee   Int            @default(0) @map("shipping_fee") // 運費/關稅
+  totalCost     Int            @default(0) @map("total_cost") // 總成本 (deposit + finalPayment + shippingFee)
+  supplier      String?        // 廠商/代理商 (玩譯、燃點等)
+  targetStoreId String?        @map("target_store_id") // 入庫門市 (chupei / jinshan)
+  productId     String?        @map("product_id") // 驗收入庫後關聯生成的商品貨號
+  status        PreOrderStatus @default(PENDING)
+  arrivedAt     DateTime?      @map("arrived_at") // 到貨入庫時間
+  note          String?        // 備註
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  product       Product?       @relation(fields: [productId], references: [id])
+  targetStore   Store?         @relation(fields: [targetStoreId], references: [id])
+
+  @@index([status])
+  @@index([supplier])
+  @@index([createdAt])
+  @@map("pre_orders")
+}
+
+// ─────────────────────────────────────────────────────────────
+// 13. 配賞計劃與範本庫 (Prize Allocation Plans & Templates)
+// ─────────────────────────────────────────────────────────────
+
+model PrizeAllocationPlan {
+  id           String   @id @default(uuid())
+  storeId      String   @map("store_id")
+  name         String
+  status       String   @default("DRAFT") // DRAFT | PARKED | TEMPLATE | PUBLISHED
+  totalDraws   Int      @map("total_draws")
+  price1       Int      @default(0)
+  price3       Int      @default(0)
+  price5       Int      @default(0)
+  price10      Int      @default(0)
+  isTenPlusOne Boolean  @default(false) @map("is_ten_plus_one")
+  targetMargin Float    @default(0) @map("target_margin")
+  items        Json     // [{ prizeGrade, prizeName, productId, draws, costPrice, points }]
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  store        Store    @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, status])
+  @@map("prize_allocation_plans")
 }

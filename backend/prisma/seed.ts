@@ -42,10 +42,8 @@ async function main() {
   const products = [
     { id: '88888', name: '手動加點 (隨便加)', category: ProductCategory.GENERAL, isSpecial: true, suggestedPoints: 0 },
     { id: '99999', name: '手動扣點 (隨便扣)', category: ProductCategory.GENERAL, isSpecial: true, suggestedPoints: 0 },
-    { id: 'GK001', name: '海賊王 魯夫 太陽神尼卡 GK', category: ProductCategory.GK, costPrice: 8000, sellingPrice: 15000, suggestedPoints: 300 },
-    { id: 'GK002', name: '七龍珠 孫悟空 自在極意功 GK', category: ProductCategory.GK, costPrice: 6000, sellingPrice: 12000, suggestedPoints: 240 },
-    { id: 'BB001', name: 'POP MART 盲盒 (Labubu)', category: ProductCategory.BLIND_BOX, costPrice: 200, sellingPrice: 350, suggestedPoints: 10 },
-    { id: 'GEN001', name: '玩獸 品牌壓克力防塵展示盒', category: ProductCategory.GENERAL, costPrice: 150, sellingPrice: 300, suggestedPoints: 5 },
+    { id: '2905', name: 'WAWA飛翔坊寶寶A款', category: ProductCategory.GK, costPrice: 1200, sellingPrice: 2200, suggestedPoints: 80 },
+    { id: '2906', name: 'WAWA飛翔坊寶寶B款', category: ProductCategory.GK, costPrice: 1200, sellingPrice: 2200, suggestedPoints: 80 },
   ];
 
   for (const p of products) {
@@ -58,14 +56,10 @@ async function main() {
 
   // 3. 分店庫存
   const inventories = [
-    { storeId: 'chupei', productId: 'GK001', quantity: 5, safetyStock: 1 },
-    { storeId: 'chupei', productId: 'GK002', quantity: 3, safetyStock: 1 },
-    { storeId: 'chupei', productId: 'BB001', quantity: 20, safetyStock: 5 },
-    { storeId: 'chupei', productId: 'GEN001', quantity: 50, safetyStock: 10 },
-    { storeId: 'jinshan', productId: 'GK001', quantity: 2, safetyStock: 1 },
-    { storeId: 'jinshan', productId: 'GK002', quantity: 1, safetyStock: 1 },
-    { storeId: 'jinshan', productId: 'BB001', quantity: 10, safetyStock: 2 },
-    { storeId: 'jinshan', productId: 'GEN001', quantity: 30, safetyStock: 5 },
+    { storeId: 'chupei', productId: '2905', quantity: 5, safetyStock: 1 },
+    { storeId: 'chupei', productId: '2906', quantity: 3, safetyStock: 1 },
+    { storeId: 'jinshan', productId: '2905', quantity: 2, safetyStock: 1 },
+    { storeId: 'jinshan', productId: '2906', quantity: 1, safetyStock: 1 },
   ];
 
   for (const inv of inventories) {
@@ -78,13 +72,13 @@ async function main() {
     });
   }
 
-  // 4. 盲盒資料庫
+  // 4. 盲盒資料庫 (保留真實盲盒範例或空)
   await prisma.blindBox.upsert({
-    where: { id: 'BB001' },
+    where: { id: 'BOX-2905' },
     update: {},
     create: {
-      id: 'BB001',
-      name: 'POP MART 盲盒 (Labubu)',
+      id: 'BOX-2905',
+      name: 'WAWA飛翔坊寶寶 盲盒',
       points: 10,
       manualPrice: 350,
       autoSuggestPrice: 350,
@@ -94,28 +88,26 @@ async function main() {
       configuring: 0,
       shipped: 0,
       remaining: 30,
-      remark: '熱門現貨',
+      remark: '真實進貨',
     },
   });
 
-  // 5. 福袋與獎項庫 (竹北店)
+  // 5. 福袋與獎項庫 (竹北店 - 真實 WAWA飛翔坊寶寶A款)
   const bag1 = await prisma.luckyBag.upsert({
-    where: { id: '1' },
+    where: { id: 'LB-chupei-1548' },
     update: {},
     create: {
-      id: '1',
+      id: 'LB-chupei-1548',
       storeId: 'chupei',
-      name: '海賊王一番賞新年特別套',
+      name: 'WAWA飛翔坊寶寶A款',
       unitPrice: 350,
       isPointsSet: false,
     },
   });
 
   const prizes1 = [
-    { bagId: bag1.id, prizeGrade: 'A', prizeName: 'A賞 魯夫 MASTERLISE', productId: 'GK001', points: 150, draws: 2, drawnCount: 0 },
-    { bagId: bag1.id, prizeGrade: 'B', prizeName: 'B賞 索隆 MASTERLISE', productId: null, points: 100, draws: 3, drawnCount: 0 },
-    { bagId: bag1.id, prizeGrade: 'C', prizeName: 'C賞 娜美 公仔', productId: null, points: 80, draws: 5, drawnCount: 0 },
-    { bagId: bag1.id, prizeGrade: 'LAST', prizeName: '最後賞 尼卡特別色', productId: 'GK001', points: 200, draws: 1, drawnCount: 0 },
+    { bagId: bag1.id, prizeGrade: '1', prizeName: 'WAWA飛翔坊寶寶A款', productId: '2905', points: 80, draws: 1, drawnCount: 0 },
+    { bagId: bag1.id, prizeGrade: '2', prizeName: 'WAWA飛翔坊寶寶B款', productId: '2906', points: 80, draws: 1, drawnCount: 0 },
   ];
 
   for (const p of prizes1) {

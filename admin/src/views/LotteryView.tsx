@@ -1,9 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { lotteryApi } from '../api/client';
+import React, { useEffect, useState, useMemo } from 'react';
+import { lotteryApi, storesApi } from '../api/client';
 import { 
   Gift, 
-  Calculator, 
-  Plus, 
   Trash2, 
   AlertTriangle, 
   CheckCircle2, 
@@ -20,7 +18,14 @@ import {
   Sparkles,
   Store,
   Layers,
-  ArrowRight
+  Flame,
+  Snowflake,
+  Clock,
+  Skull,
+  Calendar,
+  Settings2,
+  SlidersHorizontal,
+  ExternalLink
 } from 'lucide-react';
 
 // ── 行內編輯單元格組件 (In-line Editable Cell) ──────────────────
@@ -88,7 +93,7 @@ const InlineCell: React.FC<InlineCellProps> = ({
           value={currentVal}
           onChange={(e) => setCurrentVal(e.target.value)}
           onBlur={handleCommit}
-          className="bg-slate-900 border border-purple-500 text-purple-200 text-xs rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400"
+          className="bg-slate-900 border border-amber-500 text-amber-200 text-xs rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -100,111 +105,93 @@ const InlineCell: React.FC<InlineCellProps> = ({
     }
 
     return (
-      <input
-        autoFocus
-        type={type}
-        value={currentVal}
-        onChange={(e) => setCurrentVal(e.target.value)}
-        onBlur={handleCommit}
-        onKeyDown={handleKeyDown}
-        className="bg-slate-900 border border-purple-500 text-purple-200 text-xs rounded px-1.5 py-1 w-full focus:outline-none focus:ring-1 focus:ring-purple-400 shadow-inner"
-      />
+      <div className="flex items-center gap-1">
+        {prefix && <span className="text-slate-400 font-mono text-xs">{prefix}</span>}
+        <input
+          autoFocus
+          type={type}
+          value={currentVal}
+          onChange={(e) => setCurrentVal(e.target.value)}
+          onBlur={handleCommit}
+          onKeyDown={handleKeyDown}
+          disabled={isSaving}
+          className="bg-slate-900 border border-amber-500 text-white text-xs rounded px-1.5 py-0.5 outline-none font-mono focus:ring-1 focus:ring-amber-400 w-24"
+        />
+        {suffix && <span className="text-slate-400 font-mono text-xs">{suffix}</span>}
+      </div>
     );
   }
 
   return (
     <div
       onClick={() => setIsEditing(true)}
-      title="點擊直接修改"
-      className={`group cursor-pointer flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-slate-800/80 transition border border-transparent hover:border-slate-700/60 ${className}`}
+      className={`group/cell cursor-pointer flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-slate-800 border border-transparent hover:border-slate-700 transition ${className}`}
+      title="點擊直接修改數值"
     >
-      <span className={`${isBold ? 'font-semibold text-slate-100' : 'text-slate-300'}`}>
-        {prefix}
-        {value !== null && value !== undefined && value !== '' ? value : '-'}
-        {suffix}
+      <span className={isBold ? 'font-bold' : ''}>
+        {prefix}{value}{suffix}
       </span>
-      {isSaving ? (
-        <RefreshCw className="w-3 h-3 text-purple-400 animate-spin shrink-0" />
-      ) : (
-        <Edit2 className="w-2.5 h-2.5 text-slate-500 opacity-0 group-hover:opacity-100 transition shrink-0" />
-      )}
+      <Edit2 className="w-2.5 h-2.5 text-slate-500 opacity-0 group-hover/cell:opacity-100 transition shrink-0" />
     </div>
   );
 };
 
-// ── 主視圖組件 ──────────────────────────────────────────────────
 export const LotteryView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'board' | 'simulator' | 'create'>('board');
-  const [filterMode, setFilterMode] = useState<'active' | 'chupei' | 'jinshan' | 'drawn' | 'all' | 'voided'>('active');
-  const [searchQuery, setSearchQuery] = useState('');
   const [overviewBags, setOverviewBags] = useState<any[]>([]);
-  const [expandedBagIds, setExpandedBagIds] = useState<Set<string>>(new Set(['1556'])); // 預設展開 #1556
-  const [loading, setLoading] = useState(true);
+  const [metaStats, setMetaStats] = useState<any>({});
+  const [loading, setLoading] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // 新增獎項暫存狀態 (Key: bagId)
-  const [newPrizeForms, setNewPrizeForms] = useState<Record<string, { code: string; name: string; itemNo: string; points: number; draws: number }>>({});
+  // 門市自適應 (預設單店模式，上限 5 間)
+  const [stores, setStores] = useState<Array<{ id: string; name: string }>>([]);
 
-  // 試算器狀態
-  const [simUnitPrice, setSimUnitPrice] = useState<number>(300);
-  const [simPrizes, setSimPrizes] = useState<Array<{ grade: string; name: string; cost: number; draws: number }>>([
-    { grade: 'A', name: 'A賞 海賊王大雕像', cost: 5000, draws: 1 },
-    { grade: 'B', name: 'B賞 景品公仔', cost: 600, draws: 3 },
-    { grade: 'C', name: 'C賞 造型公仔', cost: 450, draws: 4 },
-    { grade: 'Z', name: 'Z賞 安慰獎徽章/色紙', cost: 50, draws: 72 },
-  ]);
-  const [simResult, setSimResult] = useState<any | null>(null);
-  const [simLoading, setSimLoading] = useState(false);
+  // ── 頂部精簡篩選器 ──
+  const [storeFilter, setStoreFilter] = useState<string>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL'); // 'ALL' | 'GK 雕像' | '海賊王' | '寶可夢' | '火影忍者' | '鬼滅之刃' | '動漫綜合'
+  const [thermalFilter, setThermalFilter] = useState<string>('ALL'); // 'ALL' | 'HOT' | 'WARM' | 'FROZEN' | 'DEAD_SET'
+  const [sortBy, setSortBy] = useState<string>('launchDate_desc'); // 'launchDate_desc' | 'idle_desc' | 'survival_desc' | 'major_desc' | 'remaining_asc'
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // 開套 Modal
-  const [openMode, setOpenMode] = useState<'SINGLE' | 'MULTI'>('SINGLE');
-  const [storeId, setStoreId] = useState<'chupei' | 'jinshan'>('chupei');
-  const [singleItemNo, setSingleItemNo] = useState('GK001');
-  const [singleItemName, setSingleItemName] = useState('海賊王 魯夫 GK');
-  const [singleTotalDraws, setSingleTotalDraws] = useState(80);
-  const [singleSuggestedPrice, setSingleSuggestedPrice] = useState(300);
-  const [singleActualPrice, setSingleActualPrice] = useState(300);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  // 摺疊/展開的套組 IDs (預設全部展開或首幾套展開)
+  const [expandedBagIds, setExpandedBagIds] = useState<Set<string>>(new Set());
 
-  // 中途廢套 Modal
+  // ── 獎項進階微調 Modal ──
+  const [editingBag, setEditingBag] = useState<any | null>(null);
+  const [editingPrizes, setEditingPrizes] = useState<any[]>([]);
+  const [isSavingPrizes, setIsSavingPrizes] = useState(false);
+
+  // ── 中途廢套 Modal ──
   const [voidTarget, setVoidTarget] = useState<any | null>(null);
   const [voidReason, setVoidReason] = useState('店鋪檔期結束撤套');
   const [voidLoading, setVoidLoading] = useState(false);
-  const [voidError, setVoidError] = useState<string | null>(null);
+
+  useEffect(() => {
+    storesApi.list().then((res) => {
+      if (res.success && Array.isArray(res.data)) {
+        setStores(res.data);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     loadOverview();
-  }, [filterMode, searchQuery]);
+  }, [storeFilter, searchQuery]);
 
   const loadOverview = async () => {
     setLoading(true);
     try {
-      let storeParam: string | undefined = undefined;
-      let filterParam: string = 'active';
-
-      if (filterMode === 'chupei') {
-        storeParam = 'chupei';
-        filterParam = 'active';
-      } else if (filterMode === 'jinshan') {
-        storeParam = 'jinshan';
-        filterParam = 'active';
-      } else if (filterMode === 'drawn') {
-        filterParam = 'drawn';
-      } else if (filterMode === 'all') {
-        filterParam = 'all';
-      } else if (filterMode === 'voided') {
-        filterParam = 'voided';
-      }
-
       const res = await lotteryApi.overview({
-        storeId: storeParam,
-        filter: filterParam,
-        search: searchQuery,
+        storeId: storeFilter !== 'ALL' ? storeFilter : undefined,
+        filter: 'all',
+        search: searchQuery || undefined,
       });
 
       if (res.success) {
-        setOverviewBags(res.data);
+        setOverviewBags(res.data || []);
+        if (res.meta) setMetaStats(res.meta);
+        // 預設展開全部套組便於老闆一覽抽況
+        const allIds = new Set<string>((res.data || []).map((b: any) => String(b.id)));
+        setExpandedBagIds(allIds);
       }
     } catch (err) {
       console.error(err);
@@ -228,13 +215,12 @@ export const LotteryView: React.FC = () => {
     });
   };
 
-  // ── 行內編輯套組 ──
+  // 行內更新套組基本欄位
   const handleUpdateBox = async (bagId: string, field: string, val: any) => {
     try {
       const res = await lotteryApi.updateBox(bagId, { [field]: val });
       if (res.success) {
         showFeedback(`✅ 已成功更新套組 #${bagId}`);
-        // 局部更新本地狀態
         setOverviewBags((prev) =>
           prev.map((b) => (b.id === bagId ? { ...b, [field]: val } : b))
         );
@@ -244,1078 +230,717 @@ export const LotteryView: React.FC = () => {
     }
   };
 
-  // ── 行內編輯獎項 ──
-  const handleUpdatePrize = async (prizeId: string, bagId: string, field: string, val: any) => {
-    try {
-      const res = await lotteryApi.updatePrize(prizeId, { [field]: val });
-      if (res.success) {
-        showFeedback(`✅ 已成功更新獎項`);
-        loadOverview(); // 重新拉取以精確計算大套總籤數與大獎殘存率
-      }
-    } catch (err: any) {
-      alert(`更新失敗: ${err.message || '未知錯誤'}`);
-    }
-  };
-
-  // ── 切換獎項在籤狀態 ──
-  const handleTogglePrize = async (prizeId: string) => {
-    try {
-      const res = await lotteryApi.togglePrize(prizeId);
-      if (res.success) {
-        showFeedback(res.message);
-        loadOverview();
-      }
-    } catch (err: any) {
-      alert(`操作失敗: ${err.message || '未知錯誤'}`);
-    }
-  };
-
-  // ── 刪除獎項 ──
-  const handleDeletePrize = async (prizeId: string) => {
-    if (!window.confirm('確定要刪除此獎項品項嗎？')) return;
-    try {
-      const res = await lotteryApi.deletePrize(prizeId);
-      if (res.success) {
-        showFeedback('已刪除該獎項');
-        loadOverview();
-      }
-    } catch (err: any) {
-      alert(`刪除失敗: ${err.message || '未知錯誤'}`);
-    }
-  };
-
-  // ── 新增獎項 ──
-  const handleAddPrize = async (bagId: string) => {
-    const form = newPrizeForms[bagId] || { code: '大獎', name: '', itemNo: '', points: 100, draws: 1 };
-    if (!form.name.trim()) {
-      alert('請輸入獎項品名');
-      return;
-    }
-
-    try {
-      const res = await lotteryApi.addPrize(bagId, {
-        prizeCode: form.code,
-        prizeName: form.name,
-        itemNo: form.itemNo || null,
-        points: form.points,
-        draws: form.draws,
-      });
-
-      if (res.success) {
-        showFeedback('已新增獎項');
-        setNewPrizeForms((prev) => ({
-          ...prev,
-          [bagId]: { code: '大獎', name: '', itemNo: '', points: 100, draws: 1 },
-        }));
-        loadOverview();
-      }
-    } catch (err: any) {
-      alert(`新增失敗: ${err.message || '未知錯誤'}`);
-    }
-  };
-
-  // ── 廢套處理 ──
-  const handleVoidSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 執行中途廢套
+  const handleExecuteVoid = async () => {
     if (!voidTarget) return;
-
     setVoidLoading(true);
-    setVoidError(null);
     try {
       const res = await lotteryApi.voidBox(voidTarget.id, voidReason);
       if (res.success) {
+        showFeedback(`🎉 套組 #${voidTarget.id}「${voidTarget.name}」已作廢清台，未抽出之實體商品已全數加回門市庫存！`);
         setVoidTarget(null);
-        showFeedback(`套組 #${voidTarget.id} 已廢套下架，殘賞已回流庫存`);
         loadOverview();
       }
     } catch (err: any) {
-      setVoidError(err.message || '廢套失敗');
+      alert(`廢套失敗: ${err.message || '未知錯誤'}`);
     } finally {
       setVoidLoading(false);
     }
   };
 
-  // ── 開套處理 ──
-  const handleCreateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreateLoading(true);
-    setCreateError(null);
+  // 開啟進階獎項編輯彈窗
+  const handleOpenEditPrizesModal = (bag: any) => {
+    setEditingBag(bag);
+    setEditingPrizes(JSON.parse(JSON.stringify(bag.prizes || [])));
+  };
+
+  // 儲存進階獎項修改
+  const handleSaveAllPrizes = async () => {
+    if (!editingBag) return;
+    setIsSavingPrizes(true);
     try {
-      if (openMode === 'SINGLE') {
-        const res = await lotteryApi.createBox({
-          mode: 'SINGLE',
-          storeId,
-          itemNo: singleItemNo,
-          itemName: singleItemName,
-          totalDraws: singleTotalDraws,
-          suggestedPrice: singleSuggestedPrice,
-          actualPrice: singleActualPrice,
+      for (const p of editingPrizes) {
+        await lotteryApi.updatePrize(p.id, {
+          prizeGrade: p.prizeGrade,
+          prizeCode: p.prizeCode || p.prizeGrade,
+          prizeName: p.prizeName,
+          draws: Number(p.draws) || 1,
+          drawnCount: Number(p.drawnCount) || 0,
+          points: Number(p.points) || 0,
+          productId: p.productId || null,
         });
-        if (res.success) {
-          setActiveTab('board');
-          showFeedback('開套成功');
-          loadOverview();
-        }
-      } else {
-        const res = await lotteryApi.createBox({
-          mode: 'MULTI',
-          storeId,
-          name: `${singleItemName} 多賞一番賞`,
-          unitPrice: simUnitPrice,
-          prizes: simPrizes.map((p) => ({
-            prizeGrade: p.grade,
-            prizeName: p.name,
-            points: p.grade === 'A' ? 150 : 10,
-            draws: p.draws,
-          })),
-        });
-        if (res.success) {
-          setActiveTab('board');
-          showFeedback('多賞開套成功');
-          loadOverview();
-        }
       }
+      showFeedback(`✅ 套組 #${editingBag.id} 獎項抽況已更新！`);
+      setEditingBag(null);
+      loadOverview();
     } catch (err: any) {
-      setCreateError(err.message || '開套失敗');
+      alert(`更新獎項失敗: ${err.message || '未知錯誤'}`);
     } finally {
-      setCreateLoading(false);
+      setIsSavingPrizes(false);
     }
   };
 
-  // ── 損平試算 ──
-  const handleSimulate = async () => {
-    setSimLoading(true);
-    try {
-      const res = await lotteryApi.simulate(simUnitPrice, simPrizes);
-      if (res.success) {
-        setSimResult(res.data);
+  // ── 客戶端多維度過濾與排序 ──
+  const processedBags = useMemo(() => {
+    let list = [...overviewBags];
+
+    // 1. 類別過濾
+    if (categoryFilter !== 'ALL') {
+      list = list.filter((b) => b.category === categoryFilter);
+    }
+
+    // 2. 熱度/冰凍狀態快篩
+    if (thermalFilter !== 'ALL') {
+      list = list.filter((b) => b.thermalStatus === thermalFilter);
+    }
+
+    // 3. 排序 (預設: 發布日期)
+    list.sort((a, b) => {
+      if (sortBy === 'launchDate_desc') {
+        const da = new Date(a.launchDate || a.createdAt || 0).getTime();
+        const db = new Date(b.launchDate || b.createdAt || 0).getTime();
+        return db - da; // 最新在前
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSimLoading(false);
-    }
-  };
+      if (sortBy === 'idle_desc') {
+        return (b.idleDays || 0) - (a.idleDays || 0); // 冰凍最久在前
+      }
+      if (sortBy === 'survival_desc') {
+        return (b.survivalDays || 0) - (a.survivalDays || 0); // 存活在場最久在前
+      }
+      if (sortBy === 'major_desc') {
+        return (b.majorRemaining || 0) - (a.majorRemaining || 0); // 大獎剩最多在前
+      }
+      if (sortBy === 'remaining_asc') {
+        return (a.remainingDraws || 0) - (b.remainingDraws || 0); // 剩餘最少在前
+      }
+      return 0;
+    });
 
-  // 統計數值
-  const activeCount = overviewBags.filter((b) => b.status === 'ACTIVE' && b.remainingDraws > 0).length;
-  const majorActiveCount = overviewBags.filter((b) => b.majorRemaining > 0).length;
-  const totalDrawnTickets = overviewBags.reduce((acc, b) => acc + (b.drawnCount || 0), 0);
-  const totalAllTickets = overviewBags.reduce((acc, b) => acc + (b.totalDraws || 0), 0);
+    return list;
+  }, [overviewBags, categoryFilter, thermalFilter, sortBy]);
+
+  // 全域指標統計
+  const totalRemainingSum = useMemo(() => {
+    return processedBags.reduce((acc, b) => acc + (b.remainingDraws || 0), 0);
+  }, [processedBags]);
 
   return (
-    <div className="space-y-6">
-      {/* 浮動儲存回饋提示 */}
-      {feedbackMsg && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 bg-emerald-500/90 text-white px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur border border-emerald-400 text-sm animate-bounce">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{feedbackMsg}</span>
-        </div>
-      )}
-
-      {/* 頂部切換頁籤與標題 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/60 p-5 rounded-2xl border border-slate-700/60">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Gift className="w-6 h-6 text-purple-400" />
-            <h1 className="text-xl font-bold text-white tracking-wide">在線福袋與一番賞戰情室</h1>
-            <span className="text-[11px] bg-purple-500/20 text-purple-300 px-2.5 py-0.5 rounded-full font-semibold border border-purple-500/30">
-              主子表 · 試算表行內編輯版
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            即時監控竹北/金山門市進行中套組、大獎在籤率與殘賞；所有欄位點擊即可行內修改，失焦即刻自動同步。
-          </p>
-        </div>
-
-        <div className="flex bg-slate-900/80 p-1 rounded-xl border border-slate-700/80 shrink-0">
-          <button
-            onClick={() => setActiveTab('board')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'board' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            在線福袋看板
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('simulator');
-              handleSimulate();
-            }}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'simulator' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            利潤損平試算器
-          </button>
-          <button
-            onClick={() => setActiveTab('create')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'create' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            + 開新套上架
-          </button>
-        </div>
-      </div>
-
-      {/* ── 頁籤 1：在線福袋戰情室 (Master-Detail Table) ── */}
-      {activeTab === 'board' && (
-        <div className="space-y-4">
-          {/* 數據快速指標卡片 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span>在線進行中套數</span>
-                <Layers className="w-4 h-4 text-purple-400" />
-              </div>
-              <div className="text-2xl font-bold text-white">{activeCount} <span className="text-xs font-normal text-slate-400">套</span></div>
-              <div className="text-[11px] text-purple-300 mt-1">未作廢且剩餘籤數 &gt; 0</div>
+    <div className="space-y-4">
+      {/* ── 頂部精簡篩選列與戰情工具列 (老闆模式 · 版面最大化) ── */}
+      <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl shadow-xl space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          
+          {/* 標題與核心戰情小膠囊 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 mr-2">
+              <Gift className="w-5 h-5 text-amber-400" />
+              <h1 className="text-base font-bold text-white flex items-center gap-2">
+                在場一番賞戰情看板
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                  即時抽況監控
+                </span>
+              </h1>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span>大獎仍在籤套數</span>
-                <Sparkles className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="text-2xl font-bold text-amber-400">{majorActiveCount} <span className="text-xs font-normal text-slate-400">套</span></div>
-              <div className="text-[11px] text-slate-400 mt-1">核心大賞尚未被抽光</div>
-            </div>
-
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span>累計已售出籤數</span>
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div className="text-2xl font-bold text-emerald-400">{totalDrawnTickets} <span className="text-xs font-normal text-slate-400">抽</span></div>
-              <div className="text-[11px] text-slate-400 mt-1">總籤池 {totalAllTickets} 抽</div>
-            </div>
-
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span>行內編輯模式</span>
-                <Edit2 className="w-4 h-4 text-cyan-400" />
-              </div>
-              <div className="text-sm font-semibold text-cyan-300 mt-1">點擊表格直接改</div>
-              <div className="text-[11px] text-slate-400 mt-1">Enter / 失焦自動保存</div>
+            {/* 戰情膠囊 Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
+              <span className="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+                在場 <strong className="text-amber-400">{processedBags.length}</strong> 套
+              </span>
+              <span className="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+                在場剩餘 <strong className="text-emerald-400">{totalRemainingSum}</strong> 抽
+              </span>
+              {metaStats.totalFrozen > 0 && (
+                <span className="px-2 py-0.5 rounded-lg bg-blue-950/60 text-blue-300 border border-blue-500/40 flex items-center gap-1">
+                  <Snowflake className="w-3 h-3 text-blue-400" />
+                  冰凍 {metaStats.totalFrozen} 套
+                </span>
+              )}
+              {metaStats.totalDead > 0 && (
+                <span className="px-2 py-0.5 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-500/40 flex items-center gap-1">
+                  <Skull className="w-3 h-3 text-rose-400" />
+                  死套待清 {metaStats.totalDead} 套
+                </span>
+              )}
+              {metaStats.totalHot > 0 && (
+                <span className="px-2 py-0.5 rounded-lg bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                  <Flame className="w-3 h-3 text-emerald-400" />
+                  熱抽 {metaStats.totalHot} 套
+                </span>
+              )}
             </div>
           </div>
 
-          {/* 篩選工具列與搜尋框 */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
-            {/* 快速分頁標籤 */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                onClick={() => setFilterMode('active')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  filterMode === 'active'
-                    ? 'bg-purple-600 text-white shadow'
-                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                🟢 進行中 ({activeCount})
-              </button>
-              <button
-                onClick={() => setFilterMode('chupei')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  filterMode === 'chupei'
-                    ? 'bg-blue-600 text-white shadow'
-                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                竹北店
-              </button>
-              <button
-                onClick={() => setFilterMode('jinshan')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  filterMode === 'jinshan'
-                    ? 'bg-amber-600 text-white shadow'
-                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                金山店
-              </button>
-              <button
-                onClick={() => setFilterMode('drawn')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  filterMode === 'drawn'
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                ⚡ 抽獎進行中
-              </button>
-              <button
-                onClick={() => setFilterMode('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  filterMode === 'all'
-                    ? 'bg-slate-700 text-white shadow'
-                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                全部套組
-              </button>
-              <button
-                onClick={() => setFilterMode('voided')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  filterMode === 'voided'
-                    ? 'bg-rose-600 text-white shadow'
-                    : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                🛑 已作廢/完售
-              </button>
-            </div>
-
-            {/* 搜尋欄位 */}
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          {/* 搜尋與重新載入 */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜尋套號、套名或獎項..."
-                className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                placeholder="搜尋套名、公仔或編號..."
+                className="pl-8 pr-3 py-1 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none w-48 sm:w-60 focus:border-amber-400 transition"
               />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
-          </div>
 
-          {/* 主表格：Master-Detail Table */}
-          <div className="bg-slate-800/40 rounded-xl border border-slate-700/60 overflow-hidden shadow-lg">
-            {loading ? (
-              <div className="py-20 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
-                <RefreshCw className="w-6 h-6 animate-spin text-purple-400" />
-                <span className="text-xs">正在載入福袋大套即時資料...</span>
-              </div>
-            ) : overviewBags.length === 0 ? (
-              <div className="py-16 text-center text-slate-400 text-xs">
-                查無符合條件的福袋套組
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-900/80 text-slate-400 border-b border-slate-700/80 uppercase tracking-wider text-[11px]">
-                      <th className="py-3 px-3 w-10 text-center">明細</th>
-                      <th className="py-3 px-3 w-16">門市</th>
-                      <th className="py-3 px-3 w-20">套號</th>
-                      <th className="py-3 px-3 min-w-[200px]">套組名稱</th>
-                      <th className="py-3 px-3 w-24">單抽價格</th>
-                      <th className="py-3 px-3 w-24">總籤數</th>
-                      <th className="py-3 px-3 w-24">已抽數</th>
-                      <th className="py-3 px-3 w-36">剩餘籤數 / 進度</th>
-                      <th className="py-3 px-3 w-32">大獎在籤率</th>
-                      <th className="py-3 px-3 w-24 text-right">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {overviewBags.map((bag) => {
-                      const isExpanded = expandedBagIds.has(bag.id);
-                      const isVoided = bag.status === 'VOIDED';
-
-                      return (
-                        <React.Fragment key={bag.id}>
-                          {/* ── Master Row: 大套資訊 ── */}
-                          <tr
-                            className={`transition hover:bg-slate-800/60 ${
-                              isExpanded ? 'bg-purple-950/20' : ''
-                            } ${isVoided ? 'opacity-60 bg-rose-950/10' : ''}`}
-                          >
-                            {/* 展開箭頭 */}
-                            <td className="py-3 px-3 text-center">
-                              <button
-                                onClick={() => toggleExpand(bag.id)}
-                                className="p-1 rounded hover:bg-slate-700/60 text-slate-400 hover:text-white transition"
-                                title={isExpanded ? '收合獎項明細' : '展開獎項明細'}
-                              >
-                                {isExpanded ? (
-                                  <ChevronDown className="w-4 h-4 text-purple-400" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                                )}
-                              </button>
-                            </td>
-
-                            {/* 門市 */}
-                            <td className="py-3 px-3">
-                              <InlineCell
-                                value={bag.storeId}
-                                type="select"
-                                options={[
-                                  { label: '竹北', value: 'chupei' },
-                                  { label: '金山', value: 'jinshan' },
-                                ]}
-                                onSave={(newVal) => handleUpdateBox(bag.id, 'storeId', newVal)}
-                                className={`text-[11px] font-semibold rounded px-2 py-0.5 inline-block ${
-                                  bag.storeId === 'jinshan'
-                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                                    : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                                }`}
-                              />
-                            </td>
-
-                            {/* 套號 */}
-                            <td className="py-3 px-3 font-mono font-bold text-slate-300">
-                              #{bag.id}
-                            </td>
-
-                            {/* 套名 (行內文字編輯) */}
-                            <td className="py-3 px-3">
-                              <InlineCell
-                                value={bag.name}
-                                type="text"
-                                isBold
-                                onSave={(newVal) => handleUpdateBox(bag.id, 'name', newVal)}
-                              />
-                            </td>
-
-                            {/* 單抽價格 (行內數字編輯) */}
-                            <td className="py-3 px-3 font-mono">
-                              <InlineCell
-                                value={bag.unitPrice}
-                                type="number"
-                                prefix="$"
-                                onSave={(newVal) => handleUpdateBox(bag.id, 'unitPrice', newVal)}
-                              />
-                            </td>
-
-                            {/* 總籤數 */}
-                            <td className="py-3 px-3 font-mono text-slate-300">
-                              <InlineCell
-                                value={bag.totalDraws}
-                                type="number"
-                                suffix=" 抽"
-                                onSave={(newVal) => handleUpdateBox(bag.id, 'totalDraws', newVal)}
-                              />
-                            </td>
-
-                            {/* 已抽數 */}
-                            <td className="py-3 px-3 font-mono text-slate-300">
-                              <InlineCell
-                                value={bag.drawnCount}
-                                type="number"
-                                suffix=" 抽"
-                                onSave={(newVal) => handleUpdateBox(bag.id, 'drawnCount', newVal)}
-                              />
-                            </td>
-
-                            {/* 剩餘籤數 / 進度條 */}
-                            <td className="py-3 px-3">
-                              <div className="flex items-center justify-between text-[11px] mb-1">
-                                <span className="font-mono font-semibold text-slate-200">
-                                  剩 {bag.remainingDraws} 抽
-                                </span>
-                                <span className="text-slate-400">{bag.progressPercent}%</span>
-                              </div>
-                              <div className="w-full bg-slate-700/60 h-1.5 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full transition-all duration-300 ${
-                                    bag.progressPercent >= 80
-                                      ? 'bg-emerald-500'
-                                      : bag.progressPercent >= 40
-                                      ? 'bg-purple-500'
-                                      : 'bg-blue-500'
-                                  }`}
-                                  style={{ width: `${Math.min(100, bag.progressPercent)}%` }}
-                                />
-                              </div>
-                            </td>
-
-                            {/* 大獎在籤率 */}
-                            <td className="py-3 px-3">
-                              {bag.isMajorAllDrawn ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                                  🛑 大獎全出 (0/{bag.majorTotal})
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                  🎯 剩 {bag.majorRemaining}/{bag.majorTotal} 大獎
-                                </span>
-                              )}
-                            </td>
-
-                            {/* 操作 */}
-                            <td className="py-3 px-3 text-right">
-                              {isVoided ? (
-                                <span className="text-[11px] text-rose-400 font-semibold">已廢套</span>
-                              ) : (
-                                <button
-                                  onClick={() => setVoidTarget(bag)}
-                                  className="text-[11px] px-2.5 py-1 rounded-md bg-rose-950/40 text-rose-300 border border-rose-800/50 hover:bg-rose-900/50 transition"
-                                >
-                                  廢套下架
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-
-                          {/* ── Detail Row: 展開的獎項明細表 ── */}
-                          {isExpanded && (
-                            <tr className="bg-slate-900/60 border-b border-purple-900/20">
-                              <td colSpan={10} className="p-4 pl-12">
-                                <div className="bg-slate-950/80 rounded-xl p-4 border border-purple-800/30 space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <Sparkles className="w-4 h-4 text-purple-400" />
-                                      <span className="font-semibold text-slate-200 text-xs">
-                                        【#{bag.id} {bag.name}】獎項清單明細 (共 {bag.prizes.length} 項)
-                                      </span>
-                                    </div>
-                                    <span className="text-[11px] text-slate-400">
-                                      點擊品名、貨號、點數或抽數直接編輯
-                                    </span>
-                                  </div>
-
-                                  {/* 獎項表格 */}
-                                  <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-xs">
-                                      <thead>
-                                        <tr className="border-b border-slate-800 text-slate-400 text-[11px]">
-                                          <th className="py-2 px-2 w-16">代碼</th>
-                                          <th className="py-2 px-2 w-24">實體貨號</th>
-                                          <th className="py-2 px-2 min-w-[200px]">獎項品名</th>
-                                          <th className="py-2 px-2 w-20">點數</th>
-                                          <th className="py-2 px-2 w-20">總抽數</th>
-                                          <th className="py-2 px-2 w-20">已抽數</th>
-                                          <th className="py-2 px-2 w-28">殘賞狀態</th>
-                                          <th className="py-2 px-2 w-32 text-right">快捷操作</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-slate-800/40">
-                                        {bag.prizes.map((p: any) => (
-                                          <tr
-                                            key={p.id}
-                                            className={`hover:bg-slate-900/50 transition ${
-                                              p.isDrawn ? 'opacity-60 bg-slate-900/20' : ''
-                                            }`}
-                                          >
-                                            {/* 獎項代碼 */}
-                                            <td className="py-2 px-2 font-mono">
-                                              <InlineCell
-                                                value={p.prizeCode || p.prizeGrade}
-                                                type="text"
-                                                onSave={(newVal) =>
-                                                  handleUpdatePrize(p.id, bag.id, 'prizeCode', newVal)
-                                                }
-                                              />
-                                            </td>
-
-                                            {/* 實體貨號 */}
-                                            <td className="py-2 px-2 font-mono text-slate-300">
-                                              <InlineCell
-                                                value={p.itemNo || p.productId || ''}
-                                                type="text"
-                                                onSave={(newVal) =>
-                                                  handleUpdatePrize(p.id, bag.id, 'productId', newVal)
-                                                }
-                                              />
-                                            </td>
-
-                                            {/* 獎項品名 */}
-                                            <td className="py-2 px-2">
-                                              <InlineCell
-                                                value={p.prizeName}
-                                                type="text"
-                                                isBold={p.isMajor}
-                                                onSave={(newVal) =>
-                                                  handleUpdatePrize(p.id, bag.id, 'prizeName', newVal)
-                                                }
-                                              />
-                                            </td>
-
-                                            {/* 點數 */}
-                                            <td className="py-2 px-2 font-mono">
-                                              <InlineCell
-                                                value={p.points}
-                                                type="number"
-                                                suffix=" pt"
-                                                onSave={(newVal) =>
-                                                  handleUpdatePrize(p.id, bag.id, 'points', newVal)
-                                                }
-                                              />
-                                            </td>
-
-                                            {/* 總抽數 */}
-                                            <td className="py-2 px-2 font-mono">
-                                              <InlineCell
-                                                value={p.draws}
-                                                type="number"
-                                                onSave={(newVal) =>
-                                                  handleUpdatePrize(p.id, bag.id, 'draws', newVal)
-                                                }
-                                              />
-                                            </td>
-
-                                            {/* 已抽數 */}
-                                            <td className="py-2 px-2 font-mono">
-                                              <InlineCell
-                                                value={p.drawnCount}
-                                                type="number"
-                                                onSave={(newVal) =>
-                                                  handleUpdatePrize(p.id, bag.id, 'drawnCount', newVal)
-                                                }
-                                              />
-                                            </td>
-
-                                            {/* 殘賞狀態徽章 */}
-                                            <td className="py-2 px-2">
-                                              {p.isDrawn ? (
-                                                <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                                                  ❌ 已開出
-                                                </span>
-                                              ) : (
-                                                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                                  🎯 剩 {p.remaining} 抽
-                                                </span>
-                                              )}
-                                            </td>
-
-                                            {/* 快捷操作 */}
-                                            <td className="py-2 px-2 text-right">
-                                              <div className="flex items-center justify-end gap-1.5">
-                                                <button
-                                                  onClick={() => handleTogglePrize(p.id)}
-                                                  className={`px-2 py-0.5 rounded text-[10px] transition font-medium ${
-                                                    p.isDrawn
-                                                      ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                                                      : 'bg-purple-600/30 text-purple-200 border border-purple-500/30 hover:bg-purple-600/50'
-                                                  }`}
-                                                >
-                                                  {p.isDrawn ? '復原在籤' : '標記開出'}
-                                                </button>
-                                                <button
-                                                  onClick={() => handleDeletePrize(p.id)}
-                                                  className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition"
-                                                  title="刪除獎項"
-                                                >
-                                                  <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
-                                              </div>
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-
-                                  {/* 快速新增大獎列 */}
-                                  <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-                                    <span className="text-[11px] text-purple-300 font-semibold flex items-center gap-1">
-                                      <Plus className="w-3.5 h-3.5" /> 新增獎項：
-                                    </span>
-                                    <input
-                                      type="text"
-                                      placeholder="代號 (如 1/A)"
-                                      value={newPrizeForms[bag.id]?.code ?? '大獎'}
-                                      onChange={(e) =>
-                                        setNewPrizeForms((prev) => ({
-                                          ...prev,
-                                          [bag.id]: { ...(prev[bag.id] || { code: '大獎', name: '', itemNo: '', points: 100, draws: 1 }), code: e.target.value },
-                                        }))
-                                      }
-                                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs w-20 text-slate-200"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="品名 (如 景品公仔)"
-                                      value={newPrizeForms[bag.id]?.name ?? ''}
-                                      onChange={(e) =>
-                                        setNewPrizeForms((prev) => ({
-                                          ...prev,
-                                          [bag.id]: { ...(prev[bag.id] || { code: '大獎', name: '', itemNo: '', points: 100, draws: 1 }), name: e.target.value },
-                                        }))
-                                      }
-                                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs w-48 text-slate-200"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="貨號 (如 2852)"
-                                      value={newPrizeForms[bag.id]?.itemNo ?? ''}
-                                      onChange={(e) =>
-                                        setNewPrizeForms((prev) => ({
-                                          ...prev,
-                                          [bag.id]: { ...(prev[bag.id] || { code: '大獎', name: '', itemNo: '', points: 100, draws: 1 }), itemNo: e.target.value },
-                                        }))
-                                      }
-                                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs w-24 text-slate-200"
-                                    />
-                                    <input
-                                      type="number"
-                                      placeholder="點數"
-                                      value={newPrizeForms[bag.id]?.points ?? 100}
-                                      onChange={(e) =>
-                                        setNewPrizeForms((prev) => ({
-                                          ...prev,
-                                          [bag.id]: { ...(prev[bag.id] || { code: '大獎', name: '', itemNo: '', points: 100, draws: 1 }), points: Number(e.target.value) || 0 },
-                                        }))
-                                      }
-                                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs w-16 text-slate-200"
-                                    />
-                                    <input
-                                      type="number"
-                                      placeholder="籤數"
-                                      value={newPrizeForms[bag.id]?.draws ?? 1}
-                                      onChange={(e) =>
-                                        setNewPrizeForms((prev) => ({
-                                          ...prev,
-                                          [bag.id]: { ...(prev[bag.id] || { code: '大獎', name: '', itemNo: '', points: 100, draws: 1 }), draws: Number(e.target.value) || 1 },
-                                        }))
-                                      }
-                                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs w-14 text-slate-200"
-                                    />
-                                    <button
-                                      onClick={() => handleAddPrize(bag.id)}
-                                      className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-medium transition flex items-center gap-1 shadow"
-                                    >
-                                      <Plus className="w-3.5 h-3.5" /> 加入獎項
-                                    </button>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <button
+              onClick={loadOverview}
+              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition"
+              title="重新整理抽況"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : ''}`} />
+            </button>
           </div>
         </div>
-      )}
 
-      {/* ── 頁籤 2：利潤損平試算器 (Simulator) ── */}
-      {activeTab === 'simulator' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4 bg-slate-800/40 p-5 rounded-2xl border border-slate-700/60">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-purple-400" />
-              開套獎項與成本規劃 (試算輸入)
-            </h2>
-
-            <div>
-              <label className="text-xs text-slate-300 block mb-1">單抽預計定價 (NT$)</label>
-              <input
-                type="number"
-                value={simUnitPrice}
-                onChange={(e) => setSimUnitPrice(Number(e.target.value) || 0)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white font-mono focus:ring-1 focus:ring-purple-400"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs text-slate-400">
-                <span>獎項清單配置</span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSimPrizes([
-                      ...simPrizes,
-                      { grade: 'D', name: '新增獎項', cost: 300, draws: 1 },
-                    ])
-                  }
-                  className="text-purple-400 hover:text-purple-300 flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> 增加賞項
-                </button>
-              </div>
-
-              {simPrizes.map((p, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
-                  <input
-                    type="text"
-                    value={p.grade}
-                    placeholder="賞級"
-                    onChange={(e) => {
-                      const next = [...simPrizes];
-                      next[idx].grade = e.target.value;
-                      setSimPrizes(next);
-                    }}
-                    className="w-16 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-white uppercase text-center font-bold"
-                  />
-                  <input
-                    type="text"
-                    value={p.name}
-                    placeholder="獎品名稱"
-                    onChange={(e) => {
-                      const next = [...simPrizes];
-                      next[idx].name = e.target.value;
-                      setSimPrizes(next);
-                    }}
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-white"
-                  />
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-slate-500">進價$</span>
-                    <input
-                      type="number"
-                      value={p.cost}
-                      onChange={(e) => {
-                        const next = [...simPrizes];
-                        next[idx].cost = Number(e.target.value) || 0;
-                        setSimPrizes(next);
-                      }}
-                      className="w-20 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-white font-mono"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-slate-500">籤數</span>
-                    <input
-                      type="number"
-                      value={p.draws}
-                      onChange={(e) => {
-                        const next = [...simPrizes];
-                        next[idx].draws = Number(e.target.value) || 0;
-                        setSimPrizes(next);
-                      }}
-                      className="w-16 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-white font-mono"
-                    />
-                  </div>
+        {/* 篩選與排序控制列 (一字排開) */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            
+            {/* 門市切換 (多店模式才展示，最多 5 間) */}
+            {stores.length > 1 && (
+              <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-xl border border-slate-700">
+                {[
+                  { id: 'ALL', label: '全門市' },
+                  ...stores.map((s) => ({ id: s.id, label: s.name })),
+                ].map((s) => (
                   <button
-                    type="button"
-                    onClick={() => setSimPrizes(simPrizes.filter((_, i) => i !== idx))}
-                    className="text-slate-500 hover:text-rose-400 p-1"
+                    key={s.id}
+                    onClick={() => setStoreFilter(s.id)}
+                    className={`px-2.5 py-1 rounded-lg transition font-medium text-[11px] ${
+                      storeFilter === s.id ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+                    }`}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {s.label}
                   </button>
-                </div>
+                ))}
+              </div>
+            )}
+
+            {/* 題材分類篩選 */}
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-slate-800 border border-slate-700 text-slate-200 text-[11px] rounded-xl px-2.5 py-1 outline-none"
+            >
+              <option value="ALL">全部題材分類</option>
+              <option value="GK 雕像">GK 雕像</option>
+              <option value="海賊王">海賊王</option>
+              <option value="寶可夢">寶可夢</option>
+              <option value="火影忍者">火影忍者</option>
+              <option value="鬼滅之刃">鬼滅之刃</option>
+              <option value="動漫綜合">動漫綜合</option>
+            </select>
+
+            {/* 抽況熱度快篩 Chips */}
+            <div className="flex flex-wrap items-center gap-1">
+              {[
+                { id: 'ALL', label: '全部抽況' },
+                { id: 'HOT', label: '🔥 熱抽 (24H)', activeClass: 'bg-emerald-500 text-slate-950' },
+                { id: 'WARM', label: '⏳ 平溫 (3~6天)', activeClass: 'bg-slate-700 text-white' },
+                { id: 'FROZEN', label: '❄️ 冰凍 (≥7天)', activeClass: 'bg-blue-600 text-white' },
+                { id: 'DEAD_SET', label: '☠️ 大賞已光', activeClass: 'bg-rose-600 text-white' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setThermalFilter(item.id)}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition border ${
+                    thermalFilter === item.id
+                      ? `${item.activeClass || 'bg-amber-500 text-slate-950'} border-transparent`
+                      : 'bg-slate-800/60 text-slate-400 border-slate-700/80 hover:text-slate-200'
+                  }`}
+                >
+                  {item.label}
+                </button>
               ))}
             </div>
+          </div>
 
-            <button
-              onClick={handleSimulate}
-              disabled={simLoading}
-              className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-lg"
+          {/* 排序方式選單 (預設發布日期) */}
+          <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+            <span>排序:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-slate-800 border border-slate-700 text-amber-300 text-[11px] font-bold rounded-xl px-2 py-1 outline-none"
             >
-              {simLoading ? '試算中...' : '即時執行損平與利潤試算'}
-            </button>
+              <option value="launchDate_desc">📅 發布日期 (最新在前 · 預設)</option>
+              <option value="idle_desc">❄️ 冰凍天數 (最久沒人抽)</option>
+              <option value="survival_desc">⏳ 存活在場 (在場最久)</option>
+              <option value="major_desc">🏆 大獎殘餘 (大獎剩最多)</option>
+              <option value="remaining_asc">📉 剩餘抽數 (即將完售)</option>
+            </select>
           </div>
+        </div>
+      </div>
 
-          {/* 試算結果面板 */}
-          <div className="space-y-4">
-            {simResult ? (
-              <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/60 space-y-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  試算結果與財務防線指標
-                </h3>
-
-                <div className={`p-3 rounded-xl border text-xs font-semibold ${
-                  simResult.canOpenSet
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                    : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                }`}>
-                  {simResult.validationMessage}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                    <div className="text-slate-400 mb-0.5">預估毛利率</div>
-                    <div className="text-xl font-bold font-mono text-purple-400">{simResult.marginRate}%</div>
-                  </div>
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                    <div className="text-slate-400 mb-0.5">保本抽數 (損平點)</div>
-                    <div className="text-xl font-bold font-mono text-amber-400">{simResult.breakevenDraws} <span className="text-xs font-normal">/ {simResult.totalDraws} 抽</span></div>
-                  </div>
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                    <div className="text-slate-400 mb-0.5">總成本支出</div>
-                    <div className="text-base font-bold font-mono text-slate-200">${simResult.totalCost.toLocaleString()}</div>
-                  </div>
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                    <div className="text-slate-400 mb-0.5">完售毛利預估</div>
-                    <div className="text-base font-bold font-mono text-emerald-400">${simResult.grossProfit.toLocaleString()}</div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-slate-800/40 p-8 rounded-2xl border border-slate-700/60 text-center text-slate-400 text-xs">
-                點擊「即時執行損平與利潤試算」查看財務風險評估
-              </div>
-            )}
+      {/* 反饋提示 */}
+      {feedbackMsg && (
+        <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-4 py-2 rounded-xl text-xs flex items-center justify-between shadow">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{feedbackMsg}</span>
           </div>
+          <button onClick={() => setFeedbackMsg(null)}>
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
-      {/* ── 頁籤 3：開新套上架精靈 (Create Set) ── */}
-      {activeTab === 'create' && (
-        <div className="max-w-2xl mx-auto bg-slate-800/40 p-6 rounded-2xl border border-slate-700/60 space-y-5">
-          <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Gift className="w-5 h-5 text-purple-400" />
-              開套上架精靈 (新福袋建置)
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              支援單品快速開套（自動配置非GK安慰獎）或多賞一番賞開套。
-            </p>
-          </div>
+      {/* ── 在場套組清單 (版面最大化) ── */}
+      {loading ? (
+        <div className="py-24 text-center text-slate-500 text-xs">
+          <RefreshCw className="w-6 h-6 animate-spin mx-auto text-amber-400 mb-2" />
+          載入在場一番賞抽況中...
+        </div>
+      ) : processedBags.length === 0 ? (
+        <div className="py-20 text-center text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
+          目前無符合篩選條件之在場一番賞套組
+        </div>
+      ) : (
+        <div className="space-y-3.5">
+          {processedBags.map((bag) => {
+            const isExpanded = expandedBagIds.has(String(bag.id));
+            const isDead = bag.thermalStatus === 'DEAD_SET';
+            const isFrozen = bag.thermalStatus === 'FROZEN';
+            const isHot = bag.thermalStatus === 'HOT';
 
-          <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
-            {createError && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 font-semibold">
-                {createError}
-              </div>
-            )}
+            return (
+              <div
+                key={bag.id}
+                className={`bg-slate-900 border rounded-2xl overflow-hidden transition shadow-lg ${
+                  isDead
+                    ? 'border-rose-500/50 bg-rose-950/10'
+                    : isFrozen
+                    ? 'border-blue-500/40 hover:border-blue-400/60'
+                    : 'border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                {/* 套組卡片頭部 (核心戰情報表) */}
+                <div className="p-4 bg-slate-850/80 flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-800/80">
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* 展開/收合按鈕 */}
+                      <button
+                        onClick={() => toggleExpand(String(bag.id))}
+                        className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition"
+                      >
+                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      </button>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-slate-300 block mb-1">上架門市</label>
-                <select
-                  value={storeId}
-                  onChange={(e) => setStoreId(e.target.value as any)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
-                >
-                  <option value="chupei">竹北旗艦店</option>
-                  <option value="jinshan">金山概念店</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-slate-300 block mb-1">開套模式</label>
-                <select
-                  value={openMode}
-                  onChange={(e) => setOpenMode(e.target.value as any)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
-                >
-                  <option value="SINGLE">單品快速開套 (單大獎 + 非GK)</option>
-                  <option value="MULTI">多賞一番賞開套</option>
-                </select>
-              </div>
-            </div>
+                      {/* 門市徽章 (多店模式下展示) */}
+                      {stores.length > 1 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          {stores.find((s) => s.id === bag.storeId)?.name || bag.branch || '門市'}
+                        </span>
+                      )}
 
-            <div>
-              <label className="text-slate-300 block mb-1">套組/商品名稱</label>
-              <input
-                type="text"
-                value={singleItemName}
-                onChange={(e) => setSingleItemName(e.target.value)}
-                placeholder="例如：神隱卡西法1.0(紅)"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
-              />
-            </div>
+                      {/* 題材分類徽章 */}
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                        {bag.category || '動漫綜合'}
+                      </span>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-slate-300 block mb-1">商品貨號 (條碼)</label>
-                <input
-                  type="text"
-                  value={singleItemNo}
-                  onChange={(e) => setSingleItemNo(e.target.value)}
-                  placeholder="例如：2852"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
-                />
-              </div>
-              <div>
-                <label className="text-slate-300 block mb-1">總籤數 (抽數)</label>
-                <input
-                  type="number"
-                  value={singleTotalDraws}
-                  onChange={(e) => setSingleTotalDraws(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white font-mono"
-                />
-              </div>
-            </div>
+                      {/* 套組編號 */}
+                      <span className="text-xs font-mono font-bold text-slate-400">
+                        #{bag.id}
+                      </span>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-slate-300 block mb-1">建議單抽售價 (NT$)</label>
-                <input
-                  type="number"
-                  value={singleSuggestedPrice}
-                  onChange={(e) => setSingleSuggestedPrice(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white font-mono"
-                />
-              </div>
-              <div>
-                <label className="text-slate-300 block mb-1">實際單抽定價 (NT$)</label>
-                <input
-                  type="number"
-                  value={singleActualPrice}
-                  onChange={(e) => setSingleActualPrice(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white font-mono"
-                />
-              </div>
-            </div>
+                      {/* 套組名稱 (行內可編輯) */}
+                      <InlineCell
+                        value={bag.name}
+                        onSave={(val) => handleUpdateBox(String(bag.id), 'name', val)}
+                        className="text-sm font-bold text-white hover:text-amber-300"
+                        isBold
+                      />
 
-            <button
-              type="submit"
-              disabled={createLoading}
-              className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg mt-2"
-            >
-              {createLoading ? '上架中...' : '確認開套並上架至在線看板'}
-            </button>
-          </form>
+                      {/* 發布日期 */}
+                      <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        發布: {bag.launchDate || '2026/01/25'}
+                      </span>
+                    </div>
+
+                    {/* 第二行：存活天數與三段式冰凍警示標籤 */}
+                    <div className="flex flex-wrap items-center gap-2 pl-6 pt-1">
+                      {/* 存活在場天數 */}
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-indigo-400" />
+                        在場 <strong>{bag.survivalDays || 0}</strong> 天
+                      </span>
+
+                      {/* 多久沒人玩 (冰凍警示) */}
+                      {isDead ? (
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-500/50 flex items-center gap-1 shadow-sm animate-pulse">
+                          <Skull className="w-3.5 h-3.5 text-rose-400" />
+                          ☠️ 死套/殘包 (大賞全出清 · 建請廢套清台)
+                        </span>
+                      ) : isFrozen ? (
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-blue-950 text-blue-300 border border-blue-500/50 flex items-center gap-1 shadow-sm">
+                          <Snowflake className="w-3.5 h-3.5 text-blue-400" />
+                          ❄️ 冰凍 {bag.idleDays} 天無人抽 (停滯滯銷)
+                        </span>
+                      ) : isHot ? (
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                          <Flame className="w-3.5 h-3.5 text-emerald-400" />
+                          🔥 24H 內熱抽中 (最後抽獎: {bag.idleDays === 0 ? '今日' : `${bag.idleDays}天前`})
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded-lg bg-slate-800 text-slate-400 border border-slate-700">
+                          ⏳ 平溫 (距上次抽 {bag.idleDays} 天)
+                        </span>
+                      )}
+
+                      {/* 大獎殘留狀態 */}
+                      <span className={`text-[11px] font-mono px-2 py-0.5 rounded-lg border ${
+                        bag.majorRemaining > 0
+                          ? 'bg-amber-950/40 text-amber-300 border-amber-500/30'
+                          : 'bg-slate-800 text-slate-500 border-slate-700'
+                      }`}>
+                        大獎殘存: <strong className={bag.majorRemaining > 0 ? 'text-amber-400' : 'text-slate-500'}>{bag.majorRemaining}</strong> / {bag.majorTotal} 件
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 右側：單抽價格修改、去化進度與操作按鈕 */}
+                  <div className="flex flex-wrap items-center gap-4 lg:shrink-0 pl-6 lg:pl-0">
+                    
+                    {/* 單抽價 (行內修改) */}
+                    <div className="bg-slate-850 p-2 rounded-xl border border-slate-800 text-center">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">單抽售價 (可改)</div>
+                      <InlineCell
+                        value={bag.unitPrice || 350}
+                        type="number"
+                        prefix="$"
+                        onSave={(val) => handleUpdateBox(String(bag.id), 'unitPrice', val)}
+                        className="text-sm font-bold text-amber-300 justify-center"
+                        isBold
+                      />
+                    </div>
+
+                    {/* 去化抽數進度條 */}
+                    <div className="w-36 space-y-1">
+                      <div className="flex justify-between text-[11px] font-mono">
+                        <span className="text-slate-400">抽數去化</span>
+                        <span className="text-white font-bold">{bag.drawnCount} / {bag.totalDraws}</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                        <div
+                          className={`h-full transition-all ${
+                            bag.progressPercent >= 80 ? 'bg-emerald-500' : bag.progressPercent >= 40 ? 'bg-amber-500' : 'bg-indigo-500'
+                          }`}
+                          style={{ width: `${Math.min(100, bag.progressPercent)}%` }}
+                        />
+                      </div>
+                      <div className="text-[10px] text-right text-slate-400 font-mono">
+                        剩餘 <strong className="text-emerald-400">{bag.remainingDraws}</strong> 抽 ({bag.progressPercent}%)
+                      </div>
+                    </div>
+
+                    {/* 操作按鈕群 (調整獎項 / 廢套清台) */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEditPrizesModal(bag)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition"
+                        title="開啟完整獎項與抽數調整彈窗"
+                      >
+                        <Settings2 className="w-3.5 h-3.5 text-indigo-400" />
+                        調整獎項
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setVoidTarget(bag);
+                          setVoidReason('店鋪檔期結束撤套');
+                        }}
+                        className="p-1.5 hover:bg-rose-950/40 text-slate-500 hover:text-rose-400 rounded-xl transition border border-transparent hover:border-rose-500/30"
+                        title="中途廢套清台結案 (將剩餘公仔退回門市現貨)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 展開之獎項明細抽況九宮格 (Prize Status Grid) */}
+                {isExpanded && (
+                  <div className="p-4 bg-slate-950/60 border-t border-slate-800/80 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span className="font-bold flex items-center gap-1.5 text-slate-300">
+                        <Layers className="w-3.5 h-3.5 text-amber-400" />
+                        獎項抽況即時明細 ({bag.prizes?.length || 0} 賞)
+                      </span>
+                      <span className="font-mono text-[11px]">
+                        大賞抽況：{bag.majorRemaining > 0 ? `尚餘 ${bag.majorRemaining} 隻大獎` : '全部大賞已出清'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                      {(bag.prizes || []).map((prize: any) => {
+                        const isDrawnOut = prize.remaining <= 0;
+                        const isZ = prize.prizeGrade === 'Z' || prize.prizeName === '非GK';
+                        const isX = prize.prizeGrade === 'X';
+
+                        return (
+                          <div
+                            key={prize.id}
+                            className={`p-2.5 rounded-xl border transition flex flex-col justify-between ${
+                              isDrawnOut
+                                ? 'bg-slate-900/40 border-slate-800/50 opacity-60'
+                                : isZ
+                                ? 'bg-emerald-950/20 border-emerald-500/30'
+                                : isX
+                                ? 'bg-purple-950/20 border-purple-500/30'
+                                : 'bg-slate-900 border-slate-700/80 shadow'
+                            }`}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded font-mono ${
+                                  isZ
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                    : isX
+                                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                    : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                                }`}>
+                                  {prize.prizeGrade || 'A'}賞
+                                </span>
+
+                                <span className="text-[10px] font-mono text-slate-400">
+                                  {prize.points > 0 ? `${prize.points} pt` : '無點數'}
+                                </span>
+                              </div>
+
+                              <div className="text-xs font-bold text-white truncate" title={prize.prizeName}>
+                                <span className={isDrawnOut ? 'line-through text-slate-500' : ''}>
+                                  {prize.prizeName}
+                                </span>
+                              </div>
+
+                              {prize.productId && (
+                                <div className="text-[10px] font-mono text-slate-400">
+                                  貨號: {prize.productId}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="pt-2 mt-2 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono">
+                              <span className="text-slate-400">
+                                抽況: <strong>{prize.drawnCount || 0}</strong>/{prize.draws}
+                              </span>
+                              <span className={`font-bold ${isDrawnOut ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                {isDrawnOut ? '已全抽出' : `餘 ${prize.remaining} 抽`}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* ── 中途廢套防呆 Modal ── */}
-      {voidTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2 text-rose-400">
-                <AlertTriangle className="w-5 h-5" />
-                <h3 className="font-bold text-white text-base">中途廢套與庫存回流確認</h3>
+      {/* ── 獎項進階微調 Modal (Drawer / Dialog) ── */}
+      {editingBag && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-850">
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-5 h-5 text-indigo-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    調整套組獎項與抽數 · #{editingBag.id} {editingBag.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    微調各賞代碼、總抽數、已抽數與商品關聯；修改後即時同步至門市資料庫。
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setVoidTarget(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
+              <button
+                onClick={() => setEditingBag(null)}
+                className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="text-xs text-slate-300 space-y-2 bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">
-              <div><span className="text-slate-500">套組編號：</span>#{voidTarget.id}</div>
-              <div><span className="text-slate-500">套組名稱：</span>{voidTarget.name}</div>
-              <div><span className="text-slate-500">門市：</span>{voidTarget.storeId === 'jinshan' ? '金山概念店' : '竹北旗艦店'}</div>
+            <div className="p-4 overflow-y-auto flex-1">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
+                  <tr>
+                    <th className="px-2 py-2 w-16 text-center">賞位</th>
+                    <th className="px-3 py-2 w-28">商品貨號</th>
+                    <th className="px-3 py-2">獎項名稱</th>
+                    <th className="px-2 py-2 w-20 text-center">總抽數</th>
+                    <th className="px-2 py-2 w-20 text-center">已抽數</th>
+                    <th className="px-2 py-2 w-16 text-right">點數</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800 text-slate-200 font-mono">
+                  {editingPrizes.map((p, idx) => (
+                    <tr key={p.id || idx} className="hover:bg-slate-800/40">
+                      <td className="px-2 py-1.5 text-center">
+                        <input
+                          type="text"
+                          value={p.prizeGrade || ''}
+                          onChange={(e) => {
+                            const copy = [...editingPrizes];
+                            copy[idx].prizeGrade = e.target.value;
+                            setEditingPrizes(copy);
+                          }}
+                          className="w-12 text-center bg-slate-800 border border-slate-700 rounded px-1 py-1 font-bold text-amber-300"
+                        />
+                      </td>
+
+                      <td className="px-2 py-1.5">
+                        <input
+                          type="text"
+                          value={p.productId || ''}
+                          onChange={(e) => {
+                            const copy = [...editingPrizes];
+                            copy[idx].productId = e.target.value;
+                            setEditingPrizes(copy);
+                          }}
+                          placeholder="商品條碼"
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"
+                        />
+                      </td>
+
+                      <td className="px-2 py-1.5 font-sans">
+                        <input
+                          type="text"
+                          value={p.prizeName || ''}
+                          onChange={(e) => {
+                            const copy = [...editingPrizes];
+                            copy[idx].prizeName = e.target.value;
+                            setEditingPrizes(copy);
+                          }}
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-medium"
+                        />
+                      </td>
+
+                      <td className="px-2 py-1.5 text-center">
+                        <input
+                          type="number"
+                          min="1"
+                          value={p.draws || 1}
+                          onChange={(e) => {
+                            const copy = [...editingPrizes];
+                            copy[idx].draws = Number(e.target.value) || 1;
+                            setEditingPrizes(copy);
+                          }}
+                          className="w-16 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-center font-bold text-white"
+                        />
+                      </td>
+
+                      <td className="px-2 py-1.5 text-center">
+                        <input
+                          type="number"
+                          min="0"
+                          value={p.drawnCount || 0}
+                          onChange={(e) => {
+                            const copy = [...editingPrizes];
+                            copy[idx].drawnCount = Number(e.target.value) || 0;
+                            setEditingPrizes(copy);
+                          }}
+                          className="w-16 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-center font-bold text-emerald-300"
+                        />
+                      </td>
+
+                      <td className="px-2 py-1.5 text-right">
+                        <input
+                          type="number"
+                          value={p.points || 0}
+                          onChange={(e) => {
+                            const copy = [...editingPrizes];
+                            copy[idx].points = Number(e.target.value) || 0;
+                            setEditingPrizes(copy);
+                          }}
+                          className="w-14 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-right text-indigo-300"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-4 border-t border-slate-800 bg-slate-900 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setEditingBag(null)}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveAllPrizes}
+                disabled={isSavingPrizes}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow transition disabled:opacity-50"
+              >
+                <Check className="w-4 h-4" />
+                {isSavingPrizes ? '儲存中...' : '儲存獎項設定'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 中途廢套清台 Modal ── */}
+      {voidTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-rose-500/50 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
               <div>
-                <span className="text-slate-500">抽況：</span>
-                已抽 {voidTarget.drawnCount} / {voidTarget.totalDraws} 抽 (殘賞 {voidTarget.remainingDraws} 抽)
+                <h3 className="text-sm font-bold text-white">確定要作廢清台此套組？</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  套組 #{voidTarget.id}「{voidTarget.name}」
+                </p>
               </div>
             </div>
 
-            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-200">
-              ⚠️ 廢套後，尚未抽出的實體大獎將依編號順序「自動退回一般商品庫存」，並寫入會計作廢紀錄與防死鎖審計日誌。
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1 font-mono">
+              <div>目前已抽：{voidTarget.drawnCount} / {voidTarget.totalDraws} 抽</div>
+              <div>大賞剩餘：{voidTarget.majorRemaining} 件</div>
+              <div className="text-amber-300 text-[11px] pt-1 border-t border-slate-800">
+                ⚠️ 作廢後，套組內未抽出的實體大獎公仔將原子級加回門市庫存！
+              </div>
             </div>
 
-            <form onSubmit={handleVoidSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs text-slate-300 block mb-1">廢套原因備註</label>
-                <input
-                  type="text"
-                  value={voidReason}
-                  onChange={(e) => setVoidReason(e.target.value)}
-                  placeholder="例如：檔期結束撤套、大獎提早出清"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-white"
-                  required
-                />
-              </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                作廢原因 / 清台理由
+              </label>
+              <input
+                type="text"
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-rose-400"
+                placeholder="例如: 檔期結束撤套、死套重配..."
+              />
+            </div>
 
-              {voidError && (
-                <div className="p-2.5 rounded bg-rose-500/20 text-rose-300 text-xs">{voidError}</div>
-              )}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setVoidTarget(null)}
-                  className="px-4 py-2 rounded-xl text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={voidLoading}
-                  className="px-4 py-2 rounded-xl text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold transition"
-                >
-                  {voidLoading ? '處理中...' : '確認執行廢套下架'}
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setVoidTarget(null)}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleExecuteVoid}
+                disabled={voidLoading}
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow transition disabled:opacity-50"
+              >
+                {voidLoading ? '處理中...' : '確認作廢清台'}
+              </button>
+            </div>
           </div>
         </div>
       )}

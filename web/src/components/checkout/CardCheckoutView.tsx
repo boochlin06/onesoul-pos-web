@@ -200,10 +200,31 @@ export function CardCheckoutView({
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${item.totalPoints > 0 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}>
                     {item.totalPoints > 0 ? `+${item.totalPoints}` : '0'} pts
                   </span>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[9px] text-slate-400 font-bold mb-0.5">金額</span>
-                    <input type="number" min="0" className="w-24 text-right text-sm font-bold text-amber-700 bg-white border-2 border-amber-200 rounded-lg px-2 py-1.5 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none shadow-sm" placeholder="0" value={item.amount} onChange={e => updateLottery(idx, 'amount', Number(e.target.value))} />
-                  </div>
+                  {item.remark === '點數套' ? (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] text-rose-500 font-bold mb-0.5">扣抵點數</span>
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-24 text-right text-sm font-bold text-rose-600 bg-rose-50 border-2 border-rose-300 rounded-lg px-2 py-1.5 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 outline-none shadow-sm"
+                        placeholder="扣抵點數"
+                        value={item.pointsCost || ''}
+                        onChange={e => updateLottery(idx, 'pointsCost', Number(e.target.value))}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] text-slate-400 font-bold mb-0.5">金額</span>
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-24 text-right text-sm font-bold text-amber-700 bg-white border-2 border-amber-200 rounded-lg px-2 py-1.5 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 outline-none shadow-sm"
+                        placeholder="0"
+                        value={item.amount}
+                        onChange={e => updateLottery(idx, 'amount', Number(e.target.value))}
+                      />
+                    </div>
+                  )}
                   <div className="flex flex-col items-start">
                     <span className="text-[9px] text-slate-400 font-bold mb-0.5">備註</span>
                     <input type="text" className="w-28 text-xs text-slate-600 bg-slate-50 border-2 border-slate-200 rounded-lg px-2 py-1.5 focus:border-slate-400 outline-none shadow-sm" placeholder="選填..." value={item.remark} onChange={e => updateLottery(idx, 'remark', e.target.value)} />
@@ -299,9 +320,18 @@ export function CardCheckoutView({
           <div className="flex gap-6">
             <div className="flex flex-col">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">點數異動</span>
-              <span className={`text-xl font-black ${summary.pointsChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {summary.pointsChange > 0 ? '+' : ''}{summary.pointsChange}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xl font-black ${summary.pointsChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {summary.pointsChange > 0 ? '+' : ''}{summary.pointsChange}
+                </span>
+                {summary.pointsChange < 0 && (
+                  customer.currentPoints < Math.abs(summary.pointsChange) || !customer.name ? (
+                    <span className="px-1.5 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-bold rounded border border-rose-300">
+                      不足 ({customer.currentPoints}p)
+                    </span>
+                  ) : null
+                )}
+              </div>
             </div>
             <div className="w-px bg-slate-200" />
             <div className="flex flex-col">

@@ -1,8 +1,18 @@
 # Ignore frontend and backend projects
 web/
 web/**
+admin/
+admin/**
 backend/
 backend/**
+scratch/
+scratch/**
+deploy/
+deploy/**
+docs/
+docs/**
+wiki/
+wiki/**
 
 # Ignore node modules
 node_modules/

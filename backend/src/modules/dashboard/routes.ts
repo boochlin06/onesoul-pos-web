@@ -167,14 +167,14 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           </div>
           <div class="p-4 rounded-xl bg-slate-950 border border-slate-800/80 space-y-3">
             <div class="flex justify-between items-center">
-              <span class="font-bold text-sm text-slate-100">海賊王一番賞新年套 (竹北)</span>
+              <span class="font-bold text-sm text-slate-100">WAWA飛翔坊寶寶A款 (竹北)</span>
               <span class="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">$350 / 抽</span>
             </div>
             <div class="space-y-2 pt-1">
               <div>
                 <div class="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>A賞 魯夫 MASTERLISE (GK001)</span>
-                  <span class="font-mono text-slate-300">餘 2 / 共 2 抽</span>
+                  <span>1賞 WAWA飛翔坊寶寶A款 (2905)</span>
+                  <span class="font-mono text-slate-300">餘 1 / 共 1 抽</span>
                 </div>
                 <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                   <div class="bg-indigo-500 h-full rounded-full" style="width: 100%"></div>
@@ -182,8 +182,8 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
               </div>
               <div>
                 <div class="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>B賞 索隆 MASTERLISE</span>
-                  <span class="font-mono text-slate-300">餘 3 / 共 3 抽</span>
+                  <span>2賞 WAWA飛翔坊寶寶B款 (2906)</span>
+                  <span class="font-mono text-slate-300">餘 1 / 共 1 抽</span>
                 </div>
                 <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                   <div class="bg-indigo-500 h-full rounded-full" style="width: 100%"></div>
@@ -342,10 +342,10 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         },
         lotteries: [
           {
-            id: '1',
-            name: '海賊王一番賞新年套',
-            prize: 'A',
-            prizeName: 'A賞 魯夫 MASTERLISE',
+            id: 'LB-chupei-1548',
+            name: 'WAWA飛翔坊寶寶A款',
+            prize: '1',
+            prizeName: '1賞 WAWA飛翔坊寶寶A款',
             type: '帶走',
             draws: 1,
             unitPrice: 350,

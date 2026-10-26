@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { inventoryApi, reportsApi } from '../api/client';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { inventoryApi, storesApi } from '../api/client';
 import { 
   Package, 
   Search, 
   AlertTriangle, 
-  Download, 
   UploadCloud, 
   Edit3, 
   Sliders, 
@@ -29,7 +28,8 @@ import {
   Check,
   CornerDownLeft,
   Rows,
-  Layers
+  Layers,
+  Gift
 } from 'lucide-react';
 
 interface PendingCellChange {
@@ -41,21 +41,23 @@ interface PendingCellChange {
   currentValue: any;
 }
 
+
 export const InventoryView: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMainType, setSelectedMainType] = useState<'ALL' | 'GK' | 'BLIND_BOX'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedStoreId, setSelectedStoreId] = useState('all');
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const lastReqIdRef = useRef(0);
 
-  // 多門市動態擴展狀態
-  const [stores, setStores] = useState<Array<{ id: string; name: string; code?: string }>>([
-    { id: 'chupei', name: '竹北店' },
-    { id: 'jinshan', name: '金山店' },
-  ]);
-  const [visibleStoreIds, setVisibleStoreIds] = useState<string[]>(['chupei', 'jinshan']);
+  // 門市自適應擴展狀態 (預設單店，最高擴增至 5 間)
+  const [stores, setStores] = useState<Array<{ id: string; name: string; code?: string }>>([]);
+  const [visibleStoreIds, setVisibleStoreIds] = useState<string[]>([]);
   const [showStorePicker, setShowStorePicker] = useState(false);
+  const isSingleStore = stores.length <= 1;
 
   // 排序狀態 (預設: 最新建立優先 createdAt DESC)
   const [sortBy, setSortBy] = useState<string>('createdAt');
@@ -146,33 +148,51 @@ export const InventoryView: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // 當搜尋條件、分類、缺貨篩選或排序改變時，重置回第 1 頁
+  // 載入門市主檔
+  useEffect(() => {
+    storesApi.list().then((res) => {
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        setStores(res.data);
+        setVisibleStoreIds(res.data.map((s: any) => s.id));
+        setAdjustStore(res.data[0].id);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // 當搜尋條件、分類、門市視角、缺貨篩選或排序改變時，重置回第 1 頁
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, selectedCategory, lowStockOnly, pageSize, sortBy, sortOrder]);
+  }, [searchTerm, selectedMainType, selectedCategory, selectedStoreId, lowStockOnly, pageSize, sortBy, sortOrder]);
 
   // 當分頁或條件改變時加載數據
   useEffect(() => {
     loadInventory();
-  }, [page, pageSize, searchTerm, selectedCategory, lowStockOnly, sortBy, sortOrder]);
+  }, [page, pageSize, searchTerm, selectedMainType, selectedCategory, selectedStoreId, lowStockOnly, sortBy, sortOrder]);
 
   const loadInventory = async () => {
+    const curReqId = ++lastReqIdRef.current;
     setLoading(true);
     try {
       const res = await inventoryApi.summary({
         q: searchTerm || undefined,
+        mainCategory: selectedMainType !== 'ALL' ? selectedMainType : undefined,
         category: selectedCategory !== 'ALL' ? selectedCategory : undefined,
+        storeId: selectedStoreId !== 'all' ? selectedStoreId : undefined,
         lowStockOnly,
         page,
         pageSize,
         sortBy,
         sortOrder,
       });
+      // 捨棄過期回應，杜絕 Race Condition
+      if (curReqId !== lastReqIdRef.current) return;
+
       if (res.success) {
         setItems(res.data);
         if (res.stores && Array.isArray(res.stores) && res.stores.length > 0) {
           setStores(res.stores);
           setVisibleStoreIds((prev) => {
+            if (prev.length === 0) return res.stores.map((s: any) => s.id);
             const existingIds = new Set(prev);
             const valid = res.stores.filter((s: any) => existingIds.has(s.id)).map((s: any) => s.id);
             return valid.length > 0 ? valid : res.stores.map((s: any) => s.id);
@@ -201,20 +221,17 @@ export const InventoryView: React.FC = () => {
 
   // ── 試算表可導航欄位定義 ──────────────────────────────────────
   const getNavigableColIds = useCallback(() => {
-    const cols = ['name', 'category', 'costPrice', 'sellingPrice', 'suggestedPoints'];
-    const visibleStores = stores.filter((s) => visibleStoreIds.includes(s.id));
-    visibleStores.forEach((s) => {
-      cols.push(`store_${s.id}`);
-    });
-    cols.push('safetyStock');
-    return cols;
-  }, [stores, visibleStoreIds]);
+    return ['name', 'category', 'costPrice', 'sellingPrice', 'suggestedPoints', 'stock'];
+  }, []);
 
   // 取得單元格即時數值
   const getCellValue = (item: any, colId: string) => {
+    if (colId === 'stock') {
+      return item.stock ?? item.totalStock ?? 0;
+    }
     if (colId.startsWith('store_')) {
       const storeId = colId.replace('store_', '');
-      return item.storeStocks?.[storeId] ?? (storeId === 'chupei' ? item.chupeiStock : storeId === 'jinshan' ? item.jinshanStock : 0) ?? 0;
+      return item.storeStocks?.[storeId] ?? (storeId === 'chupei' ? item.chupeiStock : storeId === 'jinshan' ? item.jinshanStock : item.totalStock) ?? 0;
     }
     return item[colId] ?? '';
   };
@@ -225,7 +242,7 @@ export const InventoryView: React.FC = () => {
     if (!item) return;
 
     const oldValue = getCellValue(item, colId);
-    const isNumeric = ['costPrice', 'sellingPrice', 'suggestedPoints', 'safetyStock'].includes(colId) || colId.startsWith('store_');
+    const isNumeric = ['costPrice', 'sellingPrice', 'suggestedPoints', 'safetyStock', 'stock'].includes(colId) || colId.startsWith('store_');
     let parsedNew = inputVal;
     if (isNumeric) {
       parsedNew = Number(inputVal);
@@ -244,7 +261,16 @@ export const InventoryView: React.FC = () => {
       prevItems.map((prod) => {
         if (prod.id !== rowId) return prod;
         const updated = { ...prod };
-        if (colId.startsWith('store_')) {
+        if (colId === 'stock') {
+          const targetStore = selectedStoreId !== 'all' ? selectedStoreId : 'chupei';
+          const newStocks = { ...(prod.storeStocks || {}), [targetStore]: parsedNew };
+          updated.storeStocks = newStocks;
+          if (targetStore === 'chupei') updated.chupeiStock = parsedNew;
+          if (targetStore === 'jinshan') updated.jinshanStock = parsedNew;
+          updated.stock = selectedStoreId === 'all' ? Object.values(newStocks).reduce((a: number, b: any) => a + (Number(b) || 0), 0) : parsedNew;
+          updated.totalStock = Object.values(newStocks).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+          updated.isLowStock = updated.totalStock <= (updated.safetyStock || 2);
+        } else if (colId.startsWith('store_')) {
           const storeId = colId.replace('store_', '');
           const newStocks = { ...(prod.storeStocks || {}), [storeId]: parsedNew };
           updated.storeStocks = newStocks;
@@ -271,8 +297,8 @@ export const InventoryView: React.FC = () => {
     if (saveMode === 'batch') {
       setPendingChanges((prev) => {
         const next = new Map(prev);
-        const isStock = colId.startsWith('store_');
-        const storeId = isStock ? colId.replace('store_', '') : undefined;
+        const isStock = colId === 'stock' || colId.startsWith('store_');
+        const storeId = colId === 'stock' ? (selectedStoreId !== 'all' ? selectedStoreId : 'chupei') : (isStock ? colId.replace('store_', '') : undefined);
         const existingChange = next.get(cellKey);
         const originalVal = existingChange ? existingChange.originalValue : oldValue;
 
@@ -283,7 +309,7 @@ export const InventoryView: React.FC = () => {
             type: isStock ? 'stock' : 'product',
             productId: rowId,
             storeId,
-            field: isStock ? storeId! : colId,
+            field: isStock ? (storeId || 'chupei') : colId,
             originalValue: originalVal,
             currentValue: parsedNew,
           });
@@ -296,7 +322,16 @@ export const InventoryView: React.FC = () => {
     // 3. 即時自動存檔模式：直接發送 API 並給予微閃反饋
     setCellFeedback((prev) => ({ ...prev, [cellKey]: { status: 'saving' } }));
     try {
-      if (colId.startsWith('store_')) {
+      if (colId === 'stock') {
+        const targetStore = selectedStoreId !== 'all' ? selectedStoreId : 'chupei';
+        await inventoryApi.adjustStock(
+          targetStore,
+          rowId,
+          0,
+          '試算表原地儲存格快速調帳',
+          parsedNew
+        );
+      } else if (colId.startsWith('store_')) {
         const storeId = colId.replace('store_', '');
         await inventoryApi.adjustStock(
           storeId,
@@ -819,16 +854,69 @@ export const InventoryView: React.FC = () => {
             <UploadCloud className="w-4 h-4" />
             批次上架精靈
           </button>
-
-          <a
-            href={reportsApi.getExportUrl('inventory')}
-            download
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-xl border border-slate-600 transition"
-          >
-            <Download className="w-4 h-4 text-emerald-400" />
-            匯出 CSV
-          </a>
         </div>
+      </div>
+
+      {/* ── 大項分類切換頁籤 (Segmented Tabs: 全部 / 👑 GK 雕像 / 🎁 盒玩盲盒) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="inline-flex bg-slate-900/90 p-1 rounded-2xl border border-slate-700/80 shadow-inner text-xs font-semibold">
+          <button
+            onClick={() => {
+              setSelectedMainType('ALL');
+              setSelectedCategory('ALL');
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
+              selectedMainType === 'ALL'
+                ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>全部商品</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${selectedMainType === 'ALL' ? 'bg-amber-600/30 text-slate-950 font-mono font-bold' : 'bg-slate-800 text-slate-400 font-mono'}`}>
+              3,530
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setSelectedMainType('GK');
+              setSelectedCategory('ALL');
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
+              selectedMainType === 'GK'
+                ? 'bg-indigo-600 text-white font-bold shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>👑 GK 雕像</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${selectedMainType === 'GK' ? 'bg-indigo-700 text-white font-mono font-bold' : 'bg-slate-800 text-slate-400 font-mono'}`}>
+              3,144
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setSelectedMainType('BLIND_BOX');
+              setSelectedCategory('ALL');
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
+              selectedMainType === 'BLIND_BOX'
+                ? 'bg-pink-600 text-white font-bold shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>🎁 盒玩盲盒</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${selectedMainType === 'BLIND_BOX' ? 'bg-pink-700 text-white font-mono font-bold' : 'bg-slate-800 text-slate-400 font-mono'}`}>
+              384
+            </span>
+          </button>
+        </div>
+
+        {selectedMainType === 'BLIND_BOX' && (
+          <div className="text-xs text-pink-400 flex items-center gap-1.5 font-medium bg-pink-950/30 px-3 py-1.5 rounded-xl border border-pink-800/40">
+            <span>💡 已鎖定 384 款盒玩盲盒專區（支援零售現貨、一番賞盲盒賞配賞與換點）</span>
+          </div>
+        )}
       </div>
 
       {/* 篩選與 Google Sheet 試算表模式工具列 */}
@@ -854,72 +942,59 @@ export const InventoryView: React.FC = () => {
             )}
           </div>
 
-          {/* 分類篩選 */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-          >
-            <option value="ALL">全部類別</option>
-            <option value="GK">GK 雕像</option>
-            <option value="FIGURE">景品公仔</option>
-            <option value="GENERAL">一般商品</option>
-            <option value="BLIND_BOX">盒玩盲盒</option>
-            <option value="寶可夢">寶可夢</option>
-            <option value="海賊王">海賊王</option>
-            <option value="七龍珠">七龍珠</option>
-            <option value="宮崎駿">宮崎駿</option>
-            <option value="灌籃高手">灌籃高手</option>
-          </select>
-
-          {/* 門市欄位挑選器 */}
-          <div className="relative">
-            <button
-              onClick={() => setShowStorePicker(!showStorePicker)}
-              className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl text-xs text-slate-300 hover:text-white flex items-center gap-1.5 transition"
+          {/* GK 16 大真實 IP 類別篩選 (連動選單) */}
+          {selectedMainType !== 'BLIND_BOX' && (
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500 font-medium"
             >
-              <Store className="w-3.5 h-3.5 text-indigo-400" />
-              門市 ({visibleStoreIds.length}/{stores.length})
-            </button>
-            {showStorePicker && (
-              <div className="absolute left-0 top-10 w-44 bg-slate-800 border border-slate-700 rounded-xl p-2.5 shadow-2xl z-50 space-y-1.5">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  自訂可見門市欄位
-                </div>
-                {stores.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer hover:text-white">
-                    <input
-                      type="checkbox"
-                      checked={visibleStoreIds.includes(s.id)}
-                      onChange={() => toggleStoreVisibility(s.id)}
-                      className="rounded border-slate-700 text-amber-500 focus:ring-0"
-                    />
-                    <span>{s.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+              <option value="ALL">{selectedMainType === 'GK' ? '全部 GK IP (16大系列)' : '全部類別 (全系列)'}</option>
+              <option value="寶可夢">寶可夢 (648)</option>
+              <option value="海賊王">海賊王 (602)</option>
+              <option value="綜合">綜合 GK (519)</option>
+              <option value="火影">火影 (427)</option>
+              <option value="宮崎駿">宮崎駿 (396)</option>
+              <option value="遊戲王">遊戲王 (140)</option>
+              <option value="潮玩">潮玩 GK (87)</option>
+              <option value="安妮雅">間諜安妮雅 (84)</option>
+              <option value="七龍珠">七龍珠 (62)</option>
+              <option value="鏈鋸咒術">鏈鋸咒術 (48)</option>
+              <option value="國漫">國漫 (29)</option>
+              <option value="灌籃高手">灌籃高手 (27)</option>
+              <option value="獵人">獵人 (27)</option>
+              <option value="小新">蠟筆小新 (21)</option>
+              <option value="數碼寶貝">數碼寶貝 (13)</option>
+              <option value="阿拉雷">怪博士與機器娃娃 (13)</option>
+            </select>
+          )}
 
-          {/* 缺貨預警 */}
-          <button
-            onClick={() => setLowStockOnly(!lowStockOnly)}
-            className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
-              lowStockOnly
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow'
-                : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-slate-200'
-            }`}
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-            缺貨預警
-            {metaInfo.lowStockCount > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                lowStockOnly ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-rose-500/20 text-rose-300'
-              }`}>
-                {metaInfo.lowStockCount}
-              </span>
-            )}
-          </button>
+          {/* 頂部全域門市過濾切換器 (預設全門市總體，不佔用表格獨立欄位) */}
+          <div className="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-700 text-xs">
+            <button
+              onClick={() => setSelectedStoreId('all')}
+              className={`px-3 py-1 rounded-lg transition font-medium ${
+                selectedStoreId === 'all'
+                  ? 'bg-indigo-600 text-white font-bold shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              全門市總體
+            </button>
+            {stores.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSelectedStoreId(s.id)}
+                className={`px-3 py-1 rounded-lg transition font-medium ${
+                  selectedStoreId === s.id
+                    ? 'bg-indigo-600 text-white font-bold shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* 試算表核心切換開關 (雙軌模式 + 緊湊密度) */}
@@ -1104,31 +1179,15 @@ export const InventoryView: React.FC = () => {
                   點數 (5%)
                 </th>
 
-                {/* 動態多門市現貨欄位 */}
-                {stores.filter((s) => visibleStoreIds.includes(s.id)).map((s, idx) => {
-                  const headerStyles = [
-                    'bg-blue-950/40 text-blue-200 border-blue-500/20',
-                    'bg-amber-950/40 text-amber-200 border-amber-500/20',
-                    'bg-emerald-950/40 text-emerald-200 border-emerald-500/20',
-                    'bg-purple-950/40 text-purple-200 border-purple-500/20',
-                    'bg-cyan-950/40 text-cyan-200 border-cyan-500/20',
-                  ];
-                  const theme = headerStyles[idx % headerStyles.length];
-                  return (
-                    <th key={s.id} className={`min-w-[100px] w-[100px] px-3 py-2 text-center font-bold border-r border-b border-slate-700/80 ${theme}`}>
-                      {s.name}現貨
-                    </th>
-                  );
-                })}
-
+                {/* 在庫現貨 (隨頂部門市視角動態連動，可點擊排序) */}
                 <th
-                  onClick={() => handleSortToggle('totalStock')}
-                  className="min-w-[95px] w-[95px] px-3 py-2 text-center cursor-pointer hover:text-white transition border-r border-b border-slate-700/80"
-                  title="所有門市庫存自動合計公式"
+                  onClick={() => handleSortToggle('stock')}
+                  className="min-w-[105px] w-[105px] px-3 py-2 text-center font-bold border-r border-b border-slate-700/80 bg-blue-950/40 text-blue-200 border-blue-500/20 cursor-pointer hover:text-white transition"
+                  title="在庫現貨（隨頂部門市視角動態連動，可點擊排序）"
                 >
                   <div className="flex items-center justify-center gap-1">
-                    <span>全店合計</span>
-                    {sortBy === 'totalStock' ? (
+                    <span>在庫現貨</span>
+                    {sortBy === 'stock' || sortBy === 'totalStock' ? (
                       sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 text-amber-400" /> : <ArrowUp className="w-3 h-3 text-amber-400" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-600" />
@@ -1136,8 +1195,36 @@ export const InventoryView: React.FC = () => {
                   </div>
                 </th>
 
-                <th className="min-w-[90px] w-[90px] px-3 py-2 text-center border-r border-b border-slate-700/80">
-                  安全門檻
+                {/* 在套配置中 (可點擊排序) */}
+                <th
+                  onClick={() => handleSortToggle('allocatingStock')}
+                  className="min-w-[105px] w-[105px] px-3 py-2 text-center font-bold border-r border-b border-slate-700/80 bg-amber-950/30 text-amber-200 border-amber-500/20 cursor-pointer hover:text-white transition"
+                  title="在套配置中數量（在場活躍一番賞/福袋所佔用的抽數，可點擊排序）"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <span>在套配置中</span>
+                    {sortBy === 'allocatingStock' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 text-amber-400" /> : <ArrowUp className="w-3 h-3 text-amber-400" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
+                    )}
+                  </div>
+                </th>
+
+                {/* 進貨日期 (可點擊排序) */}
+                <th
+                  onClick={() => handleSortToggle('inboundDate')}
+                  className="min-w-[105px] w-[105px] px-3 py-2 text-center border-r border-b border-slate-700/80 cursor-pointer hover:text-white transition"
+                  title="進貨日期（點擊依進貨日期排序）"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <span>進貨日期</span>
+                    {sortBy === 'inboundDate' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 text-amber-400" /> : <ArrowUp className="w-3 h-3 text-amber-400" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
+                    )}
+                  </div>
                 </th>
 
                 <th className="min-w-[80px] w-[80px] px-2 py-2 text-center border-b border-slate-700/80">
@@ -1149,14 +1236,14 @@ export const InventoryView: React.FC = () => {
             <tbody className="divide-y divide-slate-800 text-slate-200 font-mono">
               {loading ? (
                 <tr>
-                  <td colSpan={8 + visibleStoreIds.length} className="py-12 text-center text-slate-500">
+                  <td colSpan={10} className="py-12 text-center text-slate-500">
                     <RotateCw className="w-5 h-5 animate-spin mx-auto text-amber-400 mb-2" />
                     資料載入中...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={8 + visibleStoreIds.length} className="py-12 text-center text-slate-500">
+                  <td colSpan={10} className="py-12 text-center text-slate-500">
                     查無符合條件之商品庫存
                   </td>
                 </tr>
@@ -1222,45 +1309,82 @@ export const InventoryView: React.FC = () => {
                       {/* 點數 (5%) */}
                       {renderEditableCell(item, 'suggestedPoints', 'right', (val) => `${Number(val || 0)} pt`, 'text-indigo-300')}
 
-                      {/* 動態多門市現貨 */}
-                      {visibleStores.map((s, idx) => {
-                        const colKey = `store_${s.id}`;
-                        const colorThemes = [
-                          'text-blue-300 font-bold',
-                          'text-amber-300 font-bold',
-                          'text-emerald-300 font-bold',
-                          'text-purple-300 font-bold',
-                          'text-cyan-300 font-bold',
-                        ];
-                        const theme = colorThemes[idx % colorThemes.length];
-                        return renderEditableCell(
-                          item,
-                          colKey,
-                          'center',
-                          (qty) => {
-                            const num = Number(qty || 0);
-                            const isLow = num <= (item.safetyStock || 2);
-                            return (
-                              <span className={isLow ? 'text-rose-400' : theme}>
-                                {num}
-                              </span>
-                            );
+                      {/* 在庫現貨：支援原地編輯或調帳，Hover 顯示各店現貨分佈 */}
+                      <td
+                        key="stock"
+                        onClick={() => {
+                          setActiveCell({ rowId: item.id, colId: 'stock' });
+                        }}
+                        onDoubleClick={() => {
+                          if (selectedStoreId === 'all') {
+                            setStockAdjustTarget(item);
+                            setAdjustStore('chupei');
+                            setAdjustDelta(0);
+                            setAdjustReason('');
+                          } else {
+                            setActiveCell({ rowId: item.id, colId: 'stock' });
+                            setEditingCell({ rowId: item.id, colId: 'stock', value: item.stock ?? 0 });
                           }
-                        );
-                      })}
-
-                      {/* 全店合計 (公式自動合計，唯讀) */}
-                      <td className={`border-b border-r border-slate-800 text-center font-extrabold text-white ${cellPaddingClass} ${rowHeightClass}`}>
-                        {item.totalStock ?? 0}
-                        {item.isLowStock && (
-                          <span className="ml-1 text-[10px] px-1 py-0.2 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded">
-                            低量
-                          </span>
+                        }}
+                        className={`${cellPaddingClass} ${rowHeightClass} border-b border-r border-slate-800/80 hover:bg-slate-750/70 transition-colors text-center cursor-pointer relative ${
+                          editingCell?.rowId === item.id && editingCell?.colId === 'stock'
+                            ? 'ring-2 ring-blue-400 bg-slate-900 z-10'
+                            : activeCell?.rowId === item.id && activeCell?.colId === 'stock'
+                            ? 'ring-2 ring-blue-500 bg-blue-950/30 z-10'
+                            : ''
+                        }`}
+                        title={`竹北現貨: ${item.storeStocks?.['chupei'] ?? item.chupeiStock ?? 0} | 金山現貨: ${item.storeStocks?.['jinshan'] ?? item.jinshanStock ?? 0}${selectedStoreId === 'all' ? ' (雙擊開啟調庫存視窗)' : ' (雙擊原地改量)'}`}
+                      >
+                        {editingCell?.rowId === item.id && editingCell?.colId === 'stock' ? (
+                          <input
+                            type="number"
+                            autoFocus
+                            value={editingCell.value}
+                            onChange={(e) => setEditingCell({ ...editingCell, value: e.target.value })}
+                            onBlur={() => handleCellCommit(item.id, 'stock', editingCell.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, item.id, 'stock')}
+                            onFocus={(e) => e.target.select()}
+                            className="w-full h-full bg-transparent text-white font-mono outline-none px-0.5 border-none text-center"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center gap-1 font-bold">
+                            <span className={Number(item.stock || 0) <= 0 ? 'text-slate-500' : 'text-blue-300'}>
+                              {item.stock ?? 0}
+                            </span>
+                            {selectedStoreId === 'all' && (
+                              <span className="text-[10px] text-slate-500 font-normal opacity-70">
+                                (合計)
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
 
-                      {/* 安全門檻 */}
-                      {renderEditableCell(item, 'safetyStock', 'center', (val) => `${val ?? 2}`, 'text-slate-400')}
+                      {/* 在套配置中：展示場上活躍套組所佔用的抽數，Hover 顯示各店配置 */}
+                      <td
+                        className={`${cellPaddingClass} ${rowHeightClass} border-b border-r border-slate-800/80 text-center bg-amber-950/10`}
+                        title={`竹北在套: ${item.allocatingStocks?.['chupei'] ?? 0} | 金山在套: ${item.allocatingStocks?.['jinshan'] ?? 0}`}
+                      >
+                        {(item.allocatingStock ?? 0) > 0 ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {item.allocatingStock} 抽
+                          </span>
+                        ) : (
+                          <span className="text-slate-600 text-[11px]">0</span>
+                        )}
+                      </td>
+
+                      {/* 進貨日期：純粹記載真實進貨入庫日期 */}
+                      <td
+                        className={`${cellPaddingClass} ${rowHeightClass} border-b border-r border-slate-800/80 text-center font-mono text-[11px] text-slate-300`}
+                        title={item.inboundDate ? `進貨日期: ${item.inboundDate}` : '無進貨紀錄'}
+                      >
+                        {item.inboundDate ? (
+                          <span>{item.inboundDate}</span>
+                        ) : (
+                          <span className="text-slate-600">-</span>
+                        )}
+                      </td>
 
                       {/* 彈出 Modal 工具按鈕 */}
                       <td className={`border-b border-slate-800 text-center ${cellPaddingClass} ${rowHeightClass}`}>
@@ -1479,15 +1603,21 @@ export const InventoryView: React.FC = () => {
             <form onSubmit={handleStockAdjustSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">目標門市</label>
-                <select
-                  value={adjustStore}
-                  onChange={(e: any) => setAdjustStore(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
-                >
-                  {stores.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                {isSingleStore ? (
+                  <div className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300">
+                    {stores[0]?.name || '本店'} (單店模式)
+                  </div>
+                ) : (
+                  <select
+                    value={adjustStore}
+                    onChange={(e: any) => setAdjustStore(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
+                  >
+                    {stores.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>
@@ -1760,7 +1890,7 @@ export const InventoryView: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
                     <Store className="w-3.5 h-3.5 text-indigo-400" />
-                    各門市期初入庫數量
+                    {isSingleStore ? '期初入庫庫存' : '各門市期初入庫數量'}
                   </span>
                   <div className="flex items-center gap-2">
                     <label className="text-[11px] text-slate-400">安全庫存預警值:</label>
@@ -1774,27 +1904,48 @@ export const InventoryView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {stores.map((s) => (
-                    <div key={s.id} className="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/50">
-                      <div className="text-[11px] font-medium text-slate-300 mb-1">{s.name}</div>
-                      <input
-                        type="number"
-                        min="0"
-                        value={createForm.initialStocks[s.id] ?? 0}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10) || 0;
-                          setCreateForm({
-                            ...createForm,
-                            initialStocks: { ...createForm.initialStocks, [s.id]: val },
-                          });
-                        }}
-                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-center text-white focus:outline-none focus:border-indigo-500"
-                        placeholder="0"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {isSingleStore ? (
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-300 mb-1 block">現貨庫存數量</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={createForm.initialStocks[stores[0]?.id || 'chupei'] ?? 0}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10) || 0;
+                        const targetId = stores[0]?.id || 'chupei';
+                        setCreateForm({
+                          ...createForm,
+                          initialStocks: { ...createForm.initialStocks, [targetId]: val },
+                        });
+                      }}
+                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                      placeholder="0"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {stores.map((s) => (
+                      <div key={s.id} className="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/50">
+                        <div className="text-[11px] font-medium text-slate-300 mb-1">{s.name}</div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={createForm.initialStocks[s.id] ?? 0}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10) || 0;
+                            setCreateForm({
+                              ...createForm,
+                              initialStocks: { ...createForm.initialStocks, [s.id]: val },
+                            });
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-center text-white focus:outline-none focus:border-indigo-500"
+                          placeholder="0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-2">

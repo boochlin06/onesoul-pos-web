@@ -1,0 +1,6292 @@
+[
+  {
+    "id": "100005",
+    "barcode": "471100005",
+    "name": "MISTA 不思議舞會6X",
+    "category": "盲盒",
+    "costPrice": 231,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100006",
+    "barcode": "471100006",
+    "name": "dimoo 冰箱膠貼6入",
+    "category": "盲盒",
+    "costPrice": 182,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100007",
+    "barcode": "471100007",
+    "name": "蒙特Ed英雄遠証6入",
+    "category": "盲盒",
+    "costPrice": 165,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 4,
+    "storeStocks": {
+      "chupei": 4,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100008",
+    "barcode": "471100008",
+    "name": "pp宇護達摩.6人",
+    "category": "盲盒",
+    "costPrice": 204,
+    "sellingPrice": 370,
+    "suggestedPoints": 20,
+    "stock": 5,
+    "storeStocks": {
+      "chupei": 5,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100009",
+    "barcode": "471100009",
+    "name": "蔬菜精靈2代6入",
+    "category": "盲盒",
+    "costPrice": 176,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100010",
+    "barcode": "471100010",
+    "name": "小鸚鵡盆栽系列8入.",
+    "category": "盲盒",
+    "costPrice": 176,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 3,
+    "storeStocks": {
+      "chupei": 3,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100011",
+    "barcode": "471100011",
+    "name": "庫板力克熊産 45代",
+    "category": "盲盒",
+    "costPrice": 165,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 3,
+    "storeStocks": {
+      "chupei": 3,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100012",
+    "barcode": "471100012",
+    "name": "Dukoo寵物故12入.",
+    "category": "盲盒",
+    "costPrice": 154,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100013",
+    "barcode": "471100013",
+    "name": "暗黑之魂第2彈6入",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 490,
+    "suggestedPoints": 27,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100014",
+    "barcode": "471100014",
+    "name": "瞪眼馬拉松假面派对6入",
+    "category": "盲盒",
+    "costPrice": 182,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100015",
+    "barcode": "471100015",
+    "name": "夜市百怪第二彈 6A",
+    "category": "盲盒",
+    "costPrice": 182,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 2,
+    "storeStocks": {
+      "chupei": 2,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100016",
+    "barcode": "471100016",
+    "name": "小甜豆24小時便利店9入",
+    "category": "盲盒",
+    "costPrice": 193,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 3,
+    "storeStocks": {
+      "chupei": 3,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100017",
+    "barcode": "471100017",
+    "name": "高通qMSV mini第1彈8入",
+    "category": "盲盒",
+    "costPrice": 253,
+    "sellingPrice": 460,
+    "suggestedPoints": 25,
+    "stock": 2,
+    "storeStocks": {
+      "chupei": 2,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100018",
+    "barcode": "471100018",
+    "name": "misya偶像樂隊6人",
+    "category": "盲盒",
+    "costPrice": 209,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100019",
+    "barcode": "471100019",
+    "name": "小丸子排排坐8入",
+    "category": "盲盒",
+    "costPrice": 66,
+    "sellingPrice": 120,
+    "suggestedPoints": 7,
+    "stock": 2,
+    "storeStocks": {
+      "chupei": 2,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100020",
+    "barcode": "471100020",
+    "name": "Popo雙色海洋",
+    "category": "盲盒",
+    "costPrice": 209,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100021",
+    "barcode": "471100021",
+    "name": "畢奇動物茶會",
+    "category": "盲盒",
+    "costPrice": 182,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100022",
+    "barcode": "471100022",
+    "name": "蔬菜精靈第1彈796入",
+    "category": "盲盒",
+    "costPrice": 204,
+    "sellingPrice": 370,
+    "suggestedPoints": 20,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100023",
+    "barcode": "471100023",
+    "name": "SML坐坐25入",
+    "category": "盲盒",
+    "costPrice": 66,
+    "sellingPrice": 120,
+    "suggestedPoints": 7,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100024",
+    "barcode": "471100024",
+    "name": "SML 跑絶",
+    "category": "盲盒",
+    "costPrice": 165,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100025",
+    "barcode": "471100025",
+    "name": "pino jollys 你的男孩",
+    "category": "盲盒",
+    "costPrice": 204,
+    "sellingPrice": 370,
+    "suggestedPoints": 20,
+    "stock": 2,
+    "storeStocks": {
+      "chupei": 2,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100026",
+    "barcode": "471100026",
+    "name": "AQUA Bottle 閃耀水迎的相遇",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 500,
+    "suggestedPoints": 28,
+    "stock": 4,
+    "storeStocks": {
+      "chupei": 4,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100027",
+    "barcode": "471100027",
+    "name": "庫珞米不給糖就瑪蛋6入",
+    "category": "盲盒",
+    "costPrice": 148,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 3,
+    "storeStocks": {
+      "chupei": 3,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100028",
+    "barcode": "471100028",
+    "name": "Aamy少女心事",
+    "category": "盲盒",
+    "costPrice": 193,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 3,
+    "storeStocks": {
+      "chupei": 3,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100029",
+    "barcode": "471100029",
+    "name": "DC哥譚市",
+    "category": "盲盒",
+    "costPrice": 237,
+    "sellingPrice": 430,
+    "suggestedPoints": 24,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100030",
+    "barcode": "471100030",
+    "name": "kiki心願店舖",
+    "category": "盲盒",
+    "costPrice": 176,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100031",
+    "barcode": "471100031",
+    "name": "小騎士二代回望12入",
+    "category": "盲盒",
+    "costPrice": 231,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100032",
+    "barcode": "471100032",
+    "name": "庫路米生日派対6入",
+    "category": "盲盒",
+    "costPrice": 148,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 2,
+    "storeStocks": {
+      "chupei": 2,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100033",
+    "barcode": "471100033",
+    "name": "百變磨菇貓12入",
+    "category": "盲盒",
+    "costPrice": 198,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100034",
+    "barcode": "471100034",
+    "name": "百变胖虎2,6入",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 340,
+    "suggestedPoints": 19,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100035",
+    "barcode": "471100035",
+    "name": "mr.pa 打工日記6入",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100036",
+    "barcode": "471100036",
+    "name": "胖虎帶哇2代6入",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100037",
+    "barcode": "471100037",
+    "name": "胖虎龍騰虎躍8入",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 24,
+    "storeStocks": {
+      "chupei": 24,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100038",
+    "barcode": "471100038",
+    "name": "emma 秘境森林 時間的長河8入",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100039",
+    "barcode": "471100039",
+    "name": "qmsv min 鋼彈自由與正義8入",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 390,
+    "suggestedPoints": 21,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100040",
+    "barcode": "471100040",
+    "name": "qmsv min 鋼彈飛翼獨角獸8入",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 430,
+    "suggestedPoints": 24,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100041",
+    "barcode": "471100041",
+    "name": "qmsv mini 鋼彈2024龙年十二生肖第二彈9入",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 390,
+    "suggestedPoints": 21,
+    "stock": 18,
+    "storeStocks": {
+      "chupei": 18,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100042",
+    "barcode": "471100042",
+    "name": "QMSV mini 扎古二代8入",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100043",
+    "barcode": "471100043",
+    "name": "万代 haro 9入",
+    "category": "盲盒",
+    "costPrice": 290,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100044",
+    "barcode": "471100044",
+    "name": "数码宝贝玩偶服第三弹8入",
+    "category": "盲盒",
+    "costPrice": 260,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100045",
+    "barcode": "471100045",
+    "name": "泡泡瑪特 小野hirono 9入",
+    "category": "盲盒",
+    "costPrice": 400,
+    "sellingPrice": 520,
+    "suggestedPoints": 29,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100046",
+    "barcode": "471100046",
+    "name": "泡泡瑪特 MAK 橫山宏 labubu 12入",
+    "category": "盲盒",
+    "costPrice": 400,
+    "sellingPrice": 500,
+    "suggestedPoints": 28,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100047",
+    "barcode": "471100047",
+    "name": "泡泡瑪特 安尼雅的日常6入",
+    "category": "盲盒",
+    "costPrice": 360,
+    "sellingPrice": 480,
+    "suggestedPoints": 26,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100048",
+    "barcode": "471100048",
+    "name": "泡泡瑪特 铁臂阿童木多样人生12入",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 370,
+    "suggestedPoints": 20,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100049",
+    "barcode": "471100049",
+    "name": "泡泡瑪特平日奇境系列12入",
+    "category": "盲盒",
+    "costPrice": 290,
+    "sellingPrice": 390,
+    "suggestedPoints": 21,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100050",
+    "barcode": "471100050",
+    "name": "ppxmonster 幸運霓彩達摩三代",
+    "category": "盲盒",
+    "costPrice": 204,
+    "sellingPrice": 370,
+    "suggestedPoints": 20,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100051",
+    "barcode": "471100051",
+    "name": "Repolar萬聖節",
+    "category": "盲盒",
+    "costPrice": 193,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 10,
+    "storeStocks": {
+      "chupei": 10,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100052",
+    "barcode": "471100052",
+    "name": "Re-ment雙子星沐浴泡澡時光",
+    "category": "盲盒",
+    "costPrice": 132,
+    "sellingPrice": 240,
+    "suggestedPoints": 13,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100053",
+    "barcode": "471100053",
+    "name": "我的英雄學院",
+    "category": "盲盒",
+    "costPrice": 165,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 5,
+    "storeStocks": {
+      "chupei": 5,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100054",
+    "barcode": "471100054",
+    "name": "泡泡馬特鬼馬小精靈",
+    "category": "盲盒",
+    "costPrice": 237,
+    "sellingPrice": 430,
+    "suggestedPoints": 24,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100055",
+    "barcode": "471100055",
+    "name": "Nanci二十四節氣(秋冬)",
+    "category": "盲盒",
+    "costPrice": 165,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 5,
+    "storeStocks": {
+      "chupei": 5,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100056",
+    "barcode": "471100056",
+    "name": "Momo毛毛的一週",
+    "category": "盲盒",
+    "costPrice": 204,
+    "sellingPrice": 370,
+    "suggestedPoints": 20,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100057",
+    "barcode": "471100057",
+    "name": "Bape baby milo小猴子盲蛋",
+    "category": "盲盒",
+    "costPrice": 226,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 19,
+    "storeStocks": {
+      "chupei": 19,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100058",
+    "barcode": "471100058",
+    "name": "萬代南夢宮-薩克第二代",
+    "category": "盲盒",
+    "costPrice": 242,
+    "sellingPrice": 440,
+    "suggestedPoints": 24,
+    "stock": 4,
+    "storeStocks": {
+      "chupei": 4,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100059",
+    "barcode": "471100059",
+    "name": "PP mini小小企鵝",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 4,
+    "storeStocks": {
+      "chupei": 4,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100060",
+    "barcode": "471100060",
+    "name": "Bob珍藏徽章",
+    "category": "盲盒",
+    "costPrice": 138,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 4,
+    "storeStocks": {
+      "chupei": 4,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100061",
+    "barcode": "471100061",
+    "name": "蔬菜精靈三代",
+    "category": "盲盒",
+    "costPrice": 198,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 3,
+    "storeStocks": {
+      "chupei": 3,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100062",
+    "barcode": "471100062",
+    "name": "阿感美式復古",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 500,
+    "suggestedPoints": 28,
+    "stock": 7,
+    "storeStocks": {
+      "chupei": 7,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100063",
+    "barcode": "471100063",
+    "name": "Sml mini",
+    "category": "盲盒",
+    "costPrice": 237,
+    "sellingPrice": 430,
+    "suggestedPoints": 24,
+    "stock": 10,
+    "storeStocks": {
+      "chupei": 10,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100064",
+    "barcode": "471100064",
+    "name": "名創貓和老鼠馬戲團6入",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100065",
+    "barcode": "471100065",
+    "name": "數碼寶貝玩偶服",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100066",
+    "barcode": "471100066",
+    "name": "布魯斯第三彈日常的通勤6入",
+    "category": "盲盒",
+    "costPrice": 285,
+    "sellingPrice": 390,
+    "suggestedPoints": 21,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100067",
+    "barcode": "471100067",
+    "name": "三眼仔變裝q萌盲袋10入",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 340,
+    "suggestedPoints": 19,
+    "stock": 10,
+    "storeStocks": {
+      "chupei": 10,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100068",
+    "barcode": "471100068",
+    "name": "蠟筆小新轉轉夜燈-戰鬥款",
+    "category": "盲盒",
+    "costPrice": 380,
+    "sellingPrice": 600,
+    "suggestedPoints": 33,
+    "stock": 1,
+    "storeStocks": {
+      "chupei": 1,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100069",
+    "barcode": "471100069",
+    "name": "卡皮巴拉打工週",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100070",
+    "barcode": "471100070",
+    "name": "molly 第二彈 100%",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100071",
+    "barcode": "471100071",
+    "name": "庫洛米生日派對系列6入",
+    "category": "盲盒",
+    "costPrice": 148,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 2,
+    "storeStocks": {
+      "chupei": 2,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100072",
+    "barcode": "471100072",
+    "name": "Aamy少女心事",
+    "category": "盲盒",
+    "costPrice": 193,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 3,
+    "storeStocks": {
+      "chupei": 3,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100073",
+    "barcode": "471100073",
+    "name": "星期一的布魯斯第三彈",
+    "category": "盲盒",
+    "costPrice": 285,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100074",
+    "barcode": "471100074",
+    "name": "冒險吧 伊布",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100075",
+    "barcode": "471100075",
+    "name": "鯊雕6入",
+    "category": "盲盒",
+    "costPrice": 155,
+    "sellingPrice": 220,
+    "suggestedPoints": 12,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100076",
+    "barcode": "471100076",
+    "name": "庫洛米狼人殺8入",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100077",
+    "barcode": "471100077",
+    "name": "小飛象白日幻想6入",
+    "category": "盲盒",
+    "costPrice": 145,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100078",
+    "barcode": "471100078",
+    "name": "goldlok 迪士尼公主築夢",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100079",
+    "barcode": "471100079",
+    "name": "三麗鷗招財不倒翁9入",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100080",
+    "barcode": "471100080",
+    "name": "卡納賀拉",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100081",
+    "barcode": "471100081",
+    "name": "LULU 玩轉西遊",
+    "category": "盲盒",
+    "costPrice": 312,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100082",
+    "barcode": "471100082",
+    "name": "貓福珊迪二代萌粒10入",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 10,
+    "storeStocks": {
+      "chupei": 10,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100083",
+    "barcode": "471100083",
+    "name": "卡皮巴拉應用8入",
+    "category": "盲盒",
+    "costPrice": 90,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100084",
+    "barcode": "471100084",
+    "name": "上古九狐荷花小仙吊卡6入",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100085",
+    "barcode": "471100085",
+    "name": "寶運豬豬萌粒40入",
+    "category": "盲盒",
+    "costPrice": 45,
+    "sellingPrice": 100,
+    "suggestedPoints": 6,
+    "stock": 40,
+    "storeStocks": {
+      "chupei": 40,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100086",
+    "barcode": "471100086",
+    "name": "Culolo奇境漫遊6入",
+    "category": "盲盒",
+    "costPrice": 225,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100087",
+    "barcode": "471100087",
+    "name": "白爛貓小鎮日常8入",
+    "category": "盲盒",
+    "costPrice": 150,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100088",
+    "barcode": "471100088",
+    "name": "三眼仔甜品派對MIMI 12入",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100089",
+    "barcode": "471100089",
+    "name": "鯊呼呼6入",
+    "category": "盲盒",
+    "costPrice": 100,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100090",
+    "barcode": "471100090",
+    "name": "倉屋柴犬吃喝玩樂8入",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100091",
+    "barcode": "471100091",
+    "name": "Sleep秘境精靈8入",
+    "category": "盲盒",
+    "costPrice": 225,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100092",
+    "barcode": "471100092",
+    "name": "帶燈卡皮巴拉6入",
+    "category": "盲盒",
+    "costPrice": 95,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100093",
+    "barcode": "471100093",
+    "name": "植物殭屍萌粒18入",
+    "category": "盲盒",
+    "costPrice": 80,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 18,
+    "storeStocks": {
+      "chupei": 18,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100094",
+    "barcode": "471100094",
+    "name": "樓樓小豬咪第二彈6入",
+    "category": "盲盒",
+    "costPrice": 215,
+    "sellingPrice": 310,
+    "suggestedPoints": 17,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100095",
+    "barcode": "471100095",
+    "name": "萌犬物語6入",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100096",
+    "barcode": "471100096",
+    "name": "三麗鷗夢幻摩天玩偶團8入",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 290,
+    "suggestedPoints": 16,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100097",
+    "barcode": "471100097",
+    "name": "數碼寶貝玩偶服",
+    "category": "盲盒",
+    "costPrice": 235,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100098",
+    "barcode": "471100098",
+    "name": "三麗鷗龍年燈籠6入",
+    "category": "盲盒",
+    "costPrice": 130,
+    "sellingPrice": 210,
+    "suggestedPoints": 12,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100099",
+    "barcode": "471100099",
+    "name": "三麗鷗甜甜草莓團8入",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 290,
+    "suggestedPoints": 16,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100100",
+    "barcode": "471100100",
+    "name": "小黃人6入",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100101",
+    "barcode": "471100101",
+    "name": "二批胖虎-龍騰虎躍8入",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100102",
+    "barcode": "471100102",
+    "name": "上古九狐玫瑰小仙6入",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100103",
+    "barcode": "471100103",
+    "name": "Wasa車載龍二代午夜龍6入",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100104",
+    "barcode": "471100104",
+    "name": "Nanic 東方靈瑞12入",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 24,
+    "storeStocks": {
+      "chupei": 24,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100105",
+    "barcode": "471100105",
+    "name": "貓福珊迪二代萌粒10入",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 10,
+    "storeStocks": {
+      "chupei": 10,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100106",
+    "barcode": "471100106",
+    "name": "卡皮巴拉漫步時光6入",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 160,
+    "suggestedPoints": 9,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100107",
+    "barcode": "471100107",
+    "name": "帶燈卡皮巴拉6入",
+    "category": "盲盒",
+    "costPrice": 95,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100108",
+    "barcode": "471100108",
+    "name": "卡皮巴拉應用八入",
+    "category": "盲盒",
+    "costPrice": 90,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100109",
+    "barcode": "471100109",
+    "name": "三麗歐戀戀心意微盒Pro8入",
+    "category": "盲盒",
+    "costPrice": 150,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100110",
+    "barcode": "471100110",
+    "name": "動物力甲第二代6入",
+    "category": "盲盒",
+    "costPrice": 255,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100111",
+    "barcode": "471100111",
+    "name": "卡皮巴拉水晶球二代6入",
+    "category": "盲盒",
+    "costPrice": 100,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100112",
+    "barcode": "471100112",
+    "name": "迪士尼杯子蛋糕6入",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100113",
+    "barcode": "471100113",
+    "name": "伊布盲盒二代9入",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100114",
+    "barcode": "471100114",
+    "name": "小烏芋圓mini小烏蛋6入",
+    "category": "盲盒",
+    "costPrice": 110,
+    "sellingPrice": 190,
+    "suggestedPoints": 10,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100115",
+    "barcode": "471100115",
+    "name": "泡泡Zsiga允許這一切12入",
+    "category": "盲盒",
+    "costPrice": 320,
+    "sellingPrice": 480,
+    "suggestedPoints": 26,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100116",
+    "barcode": "471100116",
+    "name": "ht唐老鴨90周年第二彈8人/",
+    "category": "盲盒",
+    "costPrice": 235,
+    "sellingPrice": 370,
+    "suggestedPoints": 20,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100117",
+    "barcode": "471100117",
+    "name": "耙老師別想pua我8入",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100118",
+    "barcode": "471100118",
+    "name": "三麗鷗招財喵不倒翁9入",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100119",
+    "barcode": "471100119",
+    "name": "樓樓小豬咪第二彈6入",
+    "category": "盲盒",
+    "costPrice": 215,
+    "sellingPrice": 340,
+    "suggestedPoints": 19,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100120",
+    "barcode": "471100120",
+    "name": "招財貓萌粒30入",
+    "category": "盲盒",
+    "costPrice": 55,
+    "sellingPrice": 105,
+    "suggestedPoints": 6,
+    "stock": 30,
+    "storeStocks": {
+      "chupei": 30,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100121",
+    "barcode": "471100121",
+    "name": "倉屋柴犬吃喝玩樂8入",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100122",
+    "barcode": "471100122",
+    "name": "三眼仔甜品派對mini盲袋12入",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100123",
+    "barcode": "471100123",
+    "name": "阿柴枸杞的生活日記6入",
+    "category": "盲盒",
+    "costPrice": 185,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100124",
+    "barcode": "471100124",
+    "name": "耙老師別想pua我8入",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100125",
+    "barcode": "471100125",
+    "name": "庫洛米狼人殺盲盒版8入",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100126",
+    "barcode": "471100126",
+    "name": "伊布自盒二代9入",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100127",
+    "barcode": "471100127",
+    "name": "萬代英雄聯盟6入",
+    "category": "盲盒",
+    "costPrice": 265,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100128",
+    "barcode": "471100128",
+    "name": "Hangyodon風味拉麵Pro8入",
+    "category": "盲盒",
+    "costPrice": 150,
+    "sellingPrice": 210,
+    "suggestedPoints": 12,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100129",
+    "barcode": "471100129",
+    "name": "迪士尼杯子蛋糕6入",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100130",
+    "barcode": "471100130",
+    "name": "惠唯藝術家二代-小丑不丑10入",
+    "category": "盲盒",
+    "costPrice": 330,
+    "sellingPrice": 490,
+    "suggestedPoints": 27,
+    "stock": 10,
+    "storeStocks": {
+      "chupei": 10,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100131",
+    "barcode": "471100131",
+    "name": "胖達幼毛絨花花4入",
+    "category": "盲盒",
+    "costPrice": 160,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 4,
+    "storeStocks": {
+      "chupei": 4,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100132",
+    "barcode": "471100132",
+    "name": "Letsvan哇庫庫童年重映會9入",
+    "category": "盲盒",
+    "costPrice": 300,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100133",
+    "barcode": "471100133",
+    "name": "大力招財貓6入",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100134",
+    "barcode": "471100134",
+    "name": "小新下午茶時光毛绒6入",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100135",
+    "barcode": "471100135",
+    "name": "Emor局外人9入",
+    "category": "盲盒",
+    "costPrice": 285,
+    "sellingPrice": 430,
+    "suggestedPoints": 24,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100136",
+    "barcode": "471100136",
+    "name": "Yobu心靈獨白8入",
+    "category": "盲盒",
+    "costPrice": 225,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100137",
+    "barcode": "471100137",
+    "name": "內心小孩咸場满通mini官盒12入",
+    "category": "盲盒",
+    "costPrice": 110,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100138",
+    "barcode": "471100138",
+    "name": "多啦as夢磁吸氣手機支架12入",
+    "category": "盲盒",
+    "costPrice": 140,
+    "sellingPrice": 220,
+    "suggestedPoints": 12,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100139",
+    "barcode": "471100139",
+    "name": "皮克斯雲上軟綿綿6入",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 290,
+    "suggestedPoints": 16,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100140",
+    "barcode": "471100140",
+    "name": "雅盧幼兒園2",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 290,
+    "suggestedPoints": 16,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100141",
+    "barcode": "471100141",
+    "name": "三眼仔變裝毛絨",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 310,
+    "suggestedPoints": 17,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100142",
+    "barcode": "471100142",
+    "name": "TT庫洛米魔女盛典8入",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 340,
+    "suggestedPoints": 19,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100143",
+    "barcode": "471100143",
+    "name": "三麗鷗櫻花系列小夜燈擺件",
+    "category": "盲盒",
+    "costPrice": 125,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100144",
+    "barcode": "471100144",
+    "name": "QMSV元祖高二代8入",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100145",
+    "barcode": "471100145",
+    "name": "Zanmang Loopy可愛日常6入",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100146",
+    "barcode": "471100146",
+    "name": "有獸焉迷你趴趴公仔盲袋第二代",
+    "category": "盲盒",
+    "costPrice": 235,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100147",
+    "barcode": "471100147",
+    "name": "多啦a夢大雄地球的交智樂8入",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100148",
+    "barcode": "471100148",
+    "name": "QMSV沙薩比鋼彈8入",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100149",
+    "barcode": "471100149",
+    "name": "庫洛米心動禮物萌趣豆12入",
+    "category": "盲盒",
+    "costPrice": 50,
+    "sellingPrice": 70,
+    "suggestedPoints": 4,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100150",
+    "barcode": "471100150",
+    "name": "Hangyodon 解壓PU慢回彈",
+    "category": "盲盒",
+    "costPrice": 120,
+    "sellingPrice": 170,
+    "suggestedPoints": 9,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100151",
+    "barcode": "471100151",
+    "name": "惡作劇裝扮的皮卡丘毛絨8入",
+    "category": "盲盒",
+    "costPrice": 160,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100152",
+    "barcode": "471100152",
+    "name": "數碼寶貝玩偶服二代8入",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100153",
+    "barcode": "471100153",
+    "name": "伊布盲盒二代9入",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100154",
+    "barcode": "471100154",
+    "name": "寶可夢不倒翁排排坐6入",
+    "category": "盲盒",
+    "costPrice": 110,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100155",
+    "barcode": "471100155",
+    "name": "宮崎駿童話二代發光6入",
+    "category": "盲盒",
+    "costPrice": 105,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100156",
+    "barcode": "471100156",
+    "name": "數碼玩偶服第三彈8入",
+    "category": "盲盒",
+    "costPrice": 235,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100157",
+    "barcode": "471100157",
+    "name": "Molly 第三代 9入",
+    "category": "盲盒",
+    "costPrice": 400,
+    "sellingPrice": 550,
+    "suggestedPoints": 30,
+    "stock": 9,
+    "storeStocks": {
+      "chupei": 9,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100158",
+    "barcode": "471100158",
+    "name": "mighty jaxx 海賊王第六彈魯夫6入",
+    "category": "盲盒",
+    "costPrice": 320,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100159",
+    "barcode": "471100159",
+    "name": "004675 泡泡火影忍界大戰12入",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100160",
+    "barcode": "471100160",
+    "name": "004764 QMSV 自由高達8入/半箱5 抽",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100161",
+    "barcode": "471100161",
+    "name": "005481 QMSV元祖高達二代8入/半箱5/ 抽",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100162",
+    "barcode": "471100162",
+    "name": "005482 QMSV沙薩比鋼彈8入/半箱5/箱 抽",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100163",
+    "barcode": "471100163",
+    "name": "002256 柿子椒熊的花園故事8人/半箱7 抽",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100164",
+    "barcode": "471100164",
+    "name": "003542 柿子椒熊校園系列6入/半箱10 抽",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100165",
+    "barcode": "471100165",
+    "name": "005504 猫福珊迪二代萌粒10入/半箱6 抽",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100166",
+    "barcode": "471100166",
+    "name": "006017 Hangyodon表情系列掛繩8入/半 抽",
+    "category": "盲盒",
+    "costPrice": 125,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100168",
+    "barcode": "471100168",
+    "name": "002609 數碼寶貝玩偶服二代8入 抽",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100169",
+    "barcode": "471100169",
+    "name": "001461 大力招財貓6入/半箱8 抽",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100170",
+    "barcode": "471100170",
+    "name": "003560 Labubu横山宏12入",
+    "category": "盲盒",
+    "costPrice": 420,
+    "sellingPrice": 550,
+    "suggestedPoints": 30,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100171",
+    "barcode": "471100171",
+    "name": "001461 大力招財貓6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100172",
+    "barcode": "471100172",
+    "name": "002609 數碼寶貝玩偶服二代8入",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100173",
+    "barcode": "471100173",
+    "name": "003386 小新心點時間8入",
+    "category": "盲盒",
+    "costPrice": 195,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100174",
+    "barcode": "471100174",
+    "name": "006289 我不是胖虎-父慈子孝8入/優4",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100175",
+    "barcode": "471100175",
+    "name": "005477 小新新次元萌動指偶9入/半箱6",
+    "category": "盲盒",
+    "costPrice": 60,
+    "sellingPrice": 100,
+    "suggestedPoints": 6,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100176",
+    "barcode": "471100176",
+    "name": "006392 冰塊情緒卡皮巴拉12入/半箱8",
+    "category": "盲盒",
+    "costPrice": 70,
+    "sellingPrice": 100,
+    "suggestedPoints": 6,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100177",
+    "barcode": "471100177",
+    "name": "006409 小新日常三代8入/半箱6",
+    "category": "盲盒",
+    "costPrice": 195,
+    "sellingPrice": 290,
+    "suggestedPoints": 16,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100178",
+    "barcode": "471100178",
+    "name": "航海王燈具盲盒8入",
+    "category": "盲盒",
+    "costPrice": 300,
+    "sellingPrice": 430,
+    "suggestedPoints": 24,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100179",
+    "barcode": "471100179",
+    "name": "三眼披薩星球8入/半箱6",
+    "category": "盲盒",
+    "costPrice": 215,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100180",
+    "barcode": "471100180",
+    "name": "Luna心象法陣8入/半箱6",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100181",
+    "barcode": "471100181",
+    "name": "PP霓彩達摩(陸版)6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 215,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100182",
+    "barcode": "471100182",
+    "name": "萬代牛高達8入/半箱5",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100183",
+    "barcode": "471100183",
+    "name": "犬夜叉絨小偶毛絨盲盒6入/半箱6",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100184",
+    "barcode": "471100184",
+    "name": "名偵探柯南咖啡廳毛絨6入/箱6",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100185",
+    "barcode": "471100185",
+    "name": "005655 台味正宗美食怪獸4入",
+    "category": "盲盒",
+    "costPrice": 105,
+    "sellingPrice": 170,
+    "suggestedPoints": 9,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100186",
+    "barcode": "471100186",
+    "name": "006054 獵人Hunter桌上小物P4-6入",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100187",
+    "barcode": "471100187",
+    "name": "006758 卡皮巴拉的認可8入/半箱9",
+    "category": "盲盒",
+    "costPrice": 80,
+    "sellingPrice": 140,
+    "suggestedPoints": 8,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100188",
+    "barcode": "471100188",
+    "name": "004719 伊布盲盒二代9入/優6/箱8",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100189",
+    "barcode": "471100189",
+    "name": "004887 二批胖虎-龍騰虎躍8入/半箱4/箱",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100190",
+    "barcode": "471100190",
+    "name": "006289 我不是胖虎-父慈子孝8入/優4",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100191",
+    "barcode": "471100191",
+    "name": "005236 薩卡班甲魚進化論6入",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100192",
+    "barcode": "471100192",
+    "name": "004719 伊布盲盒二代9入/優6/箱8",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100193",
+    "barcode": "471100193",
+    "name": "004887 二批胖虎-龍騰虎躍8入/半箱4/箱",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100194",
+    "barcode": "471100194",
+    "name": "006289 我不是胖虎-父慈子孝8入/優4",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 6,
+    "storeStocks": {
+      "chupei": 6,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100195",
+    "barcode": "471100195",
+    "name": "伊布盲盒二代",
+    "category": "盲盒",
+    "costPrice": 275,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 18,
+    "storeStocks": {
+      "chupei": 18,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100196",
+    "barcode": "471100196",
+    "name": "上班好煩鴨",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 390,
+    "suggestedPoints": 21,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100197",
+    "barcode": "471100197",
+    "name": "黑色神話之悟空傳說",
+    "category": "盲盒",
+    "costPrice": 100,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100198",
+    "barcode": "471100198",
+    "name": "卡皮巴拉的認可",
+    "category": "盲盒",
+    "costPrice": 80,
+    "sellingPrice": 140,
+    "suggestedPoints": 8,
+    "stock": 8,
+    "storeStocks": {
+      "chupei": 8,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100199",
+    "barcode": "471100199",
+    "name": "宮崎駿精靈們帶燈款",
+    "category": "盲盒",
+    "costPrice": 90,
+    "sellingPrice": 190,
+    "suggestedPoints": 10,
+    "stock": 12,
+    "storeStocks": {
+      "chupei": 12,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100200",
+    "barcode": "471100200",
+    "name": "星之卡比-卡比和朋友4代",
+    "category": "盲盒",
+    "costPrice": 105,
+    "sellingPrice": 170,
+    "suggestedPoints": 9,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100201",
+    "barcode": "471100201",
+    "name": "代購-Molly100%三代9人",
+    "category": "盲盒",
+    "costPrice": 400,
+    "sellingPrice": 600,
+    "suggestedPoints": 33,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100202",
+    "barcode": "471100202",
+    "name": "哭娃飛天搪膠臉盲盒6入",
+    "category": "盲盒",
+    "costPrice": 660,
+    "sellingPrice": 920,
+    "suggestedPoints": 51,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100203",
+    "barcode": "471100203",
+    "name": "柯南電影院二代6入/半箱6/箱12",
+    "category": "盲盒",
+    "costPrice": 120,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100204",
+    "barcode": "471100204",
+    "name": "006781 華納猫和老鼠一百週年",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100205",
+    "barcode": "471100205",
+    "name": "005748 名偵探柯南咖啡廳毛絨6入/箱6",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100206",
+    "barcode": "471100206",
+    "name": "006772 憤怒的小鳥經典萌粒10入/半箱4",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100207",
+    "barcode": "471100207",
+    "name": "006055 寶可夢框架深綠之森-6入",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100208",
+    "barcode": "471100208",
+    "name": "001001 小新日常6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 195,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100209",
+    "barcode": "471100209",
+    "name": "006058 獵人petadoll P4選舉篇-6入",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100210",
+    "barcode": "471100210",
+    "name": "005393 泡泡哭娃飛天女警12入/箱12",
+    "category": "盲盒",
+    "costPrice": 330,
+    "sellingPrice": 550,
+    "suggestedPoints": 30,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100211",
+    "barcode": "471100211",
+    "name": "006725 福部屋-彩虹熊站姿盲盒8人",
+    "category": "盲盒",
+    "costPrice": 300,
+    "sellingPrice": 490,
+    "suggestedPoints": 27,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100212",
+    "barcode": "471100212",
+    "name": "006861 小黃人大眼萌不倒翁第二彈8入/",
+    "category": "盲盒",
+    "costPrice": 140,
+    "sellingPrice": 220,
+    "suggestedPoints": 12,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100213",
+    "barcode": "471100213",
+    "name": "MDS-009 聖誕夜驚魂",
+    "category": "盲盒",
+    "costPrice": 380,
+    "sellingPrice": 550,
+    "suggestedPoints": 30,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100214",
+    "barcode": "471100214",
+    "name": "006060 星之卡比角色橢圓蛋收藏-6入",
+    "category": "盲盒",
+    "costPrice": 235,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100215",
+    "barcode": "471100215",
+    "name": "005898 胖鯊魚鯊西米二代6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 105,
+    "sellingPrice": 160,
+    "suggestedPoints": 9,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100216",
+    "barcode": "471100216",
+    "name": "003560 Labubu横山宏12入",
+    "category": "盲盒",
+    "costPrice": 400,
+    "sellingPrice": 550,
+    "suggestedPoints": 30,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100217",
+    "barcode": "471100217",
+    "name": "006547 Labubu慵懒瑜珈10入",
+    "category": "盲盒",
+    "costPrice": 345,
+    "sellingPrice": 490,
+    "suggestedPoints": 27,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100218",
+    "barcode": "471100218",
+    "name": "006924 TT小熊維尼快樂日常6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100219",
+    "barcode": "471100219",
+    "name": "好疏狐",
+    "category": "盲盒",
+    "costPrice": 110,
+    "sellingPrice": 160,
+    "suggestedPoints": 9,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100220",
+    "barcode": "471100220",
+    "name": "胖虎美食趴",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100221",
+    "barcode": "471100221",
+    "name": "qmsv鋼蛋 電影版",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100222",
+    "barcode": "471100222",
+    "name": "007455 卡皮巴拉聖誕80#-6入/半箱4",
+    "category": "盲盒",
+    "costPrice": 130,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100223",
+    "barcode": "471100223",
+    "name": "007416 崩壞-星穹鐵道鍵帽8入/半箱6",
+    "category": "盲盒",
+    "costPrice": 120,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100224",
+    "barcode": "471100224",
+    "name": "007615 卡皮巴拉轉大運6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 90,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100225",
+    "barcode": "471100225",
+    "name": "007613 全世界財神到我家6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 255,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100226",
+    "barcode": "471100226",
+    "name": "006302 泡泡Molly100%三代9人",
+    "category": "盲盒",
+    "costPrice": 375,
+    "sellingPrice": 500,
+    "suggestedPoints": 28,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100227",
+    "barcode": "471100227",
+    "name": "006487 寶可要決戰時刻6人/箱8(明款非",
+    "category": "盲盒",
+    "costPrice": 175,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100228",
+    "barcode": "471100228",
+    "name": "007628 寶可夢大集結皮卡丘電子服手辦6",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100229",
+    "barcode": "471100229",
+    "name": "007621 咒術廻戰第二季日常12入/優6",
+    "category": "盲盒",
+    "costPrice": 160,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100230",
+    "barcode": "471100230",
+    "name": "帕恰狗復古時光列車8入/半箱6",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100231",
+    "barcode": "471100231",
+    "name": "公寓喵喵怪9人/箱12",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100232",
+    "barcode": "471100232",
+    "name": "005753 寶可夢圓形立體模型收藏6入/半",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100233",
+    "barcode": "471100233",
+    "name": "005451 Luck Moai卡皮巴拉6入/優8/箱 抽",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100234",
+    "barcode": "471100234",
+    "name": "005651 埃及神明寶寶系列6入/優6",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100235",
+    "barcode": "471100235",
+    "name": "005759 章魚妹4入/優6",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 140,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100236",
+    "barcode": "471100236",
+    "name": "005752 寶可夢森林小物語6入/半箱6",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100237",
+    "barcode": "471100237",
+    "name": "招罐貓",
+    "category": "盲盒",
+    "costPrice": 105,
+    "sellingPrice": 160,
+    "suggestedPoints": 9,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100238",
+    "barcode": "471100238",
+    "name": "公寓喵喵怪9人/箱12",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100239",
+    "barcode": "471100239",
+    "name": "005753 寶可夢圓形立體模型收藏6入/半",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100240",
+    "barcode": "471100240",
+    "name": "005451 Luck Moai卡皮巴拉6入/優8/箱 抽",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 340,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100241",
+    "barcode": "471100241",
+    "name": "005651 埃及神明寶寶系列6入/優6",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100242",
+    "barcode": "471100242",
+    "name": "005759 章魚妹4入/優6",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100243",
+    "barcode": "471100243",
+    "name": "005752 寶可夢森林小物語6入/半箱6",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100244",
+    "barcode": "471100244",
+    "name": "帕恰狗復古時光列車8入",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100245",
+    "barcode": "471100245",
+    "name": "006770 Rement-寶可夢 和之窗景品組6",
+    "category": "盲盒",
+    "costPrice": 215,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100246",
+    "barcode": "471100246",
+    "name": "006771 Rement-寶可夢寶貝球盆景品",
+    "category": "盲盒",
+    "costPrice": 215,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100247",
+    "barcode": "471100247",
+    "name": "006543 QMSV mini高達seed freedom 電影",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100248",
+    "barcode": "471100248",
+    "name": "007659 吉伊卡哇快樂夥伴盲盒10入",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100249",
+    "barcode": "471100249",
+    "name": "007663 打工豚6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 80,
+    "sellingPrice": 120,
+    "suggestedPoints": 7,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100250",
+    "barcode": "471100250",
+    "name": "006544 十二生肖mini高達第三彈9入/半",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100251",
+    "barcode": "471100251",
+    "name": "007003 航海王7代系列盲盒:和之國鬼",
+    "category": "盲盒",
+    "costPrice": 320,
+    "sellingPrice": 480,
+    "suggestedPoints": 26,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100252",
+    "barcode": "471100252",
+    "name": "007621 咒術廻戰第二季日常12入/優6",
+    "category": "盲盒",
+    "costPrice": 160,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100253",
+    "barcode": "471100253",
+    "name": "007434 我不是胖虎招財盲盒8入/優6",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100254",
+    "barcode": "471100254",
+    "name": "006742 萌佛駕到8入",
+    "category": "盲盒",
+    "costPrice": 430,
+    "sellingPrice": 600,
+    "suggestedPoints": 33,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100255",
+    "barcode": "471100255",
+    "name": "泡泡Molly100%三代9人",
+    "category": "盲盒",
+    "costPrice": 375,
+    "sellingPrice": 500,
+    "suggestedPoints": 28,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100256",
+    "barcode": "471100256",
+    "name": "間諜過家家Q萌公仔18入/半箱10 抽",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 130,
+    "suggestedPoints": 7,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100257",
+    "barcode": "471100257",
+    "name": "畢奇喵喵不倒翁搪膠毛絨6入 抽",
+    "category": "盲盒",
+    "costPrice": 370,
+    "sellingPrice": 500,
+    "suggestedPoints": 28,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100258",
+    "barcode": "471100258",
+    "name": "小猫阿狗奇想列車號6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100259",
+    "barcode": "471100259",
+    "name": "好刺蝟和壞刺蝟6入/半箱8 抽",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 130,
+    "suggestedPoints": 7,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100260",
+    "barcode": "471100260",
+    "name": "Yobu二代人生初體驗8入/半箱9 抽",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100261",
+    "barcode": "471100261",
+    "name": "喵餅喵淇淋10入/半箱10",
+    "category": "盲盒",
+    "costPrice": 110,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100262",
+    "barcode": "471100262",
+    "name": "薩卡班甲魚進化論6入",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 130,
+    "suggestedPoints": 7,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100263",
+    "barcode": "471100263",
+    "name": "008167 The monster 象棋大冒險-香薰盲",
+    "category": "盲盒",
+    "costPrice": 500,
+    "sellingPrice": 650,
+    "suggestedPoints": 36,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100264",
+    "barcode": "471100264",
+    "name": "007849 Totoro歲月守護者植械6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 90,
+    "sellingPrice": 160,
+    "suggestedPoints": 9,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100265",
+    "barcode": "471100265",
+    "name": "006073 迪士尼三眼快樂星球搖搖樂14人/ 抽",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100266",
+    "barcode": "471100266",
+    "name": "008109 内心小孩職場生存指南mini盲盒",
+    "category": "盲盒",
+    "costPrice": 110,
+    "sellingPrice": 190,
+    "suggestedPoints": 10,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100267",
+    "barcode": "471100267",
+    "name": "006834 吉伊卡哇游玩盲盒6入/優6",
+    "category": "盲盒",
+    "costPrice": 150,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100268",
+    "barcode": "471100268",
+    "name": "003742 蝋筆小新經典場景8入/半箱6/箱",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100269",
+    "barcode": "471100269",
+    "name": "007634 小新動感超活力4入/優6",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100270",
+    "barcode": "471100270",
+    "name": "宮崎駿水晶球",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100271",
+    "barcode": "471100271",
+    "name": "002609 數碼寶貝玩偶服二代8入/半箱5/ 抽",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100272",
+    "barcode": "471100272",
+    "name": "007370 獵人桌上小物P5-6入 抽",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100273",
+    "barcode": "471100273",
+    "name": "007372 遊戲王Duelsit公仔-6入",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100274",
+    "barcode": "471100274",
+    "name": "007887 動物星球卡皮巴拉水豚二代6入/",
+    "category": "盲盒",
+    "costPrice": 215,
+    "sellingPrice": 310,
+    "suggestedPoints": 17,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100275",
+    "barcode": "471100275",
+    "name": "008262 蠟筆小新毛絨肩上小動物6入/半",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100276",
+    "barcode": "471100276",
+    "name": "008266 吉伊卡哇植絨小巧(無口香糖)第二 抽",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100277",
+    "barcode": "471100277",
+    "name": "008267 蠟筆小新毛絨掛件表情6入/半箱9",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100278",
+    "barcode": "471100278",
+    "name": "006568 QMSV Mini Char' s Custom-8",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 460,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100279",
+    "barcode": "471100279",
+    "name": "008046 哪托之魔童鬧海排排坐迷你公仔",
+    "category": "盲盒",
+    "costPrice": 195,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100280",
+    "barcode": "471100280",
+    "name": "008189 吉伊卡哇睡衣换臉盲盒掛件6入",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100281",
+    "barcode": "471100281",
+    "name": "TT小新小白的日常6入",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100282",
+    "barcode": "471100282",
+    "name": "TT史迪奇萌動樂6入",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100283",
+    "barcode": "471100283",
+    "name": "卡皮巴拉的叢林時光6入",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100284",
+    "barcode": "471100284",
+    "name": "中華美食鋪熊貓6入",
+    "category": "盲盒",
+    "costPrice": 90,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100285",
+    "barcode": "471100285",
+    "name": "布魯斯第七彈/待在家就不想出門6入",
+    "category": "盲盒",
+    "costPrice": 285,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100286",
+    "barcode": "471100286",
+    "name": "星期四狂歡水豚仔8入",
+    "category": "盲盒",
+    "costPrice": 80,
+    "sellingPrice": 140,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100287",
+    "barcode": "471100287",
+    "name": "喵東煮盲盒第一彈12入",
+    "category": "盲盒",
+    "costPrice": 165,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100288",
+    "barcode": "471100288",
+    "name": "LINE FRIENDS BROWN植絨系列6入",
+    "category": "盲盒",
+    "costPrice": 280,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100289",
+    "barcode": "471100289",
+    "name": "問謀家家酒坐坐擺件6入/優6 抽",
+    "category": "盲盒",
+    "costPrice": 120,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100290",
+    "barcode": "471100290",
+    "name": "胖虎祈願達摩萌粒8人/優4",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100291",
+    "barcode": "471100291",
+    "name": "森之精靈水晶球6人/半箱6",
+    "category": "盲盒",
+    "costPrice": 130,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100292",
+    "barcode": "471100292",
+    "name": "問謀過家家Q萌公仔18入/半箱10",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 130,
+    "suggestedPoints": 7,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100293",
+    "barcode": "471100293",
+    "name": "明日方舟暖冬被爐盲盒6人/優6",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100294",
+    "barcode": "471100294",
+    "name": "葬送芙莉蓮坐坐擺件6入",
+    "category": "盲盒",
+    "costPrice": 120,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100295",
+    "barcode": "471100295",
+    "name": "吉伊卡哇場景造型瓶擺件6入/半",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100296",
+    "barcode": "471100296",
+    "name": "迪士尼史迪奇夏日派對8入/半箱6",
+    "category": "盲盒",
+    "costPrice": 155,
+    "sellingPrice": 230,
+    "suggestedPoints": 13,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100297",
+    "barcode": "471100297",
+    "name": "008269 MJ航海王八代6入/半箱4",
+    "category": "盲盒",
+    "costPrice": 320,
+    "sellingPrice": 460,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100298",
+    "barcode": "471100298",
+    "name": "008651 葬送芙莉蓮坐坐擺件6入/優6",
+    "category": "盲盒",
+    "costPrice": 120,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100299",
+    "barcode": "471100299",
+    "name": "006416 線條小狗歡樂連連6入/箱8",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100300",
+    "barcode": "471100300",
+    "name": "008253 崩壊3泡麵系列疊疊樂第一彈14",
+    "category": "盲盒",
+    "costPrice": 80,
+    "sellingPrice": 140,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100301",
+    "barcode": "471100301",
+    "name": "008647 猫咪阿諾公仔6入",
+    "category": "盲盒",
+    "costPrice": 110,
+    "sellingPrice": 210,
+    "suggestedPoints": 12,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100302",
+    "barcode": "471100302",
+    "name": "008646 摩動核大作戰組裝盲盒6入/箱6",
+    "category": "盲盒",
+    "costPrice": 285,
+    "sellingPrice": 430,
+    "suggestedPoints": 24,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100303",
+    "barcode": "471100303",
+    "name": "008519 吉伊卡哇壽司10入/箱6",
+    "category": "盲盒",
+    "costPrice": 290,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100304",
+    "barcode": "471100304",
+    "name": "009130 葬送芙莉蓮Q版掛件6入/半箱10",
+    "category": "盲盒",
+    "costPrice": 100,
+    "sellingPrice": 160,
+    "suggestedPoints": 9,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100305",
+    "barcode": "471100305",
+    "name": "007323 火影忍者Cos-8入/半箱5",
+    "category": "盲盒",
+    "costPrice": 230,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100306",
+    "barcode": "471100306",
+    "name": "008714 Pingu貪吃的小鵝盲盒6入/半箱6",
+    "category": "盲盒",
+    "costPrice": 145,
+    "sellingPrice": 200,
+    "suggestedPoints": 11,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100307",
+    "barcode": "471100307",
+    "name": "009091 貓和老鼠精神狀態品鑒8入/半箱6",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100308",
+    "barcode": "471100308",
+    "name": "008176 卡娜赫拉小動物場景6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 215,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100309",
+    "barcode": "471100309",
+    "name": "007434 我不是胖虎招財盲盒8入/優6",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100310",
+    "barcode": "471100310",
+    "name": "009266 胖虎父慈子孝第二彈孝掉大牙8",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100311",
+    "barcode": "471100311",
+    "name": "008125 MEA-071幽遊白書6入",
+    "category": "盲盒",
+    "costPrice": 300,
+    "sellingPrice": 440,
+    "suggestedPoints": 24,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100312",
+    "barcode": "471100312",
+    "name": "008583 寶可夢寶貝球盆景品P15-6入",
+    "category": "盲盒",
+    "costPrice": 265,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100313",
+    "barcode": "471100313",
+    "name": "008586 獵人HUNTERxHUNTER",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 270,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100314",
+    "barcode": "471100314",
+    "name": "008742 Line friendsx國立故宮博物院100",
+    "category": "盲盒",
+    "costPrice": 330,
+    "sellingPrice": 470,
+    "suggestedPoints": 26,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100315",
+    "barcode": "471100315",
+    "name": "008831 Hellotaiwan3古早味台灣18人/半 抽",
+    "category": "盲盒",
+    "costPrice": 84,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100316",
+    "barcode": "471100316",
+    "name": "009128 水果刺蝟系列_PLUS+軟膠公仔6 抽",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100317",
+    "barcode": "471100317",
+    "name": "009850 火影忍者曉組織角色第一彈+第二 抽",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100318",
+    "barcode": "471100318",
+    "name": "009906 動物星球瞪眼馬拉松6入/半箱6",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100319",
+    "barcode": "471100319",
+    "name": "009920 HT膽大黨迷你人偶8入/半箱6",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100320",
+    "barcode": "471100320",
+    "name": "009921 HT膽大黨高速婆婆毛絨掛件6入/",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 390,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100321",
+    "barcode": "471100321",
+    "name": "008927 Molly100%emoji-9入",
+    "category": "盲盒",
+    "costPrice": 390,
+    "sellingPrice": 500,
+    "suggestedPoints": 28,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100322",
+    "barcode": "471100322",
+    "name": "008270 Tobimas七龍珠6入/優6",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100323",
+    "barcode": "471100323",
+    "name": "009248 QMSV MINI Z高達&MK-II-8入/",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 410,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100324",
+    "barcode": "471100324",
+    "name": "007501 史迪奇搞怪2.0-6入/半箱6",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100325",
+    "barcode": "471100325",
+    "name": "009247 BNFQ火影忍者疾風傳拉麵主題8",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 360,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100326",
+    "barcode": "471100326",
+    "name": "008612 航海王ONE PIECE 偉大的航道收",
+    "category": "盲盒",
+    "costPrice": 300,
+    "sellingPrice": 480,
+    "suggestedPoints": 26,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100327",
+    "barcode": "471100327",
+    "name": "008263 艾爾登法環盒蛋第一彈6入/箱6",
+    "category": "盲盒",
+    "costPrice": 380,
+    "sellingPrice": 530,
+    "suggestedPoints": 29,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100328",
+    "barcode": "471100328",
+    "name": "008648 火影忍者萌獸派對6入/半箱6",
+    "category": "盲盒",
+    "costPrice": 310,
+    "sellingPrice": 470,
+    "suggestedPoints": 26,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100329",
+    "barcode": "471100329",
+    "name": "010625 迪士尼米奇家族繽紛糖果搪膠毛 抽",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 320,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100330",
+    "barcode": "471100330",
+    "name": "010738 史迪奇超級破壞王8入/優4",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100331",
+    "barcode": "471100331",
+    "name": "010760 線條小狗天氣預報盲袋12入/半箱 抽",
+    "category": "盲盒",
+    "costPrice": 240,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100332",
+    "barcode": "471100332",
+    "name": "010803 ZCWO加菲招財猫6入/半箱5",
+    "category": "盲盒",
+    "costPrice": 260,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100333",
+    "barcode": "471100333",
+    "name": "010867 海綿寶寶比奇堡夢境毛絨掛件6 抽",
+    "category": "盲盒",
+    "costPrice": 140,
+    "sellingPrice": 220,
+    "suggestedPoints": 12,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100334",
+    "barcode": "471100334",
+    "name": "010868 泡泡十五週年系列15入 抽",
+    "category": "盲盒",
+    "costPrice": 325,
+    "sellingPrice": 470,
+    "suggestedPoints": 26,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100335",
+    "barcode": "471100335",
+    "name": "010871 三麗鷗郵差小熊疊疊樂12人/半箱",
+    "category": "盲盒",
+    "costPrice": 80,
+    "sellingPrice": 140,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100336",
+    "barcode": "471100336",
+    "name": "007068 PP招招好運小猫6入/半箱8",
+    "category": "盲盒",
+    "costPrice": 225,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100337",
+    "barcode": "471100337",
+    "name": "009888 火影忍者疾風傳撲克牌-曉決戰篇",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 300,
+    "suggestedPoints": 17,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100338",
+    "barcode": "471100338",
+    "name": "010428 海綿寶寶漢堡疊疊樂4入/優6",
+    "category": "盲盒",
+    "costPrice": 150,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100339",
+    "barcode": "471100339",
+    "name": "010877 Wasabi Bear外出小夥伴6入/半箱",
+    "category": "盲盒",
+    "costPrice": 220,
+    "sellingPrice": 330,
+    "suggestedPoints": 18,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100340",
+    "barcode": "471100340",
+    "name": "011349 MJ街頭霸王系列6入/半箱4",
+    "category": "盲盒",
+    "costPrice": 260,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100341",
+    "barcode": "471100341",
+    "name": "010559 小新發光款電視機8入/箱6",
+    "category": "盲盒",
+    "costPrice": 140,
+    "sellingPrice": 230,
+    "suggestedPoints": 13,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100342",
+    "barcode": "471100342",
+    "name": "011284 膽大黨毛絨掛件高速婆婆猫型態A",
+    "category": "盲盒",
+    "costPrice": 135,
+    "sellingPrice": 230,
+    "suggestedPoints": 13,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100343",
+    "barcode": "471100343",
+    "name": "011285 膽大黨毛絨掛件高速婆婆猫型態B 抽",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100344",
+    "barcode": "471100344",
+    "name": "011536 祈福招財猫簽筒16入/半箱10",
+    "category": "盲盒",
+    "costPrice": 75,
+    "sellingPrice": 120,
+    "suggestedPoints": 7,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100345",
+    "barcode": "471100345",
+    "name": "011690 漫威英雄群星版第六彈-蜘蛛宇宙 抽",
+    "category": "盲盒",
+    "costPrice": 130,
+    "sellingPrice": 220,
+    "suggestedPoints": 12,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100346",
+    "barcode": "471100346",
+    "name": "011691 變形金剛群星版第九彈-至暗時刻 抽",
+    "category": "盲盒",
+    "costPrice": 130,
+    "sellingPrice": 220,
+    "suggestedPoints": 12,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100347",
+    "barcode": "471100347",
+    "name": "011692 假面騎士星光版第五彈-傳說時刻",
+    "category": "盲盒",
+    "costPrice": 75,
+    "sellingPrice": 120,
+    "suggestedPoints": 7,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100348",
+    "barcode": "471100348",
+    "name": "011712 祥瑞九尾仙狐 仿真睫毛6入/半箱",
+    "category": "盲盒",
+    "costPrice": 90,
+    "sellingPrice": 150,
+    "suggestedPoints": 8,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100349",
+    "barcode": "471100349",
+    "name": "QMSV Mini Gold Team-8人",
+    "category": "盲盒",
+    "costPrice": 260,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100350",
+    "barcode": "471100350",
+    "name": "010733 火影搪膠毛絨第二代6入/半箱6 抽",
+    "category": "盲盒",
+    "costPrice": 310,
+    "sellingPrice": 480,
+    "suggestedPoints": 26,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100351",
+    "barcode": "471100351",
+    "name": "011350 太陽能招財貓4入/半箱9",
+    "category": "盲盒",
+    "costPrice": 140,
+    "sellingPrice": 220,
+    "suggestedPoints": 12,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100352",
+    "barcode": "471100352",
+    "name": "011503 航海王手錶9入/半箱10",
+    "category": "盲盒",
+    "costPrice": 150,
+    "sellingPrice": 240,
+    "suggestedPoints": 13,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100353",
+    "barcode": "471100353",
+    "name": "011560 Chiikawa吉伊卡哇吃飯時間4入",
+    "category": "盲盒",
+    "costPrice": 190,
+    "sellingPrice": 280,
+    "suggestedPoints": 15,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100354",
+    "barcode": "471100354",
+    "name": "011561 胖虎馬馬富富8入/優4",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 310,
+    "suggestedPoints": 17,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100355",
+    "barcode": "471100355",
+    "name": "011768 猫福達摩猫毛絨掛件6入/優6",
+    "category": "盲盒",
+    "costPrice": 115,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100356",
+    "barcode": "471100356",
+    "name": "011782 媽祖瓷燒系列-聽瓷/優6/箱24",
+    "category": "盲盒",
+    "costPrice": 1200,
+    "sellingPrice": 1700,
+    "suggestedPoints": 94,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100357",
+    "barcode": "471100357",
+    "name": "010471 泡泡星星人好夢氣象局毛絨掛件6",
+    "category": "盲盒",
+    "costPrice": 450,
+    "sellingPrice": 890,
+    "suggestedPoints": 49,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100358",
+    "barcode": "471100358",
+    "name": "011713 Minidoll迷宮飯軟膠擺件玩偶6 抽",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100359",
+    "barcode": "471100359",
+    "name": "011145 磁力小新玩轉春日部6入/半箱6",
+    "category": "盲盒",
+    "costPrice": 265,
+    "sellingPrice": 400,
+    "suggestedPoints": 22,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100360",
+    "barcode": "471100360",
+    "name": "011783 膽大黨高速婆婆招財達摩4入/半",
+    "category": "盲盒",
+    "costPrice": 210,
+    "sellingPrice": 340,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100361",
+    "barcode": "471100361",
+    "name": "011835 膽大黨存錢筒高速婆婆婆(貓版)瞇 個",
+    "category": "盲盒",
+    "costPrice": 890,
+    "sellingPrice": 1400,
+    "suggestedPoints": 77,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100362",
+    "barcode": "471100362",
+    "name": "011698 小黄人怪物系列4入/優6 抽",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 380,
+    "suggestedPoints": 21,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100363",
+    "barcode": "471100363",
+    "name": "011971 祈福招財猫福運系列16入/半箱10",
+    "category": "盲盒",
+    "costPrice": 60,
+    "sellingPrice": 100,
+    "suggestedPoints": 6,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100364",
+    "barcode": "471100364",
+    "name": "008008 QMSV MINI藝術家聯名8入/半箱 抽",
+    "category": "盲盒",
+    "costPrice": 270,
+    "sellingPrice": 450,
+    "suggestedPoints": 25,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100365",
+    "barcode": "471100365",
+    "name": "011823 火影忍者之羈絆手錶12入/半箱8",
+    "category": "盲盒",
+    "costPrice": 170,
+    "sellingPrice": 260,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100366",
+    "barcode": "471100366",
+    "name": "招罐貓",
+    "category": "盲盒",
+    "costPrice": 105,
+    "sellingPrice": 160,
+    "suggestedPoints": 9,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100367",
+    "barcode": "471100367",
+    "name": "胸毛公寓喵喵怪",
+    "category": "盲盒",
+    "costPrice": 85,
+    "sellingPrice": 130,
+    "suggestedPoints": 7,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100368",
+    "barcode": "471100368",
+    "name": "三眼怪轉運御守",
+    "category": "盲盒",
+    "costPrice": 180,
+    "sellingPrice": 250,
+    "suggestedPoints": 14,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100369",
+    "barcode": "471100369",
+    "name": "怪獸大學毛絨捏涅掛件",
+    "category": "盲盒",
+    "costPrice": 125,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100370",
+    "barcode": "471100370",
+    "name": "011627 泡泡新世紀福音戰士駕駛員6入/ 抽",
+    "category": "盲盒",
+    "costPrice": 350,
+    "sellingPrice": 550,
+    "suggestedPoints": 30,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100371",
+    "barcode": "471100371",
+    "name": "011698 小黄人怪物系列4入/優6",
+    "category": "盲盒",
+    "costPrice": 250,
+    "sellingPrice": 420,
+    "suggestedPoints": 23,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100372",
+    "barcode": "471100372",
+    "name": "011750 迪士尼瘋狂動物城腕錶12入/箱6",
+    "category": "盲盒",
+    "costPrice": 200,
+    "sellingPrice": 350,
+    "suggestedPoints": 19,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100373",
+    "barcode": "471100373",
+    "name": "011759 榴槤王國系列-祈福御守刺蝟12入",
+    "category": "盲盒",
+    "costPrice": 110,
+    "sellingPrice": 180,
+    "suggestedPoints": 10,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100374",
+    "barcode": "471100374",
+    "name": "Shinwoo幽靈熊 夜幕餐館",
+    "category": "盲盒",
+    "costPrice": 245,
+    "sellingPrice": 370,
+    "suggestedPoints": 20,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "100375",
+    "barcode": "471100375",
+    "name": "Pingu迷你相機盲盒",
+    "category": "盲盒",
+    "costPrice": 500,
+    "sellingPrice": 600,
+    "suggestedPoints": 33,
+    "stock": 0,
+    "storeStocks": {
+      "chupei": 0,
+      "jinshan": 0
+    },
+    "note": "",
+    "version": 0,
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]

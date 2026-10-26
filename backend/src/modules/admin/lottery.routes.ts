@@ -58,6 +58,9 @@ export const adminLotteryRoutes: FastifyPluginAsync = async (fastify) => {
     const searchLower = String(search || '').toLowerCase().trim();
 
     const filtered = luckyBags.filter((b: any) => {
+      // 徹底排除歷史 Mock 假套組 (海賊王一番賞新年限定套等)
+      if (b.id === 'LB-2026-01' || String(b.name || '').includes('海賊王一番賞新年')) return false;
+
       // 門市篩選
       if (storeId && b.storeId !== storeId) return false;
 
@@ -88,6 +91,8 @@ export const adminLotteryRoutes: FastifyPluginAsync = async (fastify) => {
       return true;
     });
 
+    const now = Date.now();
+
     const result = filtered.map((bag: any) => {
       const prizes = bag.prizes || [];
       const totalDraws = prizes.reduce((acc: number, p: any) => acc + (p.draws || 0), 0);
@@ -95,11 +100,58 @@ export const adminLotteryRoutes: FastifyPluginAsync = async (fastify) => {
       const remainingDraws = Math.max(0, totalDraws - drawnCount);
       const progressPercent = totalDraws > 0 ? Math.round((drawnCount / totalDraws) * 100) : 0;
 
-      // 大獎統計 (排除非GK)
+      // 大獎統計 (排除非GK與Z小賞)
       const majorPrizes = prizes.filter((p: any) => p.prizeName !== '非GK' && p.prizeGrade !== 'Z');
       const majorTotal = majorPrizes.reduce((acc: number, p: any) => acc + (p.draws || 0), 0);
       const majorDrawn = majorPrizes.reduce((acc: number, p: any) => acc + (p.drawnCount || 0), 0);
       const majorRemaining = Math.max(0, majorTotal - majorDrawn);
+      const isMajorAllDrawn = majorTotal > 0 && majorRemaining === 0;
+
+      // 1. 存活天數 (Survival Days): 自上架/發布至今在場天數
+      const launchTimestamp = new Date(bag.launchDate || bag.createdAt || '2026/01/25').getTime();
+      const survivalDays = Math.max(0, Math.floor((now - launchTimestamp) / (1000 * 60 * 60 * 24)));
+
+      // 2. 冰凍天數 (Idle Days): 多久沒有客人抽過
+      let lastDrawnTimestamp = bag.lastDrawnAt ? new Date(bag.lastDrawnAt).getTime() : null;
+      if (!lastDrawnTimestamp) {
+        if (drawnCount > 0 && bag.updatedAt) {
+          lastDrawnTimestamp = new Date(bag.updatedAt).getTime();
+        } else {
+          lastDrawnTimestamp = launchTimestamp; // 零抽過則等於上架至今閒置
+        }
+      }
+      const idleDays = Math.max(0, Math.floor((now - lastDrawnTimestamp) / (1000 * 60 * 60 * 24)));
+
+      // 3. 熱度與冰凍警報狀態 (Thermal Status)
+      // 【☠️ 死套/殘包】大賞全被抽光
+      // 【❄️ 冰凍套】超過 7 天沒人抽
+      // 【⏳ 平溫套】3 ~ 6 天未抽
+      // 【🔥 熱抽套】24H ~ 2 天內有客人抽過
+      let thermalStatus: 'DEAD_SET' | 'FROZEN' | 'WARM' | 'HOT' = 'WARM';
+      if (isMajorAllDrawn) {
+        thermalStatus = 'DEAD_SET';
+      } else if (idleDays >= 7) {
+        thermalStatus = 'FROZEN';
+      } else if (idleDays >= 3) {
+        thermalStatus = 'WARM';
+      } else {
+        thermalStatus = 'HOT';
+      }
+
+      // 4. 智慧推斷題材分類 (Category)
+      const nameLower = (bag.name || '').toLowerCase();
+      let category = '動漫綜合';
+      if (nameLower.includes('gk') || nameLower.includes('雕像') || prizes.some((p: any) => (p.prizeName || '').includes('GK'))) {
+        category = 'GK 雕像';
+      } else if (nameLower.includes('魯夫') || nameLower.includes('索隆') || nameLower.includes('海賊') || nameLower.includes('航海王') || nameLower.includes('凱多')) {
+        category = '海賊王';
+      } else if (nameLower.includes('寶可夢') || nameLower.includes('皮卡丘') || nameLower.includes('耿鬼') || nameLower.includes('超夢')) {
+        category = '寶可夢';
+      } else if (nameLower.includes('火影') || nameLower.includes('鳴人') || nameLower.includes('卡卡西') || nameLower.includes('佐助')) {
+        category = '火影忍者';
+      } else if (nameLower.includes('鬼滅') || nameLower.includes('炭治郎') || nameLower.includes('無慘') || nameLower.includes('禰豆子')) {
+        category = '鬼滅之刃';
+      }
 
       return {
         id: bag.id,
@@ -110,13 +162,18 @@ export const adminLotteryRoutes: FastifyPluginAsync = async (fastify) => {
         isPointsSet: bag.isPointsSet,
         launchDate: bag.launchDate || '2026/01/25',
         status: bag.status,
+        category,
+        survivalDays,
+        idleDays,
+        thermalStatus,
+        lastDrawnAt: new Date(lastDrawnTimestamp).toISOString(),
         totalDraws,
         drawnCount,
         remainingDraws,
         progressPercent,
         majorTotal,
         majorRemaining,
-        isMajorAllDrawn: majorTotal > 0 && majorRemaining === 0,
+        isMajorAllDrawn,
         prizes: prizes.map((p: any) => ({
           id: p.id,
           bagId: p.bagId,
@@ -136,11 +193,26 @@ export const adminLotteryRoutes: FastifyPluginAsync = async (fastify) => {
       };
     });
 
+    // 彙整老闆戰情統計指標
+    const totalActive = luckyBags.filter((b: any) => b.status === 'ACTIVE').length;
+    const totalFrozen = result.filter((b: any) => b.thermalStatus === 'FROZEN').length;
+    const totalDead = result.filter((b: any) => b.thermalStatus === 'DEAD_SET').length;
+    const totalHot = result.filter((b: any) => b.thermalStatus === 'HOT').length;
+
+    const categoryBreakdown: Record<string, number> = {};
+    result.forEach((b: any) => {
+      categoryBreakdown[b.category] = (categoryBreakdown[b.category] || 0) + 1;
+    });
+
     return reply.send({
       success: true,
       data: result,
       meta: {
-        totalActive: luckyBags.filter((b: any) => b.status === 'ACTIVE').length,
+        totalActive,
+        totalFrozen,
+        totalDead,
+        totalHot,
+        categoryBreakdown,
         totalShown: result.length,
       },
     });

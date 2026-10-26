@@ -1,4 +1,0 @@
-phone,orderId,createdAt,store,itemCode,itemName,itemType,prizeGrade,pickMethod,unitPrice,receivedAmount,cash,creditCard,remittance,pointsDelta,cashier,note
-0912-345-678,ORD-2026-001,2026/04/01 14:30:00,竹北,GK001,A賞 魯夫 MASTERLISE,LOTTERY,A,帶走,350,350,350,0,0,10,onesoul.chupei@gmail.com,首筆抽獎
-0988776655,ORD-2026-002,2026/04/01 16:15:00,金山,GEN001,壓克力展示盒,MERCHANDISE,,帶走,300,300,0,300,0,5,onesoul.jinshan@gmail.com,刷卡購盒
-88888,ORD-2026-003,2026/04/01 18:00:00,竹北,88888,手動加點,SPECIAL,,點數,0,0,0,0,0,50,onesoul.chupei@gmail.com,活動補發點數

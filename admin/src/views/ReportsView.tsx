@@ -3,7 +3,6 @@ import { reportsApi } from '../api/client';
 import { 
   BarChart3, 
   Search, 
-  Download, 
   Trash2, 
   AlertCircle, 
   X, 
@@ -98,19 +97,8 @@ export const ReportsView: React.FC = () => {
             <h1 className="text-xl font-bold text-white">財務營收流水與多維銷售報表</h1>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            提供多維金流拆分、跨日作廢庫存點數原子回退、以及 Zero-OOM 高效能 CSV 串流匯出管線。
+            提供多維金流拆分、跨日作廢庫存點數原子回退、以及日結營運指標審計。
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <a
-            href={reportsApi.getExportUrl('sales')}
-            download
-            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow transition"
-          >
-            <Download className="w-4 h-4" />
-            Zero-OOM 串流匯出全店銷售 CSV
-          </a>
         </div>
       </div>
 

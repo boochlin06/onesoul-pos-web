@@ -2,6 +2,22 @@ import type { LotteryItem, MerchItem, PrizeEntry, StockEntry, BlindBoxEntry } fr
 import { CHECKOUT_SUGGESTION_LIMIT } from '../config';
 import { MSG } from '../constants/messages';
 
+// 16 大真實 GK IP 白名單 (向下相容 category 欄位)
+export const GK_IP_SET = new Set([
+  '海賊王', '寶可夢', '火影', '宮崎駿', '綜合', '遊戲王', '潮玩',
+  '安妮雅', '七龍珠', '鏈鋸咒術', '國漫', '灌籃高手', '獵人', '小新', '數碼寶貝', '阿拉雷'
+]);
+
+export function isGkItem(entry: any): boolean {
+  if (!entry) return false;
+  if (entry.mainCategory === 'GK') return true;
+  if (entry.mainCategory === 'BLIND_BOX') return false;
+  const cat = (entry.category || '').toLowerCase();
+  if (cat.includes('gk')) return true;
+  if (cat.includes('blind')) return false;
+  return GK_IP_SET.has(entry.category);
+}
+
 // ── Factory helpers ──
 export const emptyLottery = (): LotteryItem => ({
   id: '', prize: '', draws: 1, type: '帶走', setName: '', unitPrice: 0,
@@ -44,7 +60,7 @@ export function applyLotteryUpdate(
       updated.setName = setEntry.setName;
       updated.unitPrice = setEntry.unitPrice;
       if (setEntry.isPointsSet) {
-        updated.type = '點數';
+        updated.type = '帶走';
         updated.amount = 0;
         updated.remark = '點數套';
       } else {
@@ -63,8 +79,8 @@ export function applyLotteryUpdate(
     if (!wasPointsSet) {
       if (value === '88888') updated.remark = '送1點';
       else if (value === '99999') updated.remark = '扣1點';
-      else if (value === 'x') updated.remark = '盲盒';
-      else if (value === 'z' || value === 'Z') { updated.remark = ''; updated.prizeName = '非GK'; }
+      else if (normalizedPrize === 'x') updated.remark = '盲盒';
+      else if (normalizedPrize === 'z') { updated.remark = ''; updated.prizeName = updated.prizeName || '非GK'; }
     }
   }
   // 抽數防呆：不可超過該獎項的總抽數
@@ -73,6 +89,11 @@ export function applyLotteryUpdate(
     if (prizeEntry && Number(value) > prizeEntry.draws) {
       updated.draws = prizeEntry.draws;
     }
+  }
+  if (field === 'type' && value === '點數') {
+    const normalizedPrize = String(updated.prize || '').trim().toLowerCase();
+    if (normalizedPrize === 'x' && (!updated.unitPoints || updated.unitPoints === 0)) updated.unitPoints = 10;
+    if (normalizedPrize === 'z' && (!updated.unitPoints || updated.unitPoints === 0)) updated.unitPoints = 1;
   }
   const isPointsSet = updated.remark === '點數套';
   if (field !== 'amount' && field !== 'remark' && field !== 'pointsCost') {
@@ -83,7 +104,10 @@ export function applyLotteryUpdate(
     } else {
       if (field !== 'type') updated.amount = updated.draws * (updated.unitPrice || 0);
     }
-    updated.totalPoints = updated.type === '點數' ? (updated.draws * (updated.unitPoints || 0)) : 0;
+    const normalizedPrize = String(updated.prize || '').trim().toLowerCase();
+    const fallbackPoints = normalizedPrize === 'x' ? 10 : normalizedPrize === 'z' ? 1 : 0;
+    const effectivePoints = updated.unitPoints !== undefined && updated.unitPoints !== 0 ? updated.unitPoints : fallbackPoints;
+    updated.totalPoints = updated.type === '點數' ? (updated.draws * effectivePoints) : 0;
   }
   return updated;
 }
@@ -110,7 +134,7 @@ export function applyMerchUpdate(
       if (stockEntry) {
         updated.name = stockEntry.name; updated.suggestedPoints = stockEntry.points;
         updated.remark = stockEntry.remark; updated.unitAmount = 0;
-        updated.isGk = stockEntry.category.toLowerCase().includes('gk');
+        updated.isGk = isGkItem(stockEntry);
         if (updated.isGk && updated.paymentType === '現金') updated.paymentType = '點數';
       } else {
         // ★ 跨店 fallback：查全門市貨品
@@ -118,7 +142,7 @@ export function applyMerchUpdate(
         if (crossEntry) {
           updated.name = crossEntry.name; updated.suggestedPoints = crossEntry.points;
           updated.unitAmount = 0;
-          updated.isGk = crossEntry.category.toLowerCase().includes('gk');
+          updated.isGk = isGkItem(crossEntry);
           if (updated.isGk && updated.paymentType === '現金') updated.paymentType = '點數';
           // 備註標注所在門市
           const otherBranch = crossEntry.branch || '';
@@ -155,6 +179,22 @@ export function filterMembers<T extends { phone: string | number; name: string }
   ).slice(0, limit);
 }
 
+export const WALK_IN_CODES = ['111111', '222222', '333333', '88888', '99999'];
+
+export function isWalkInCustomer(phoneOrName: string | null | undefined): boolean {
+  if (!phoneOrName) return true;
+  const clean = String(phoneOrName).trim().toUpperCase();
+  const raw = clean.split(/[- ]/)[0].trim();
+  return (
+    WALK_IN_CODES.includes(clean) ||
+    WALK_IN_CODES.includes(raw) ||
+    clean.includes('散客') ||
+    clean.includes('WALKIN') ||
+    clean.includes('WALK_IN') ||
+    clean.includes('現場')
+  );
+}
+
 // ── Checkout validation ──
 export interface ValidationInput {
   lotteries: LotteryItem[];
@@ -180,6 +220,19 @@ export function validateCheckout(input: ValidationInput): string | null {
     return `使用 ${rawPhone} 結帳時，必須在備註欄填寫原因`;
   }
 
+  // ── 散客點數穿透阻斷防護 (Invariant #1) ──
+  const isWalkIn = isWalkInCustomer(customer.phoneName) || isWalkInCustomer(customer.name);
+  if (isWalkIn) {
+    const hasPointsUsage = (payment?.pointsUsed || 0) > 0;
+    const hasMerchPoints = filteredMerch.some(m => m.paymentType === '點數' || (m.totalPoints || 0) > 0);
+    const hasLotteryPoints = filteredLotteries.some(l => l.type === '點數' || l.remark === '點數套' || (l.pointsCost || 0) > 0);
+    const hasNetPointsDeduction = (summary?.pointsChange || 0) < 0 || (payment?.pointsUsed || 0) > 0;
+
+    if (hasPointsUsage || hasMerchPoints || hasLotteryPoints || hasNetPointsDeduction) {
+      return MSG.validation.walkInNoPoints;
+    }
+  }
+
   for (let i = 0; i < filteredLotteries.length; i++) {
     const l = filteredLotteries[i];
     if (!l.id || !l.prize || !l.setName || !l.prizeName || l.draws < 1 || !Number.isInteger(l.draws)) {
@@ -202,8 +255,9 @@ export function validateCheckout(input: ValidationInput): string | null {
 
   const itemPtsCost = summary.pointsChange < 0 ? Math.abs(summary.pointsChange) : 0;
   const totalPtsCost = itemPtsCost + (payment.pointsUsed || 0);
-  if (totalPtsCost > customer.currentPoints) {
-    return MSG.validation.insufficientPoints(totalPtsCost, customer.currentPoints);
+  const currentPts = customer.currentPoints ?? 0;
+  if (totalPtsCost > currentPts) {
+    return MSG.validation.insufficientPoints(totalPtsCost, currentPts);
   }
 
   return null; // validation passed

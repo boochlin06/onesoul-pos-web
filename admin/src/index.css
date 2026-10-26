@@ -2,29 +2,175 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* ── 夜晚深色模式 (Dark Theme - Default) ────────────────── */
+:root,
+html.dark {
+  --color-slate-50: 248 250 252;
+  --color-slate-100: 241 245 249;
+  --color-slate-200: 226 232 240;
+  --color-slate-300: 203 213 225;
+  --color-slate-400: 148 163 184;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 71 85 105;
+  --color-slate-700: 51 65 85;
+  --color-slate-750: 39 51 70;
+  --color-slate-800: 30 41 59;
+  --color-slate-850: 22 32 50;
+  --color-slate-900: 15 23 42;
+  --color-slate-950: 11 15 25;
+
+  /* 預設品牌主色 Token (Indigo) */
+  --color-brand-50: 238 242 255;
+  --color-brand-100: 224 231 255;
+  --color-brand-200: 199 210 254;
+  --color-brand-300: 165 180 252;
+  --color-brand-400: 129 140 248;
+  --color-brand-500: 99 102 241;
+  --color-brand-600: 79 70 229;
+  --color-brand-700: 67 56 202;
+  --color-brand-800: 55 48 163;
+  --color-brand-900: 49 46 129;
+
   color-scheme: dark;
 }
 
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: #0b0f19;
+  background-color: rgb(var(--color-slate-950));
+  color: rgb(var(--color-slate-100));
+}
+
+/* ── 白天明亮模式 (Light Theme) ────────────────────────── */
+html.light {
+  --color-slate-50: 2 6 23;
+  --color-slate-100: 15 23 42;
+  --color-slate-200: 30 41 59;
+  --color-slate-300: 51 65 85;
+  --color-slate-400: 100 116 139;
+  --color-slate-500: 148 163 184;
+  --color-slate-600: 203 213 225;
+  --color-slate-700: 226 232 240;
+  --color-slate-750: 233 239 246;
+  --color-slate-800: 241 245 249;
+  --color-slate-850: 248 250 252;
+  --color-slate-900: 255 255 255;
+  --color-slate-950: 246 248 251;
+  color-scheme: light;
+}
+
+html.light body {
+  background-color: #f6f8fb;
+  color: #1e293b;
+}
+
+/* 明亮模式高對比標題與內文自動深色化 */
+html.light .text-white {
+  color: #0f172a;
+}
+
+/* 明亮模式保持彩色功能按鈕的白色字體 */
+html.light button.bg-indigo-600,
+html.light button.bg-indigo-500,
+html.light button.bg-emerald-600,
+html.light button.bg-emerald-500,
+html.light button.bg-rose-600,
+html.light button.bg-rose-500,
+html.light button.bg-amber-600,
+html.light button.bg-blue-600,
+html.light a.bg-indigo-600,
+html.light a.bg-emerald-600,
+html.light [class*="bg-indigo-600"],
+html.light [class*="bg-indigo-500"],
+html.light [class*="bg-brand-600"],
+html.light [class*="bg-brand-500"],
+html.light [class*="bg-emerald-600"],
+html.light [class*="bg-emerald-500"],
+html.light [class*="bg-rose-600"],
+html.light [class*="bg-rose-500"],
+html.light [class*="bg-purple-600"],
+html.light [class*="bg-blue-600"],
+html.light [class*="bg-indigo-"] .text-white,
+html.light [class*="bg-brand-"] .text-white,
+html.light [class*="bg-emerald-"] .text-white,
+html.light [class*="bg-rose-"] .text-white,
+html.light [class*="bg-purple-"] .text-white,
+html.light [class*="bg-blue-"] .text-white {
+  color: #ffffff !important;
+}
+
+/* 明亮模式黃金/琥珀色標籤的深色文字對比優化 */
+html.light .bg-amber-500,
+html.light .bg-amber-400,
+html.light .bg-amber-500 .text-slate-950,
+html.light .bg-amber-400 .text-slate-950,
+html.light [class*="bg-amber-"] .text-slate-950,
+html.light .text-slate-950[class*="bg-amber-"] {
+  color: #0f172a !important;
+}
+
+/* 明亮模式徽章暗色珠寶色深階增強 (WCAG AAA 對比) */
+html.light .text-blue-300 { color: #1d4ed8; }
+html.light .text-amber-300 { color: #b45309; }
+html.light .text-emerald-300 { color: #047857; }
+html.light .text-rose-300 { color: #be123c; }
+html.light .text-purple-300 { color: #6d28d9; }
+html.light .text-cyan-300 { color: #0e7490; }
+html.light .text-indigo-300 { color: #4338ca; }
+
+/* 明亮模式卡片陰影與立體感 */
+html.light .bg-slate-900 {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+}
+
+html.light .bg-slate-800 {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+}
+
+html.light .shadow-2xl {
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04) !important;
+}
+
+/* 明亮模式輸入框與下拉選單背景 */
+html.light select,
+html.light select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+html.dark select,
+html.dark select option {
+  background-color: #0f172a;
   color: #f1f5f9;
 }
 
-/* Custom Scrollbars */
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* 雙向自適應平滑捲軸 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: rgb(var(--color-slate-900));
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgb(var(--color-slate-700));
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgb(var(--color-slate-600));
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

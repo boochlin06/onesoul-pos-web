@@ -8,9 +8,9 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   ArrowUpRight,
+  ArrowRight,
   Store,
-  Clock,
-  Download
+  Clock
 } from 'lucide-react';
 
 interface OverviewViewProps {
@@ -76,14 +76,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, selected
         </div>
 
         <div className="flex items-center gap-3">
-          <a
-            href={reportsApi.getExportUrl('sales')}
-            download
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-xl border border-slate-600 transition"
-          >
-            <Download className="w-4 h-4 text-emerald-400" />
-            串流匯出銷售 CSV
-          </a>
           <button
             onClick={() => onNavigate('lottery')}
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-sm font-semibold rounded-xl shadow-lg shadow-amber-500/20 transition"
@@ -91,6 +83,32 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, selected
             <Gift className="w-4 h-4" />
             快速開套試算
           </button>
+        </div>
+      </div>
+
+      {/* 今日開櫃到關櫃即時戰情捷徑橫幅 */}
+      <div 
+        onClick={() => onNavigate('sessions')}
+        className="bg-gradient-to-r from-emerald-500/10 via-indigo-500/10 to-slate-800/80 p-4 rounded-2xl border border-emerald-500/30 hover:border-emerald-500/60 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">LIVE 營業開班即時戰情 (X-Report)</span>
+              <span className="text-[11px] px-2 py-0.2 rounded bg-slate-900/80 text-emerald-300 font-mono border border-emerald-500/30">開櫃在線中</span>
+            </div>
+            <div className="text-sm font-bold text-white mt-0.5">
+              無需等到打烊關櫃！隨時掌握開櫃至今的即時訂單流水、付款拆分與抽屜應有現金
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 group-hover:translate-x-1 transition self-end sm:self-center shrink-0">
+          <span>進入即時開班戰情流水</span>
+          <ArrowRight className="w-4 h-4" />
         </div>
       </div>
 
@@ -255,29 +273,47 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, selected
             </div>
 
             <div className="space-y-3">
-              <div className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-xl">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1">
-                  <span className="flex items-center gap-1">
-                    <Store className="w-3.5 h-3.5 text-blue-400" /> 竹北門市 (營業 14:00)
-                  </span>
-                  <span className="text-emerald-400">正常營運</span>
-                </div>
-                <div className="text-xs text-slate-400">
-                  早班值班人員：<span className="text-slate-200 font-medium">王小明 (已打卡 13:50)</span>
-                </div>
-              </div>
+              {(() => {
+                const chupeiAtt = attendanceToday.find((a: any) => a.storeId === 'chupei');
+                const jinshanAtt = attendanceToday.find((a: any) => a.storeId === 'jinshan');
+                return (
+                  <>
+                    <div className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-xl">
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1">
+                        <span className="flex items-center gap-1">
+                          <Store className="w-3.5 h-3.5 text-blue-400" /> 竹北門市 (營業 14:00)
+                        </span>
+                        <span className={chupeiAtt ? "text-emerald-400" : "text-slate-400"}>
+                          {chupeiAtt ? "已開櫃營運" : "未開櫃"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        值班人員：
+                        <span className="text-slate-200 font-medium">
+                          {chupeiAtt ? `${chupeiAtt.userName || '店員'} (已打卡 ${new Date(chupeiAtt.clockInTime).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })})` : '尚無打卡紀錄'}
+                        </span>
+                      </div>
+                    </div>
 
-              <div className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-xl">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1">
-                  <span className="flex items-center gap-1">
-                    <Store className="w-3.5 h-3.5 text-amber-400" /> 金山門市 (營業 16:00)
-                  </span>
-                  <span className="text-emerald-400">正常營運</span>
-                </div>
-                <div className="text-xs text-slate-400">
-                  晚班值班人員：<span className="text-slate-200 font-medium">李小華 (預計 15:45 到班)</span>
-                </div>
-              </div>
+                    <div className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-xl">
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1">
+                        <span className="flex items-center gap-1">
+                          <Store className="w-3.5 h-3.5 text-amber-400" /> 金山門市 (營業 16:00)
+                        </span>
+                        <span className={jinshanAtt ? "text-emerald-400" : "text-slate-400"}>
+                          {jinshanAtt ? "已開櫃營運" : "未開櫃"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        值班人員：
+                        <span className="text-slate-200 font-medium">
+                          {jinshanAtt ? `${jinshanAtt.userName || '店員'} (已打卡 ${new Date(jinshanAtt.clockInTime).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })})` : '尚無打卡紀錄'}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 

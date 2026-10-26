@@ -7,7 +7,23 @@ describe('OneSoul ERP Admin API Suite', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    await initPrisma();
+    const prisma = await initPrisma();
+    // 注入測試專屬會員 fixture，確保單元測試自給自足 (Self-contained)
+    await prisma.member.upsert({
+      where: { id: 'm1' },
+      update: {},
+      create: {
+        id: 'm1',
+        phone: '0912345679',
+        name: '王小明',
+        points: 500,
+        gender: '男',
+        tier: 'GOLD',
+        registeredAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
     app = buildApp();
     await app.ready();
   });
@@ -108,16 +124,16 @@ describe('OneSoul ERP Admin API Suite', () => {
       // 成功更新
       const updateRes = await app.inject({
         method: 'PUT',
-        url: '/api/admin/inventory/products/GEN001',
-        payload: { sellingPrice: 350, version: 0 },
+        url: '/api/admin/inventory/products/4',
+        payload: { sellingPrice: 4200, version: 0 },
       });
       expect(updateRes.statusCode).toBe(200);
 
       // 拿舊版本號再次更新應觸發 409 衝突
       const conflictRes = await app.inject({
         method: 'PUT',
-        url: '/api/admin/inventory/products/GEN001',
-        payload: { sellingPrice: 400, version: 0 },
+        url: '/api/admin/inventory/products/4',
+        payload: { sellingPrice: 4500, version: 0 },
       });
       expect(conflictRes.statusCode).toBe(409);
     });
@@ -128,7 +144,7 @@ describe('OneSoul ERP Admin API Suite', () => {
         url: '/api/admin/inventory/adjust-stock',
         payload: {
           storeId: 'chupei',
-          productId: 'GEN001',
+          productId: '4',
           delta: 5,
           reason: '店面樣品回補庫存',
         },
@@ -152,10 +168,10 @@ describe('OneSoul ERP Admin API Suite', () => {
         url: '/api/admin/inventory/batch-update',
         payload: {
           productUpdates: [
-            { id: 'GEN001', sellingPrice: 388, costPrice: 199, suggestedPoints: 19 },
+            { id: '4', sellingPrice: 4500, costPrice: 2500, suggestedPoints: 225 },
           ],
           stockAdjustments: [
-            { storeId: 'chupei', productId: 'GEN001', newQuantity: 28, reason: '試算表批次盤點更新' },
+            { storeId: 'chupei', productId: '4', newQuantity: 28, reason: '試算表批次盤點更新' },
           ],
         },
       });
@@ -167,11 +183,12 @@ describe('OneSoul ERP Admin API Suite', () => {
       // 3. 驗證資料庫實際變更
       const checkRes = await app.inject({
         method: 'GET',
-        url: '/api/admin/inventory/summary?q=GEN001',
+        url: '/api/admin/inventory/summary?q=4',
       });
-      const prod = checkRes.json().data[0];
-      expect(prod.sellingPrice).toBe(388);
-      expect(prod.costPrice).toBe(199);
+      const prod = checkRes.json().data.find((p: any) => p.id === '4');
+      expect(prod).toBeDefined();
+      expect(prod.sellingPrice).toBe(4500);
+      expect(prod.costPrice).toBe(2500);
       expect(prod.storeStocks.chupei).toBe(28);
     });
 
@@ -269,7 +286,7 @@ describe('OneSoul ERP Admin API Suite', () => {
         method: 'POST',
         url: '/api/admin/inventory/products',
         payload: {
-          id: 'GEN001', // 已存在的商品 ID
+          id: '4', // 已存在的商品 ID
           name: '重複貨號測試',
           sellingPrice: 600,
         },
@@ -309,7 +326,7 @@ describe('OneSoul ERP Admin API Suite', () => {
         url: '/api/admin/lottery/boxes',
         payload: {
           mode: 'SINGLE',
-          itemNo: 'GK001',
+          itemNo: '4',
           itemName: '虧本開套測試',
           totalDraws: 80,
           suggestedPrice: 300,
@@ -328,7 +345,7 @@ describe('OneSoul ERP Admin API Suite', () => {
         payload: {
           mode: 'SINGLE',
           storeId: 'chupei',
-          itemNo: 'GK001',
+          itemNo: '4',
           itemName: '即將廢套測試組',
           totalDraws: 50,
           suggestedPrice: 300,
@@ -349,7 +366,7 @@ describe('OneSoul ERP Admin API Suite', () => {
       });
       expect(voidRes.statusCode).toBe(200);
       expect(voidRes.json().data.restoredItems.length).toBeGreaterThan(0);
-      expect(voidRes.json().data.restoredItems[0].productId).toBe('GK001');
+      expect(voidRes.json().data.restoredItems[0].productId).toBe('4');
     });
   });
 

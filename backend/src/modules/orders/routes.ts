@@ -64,6 +64,19 @@ const checkoutSchema = z.object({
   checkoutUID: z.string().optional(),
 });
 
+function isWalkInCustomer(phone: string | null | undefined): boolean {
+  if (!phone) return true;
+  const clean = phone.trim().toUpperCase();
+  const WALK_IN_CODES = ['111111', '222222', '333333', '88888', '99999'];
+  return (
+    WALK_IN_CODES.includes(clean) ||
+    clean.includes('散客') ||
+    clean.includes('WALKIN') ||
+    clean.includes('WALK_IN') ||
+    clean.includes('現場')
+  );
+}
+
 export async function orderRoutes(fastify: FastifyInstance) {
   // 結帳 API (含 iCHEF 冪等防護、行級鎖與庫存原子扣減)
   fastify.post('/checkout', { preHandler: [authenticate] }, async (request, reply) => {
@@ -96,6 +109,24 @@ export async function orderRoutes(fastify: FastifyInstance) {
         newPoints: existingOrder.member?.points ?? 0,
         checkoutUID: existingOrder.checkoutUID,
       };
+    }
+
+    // ── 1.1 散客身分防護 (杜絕 111111/222222 散客點數零元購穿透) ──
+    const isWalkIn = isWalkInCustomer(phone);
+
+    if (isWalkIn) {
+      const hasPointsUsage = payload.payment?.pointsUsed && payload.payment.pointsUsed > 0;
+      const hasMerchPoints = payload.merchandises?.some((m: any) => m.paymentType === '點數' || m.paymentType === 'POINTS');
+      const hasLotteryPoints = payload.lotteries?.some((l: any) => l.type === '點數' || l.paymentType === '點數');
+      const hasPointsCost = payload.lotteries?.some((l: any) => (l.pointsCost || 0) > 0 || l.remark === '點數套');
+      const hasNetPointsDeduction = (payload.summary?.pointsChange || 0) < 0 || (payload.payment?.pointsUsed || 0) > 0;
+
+      if (hasPointsUsage || hasMerchPoints || hasLotteryPoints || hasPointsCost || hasNetPointsDeduction) {
+        return reply.status(400).send({
+          success: false,
+          message: '散客不可使用點數折抵、兌換品項或抽點數套，請先為顧客註冊會員',
+        });
+      }
     }
 
     // ── 2. 後端金額防竄改重新驗證 (Anti-Tampering) ──
@@ -132,9 +163,11 @@ export async function orderRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // ── 3. 查詢/鎖定會員 (行級鎖保護避免 Race Condition) ──
+        // ── 3. 查詢/鎖定會員 (行級鎖保護避免 Race Condition，攔截散客代碼) ──
         let member = null;
-        if (phone) {
+        const isCustomerWalkIn = isWalkInCustomer(phone);
+
+        if (!isCustomerWalkIn && phone) {
           member = await tx.member.findUnique({ where: { phone } });
           if (!member) {
             member = await tx.member.create({
@@ -195,8 +228,13 @@ export async function orderRoutes(fastify: FastifyInstance) {
               data: { drawnCount: { increment: lot.draws } },
             });
 
-            // 若選擇帶走且關聯了實體商品，扣減門市庫存
-            if (lot.type === '帶走' && prizeRecord.productId) {
+            // 🛡️ 實體商品抽中帶走時原子出庫扣減門市庫存 (排除系統虛擬品項如 Z賞非GK、88888、99999)
+            // 若客人選擇「換點數 (POINTS)」放棄帶走，實物留存店內，不扣減 storeInventory
+            const isVirtualSku = !prizeRecord.productId ||
+              prizeRecord.productId.startsWith('SKU-SYS-') ||
+              ['88888', '99999'].includes(prizeRecord.productId);
+
+            if (lot.type === '帶走' && prizeRecord.productId && !isVirtualSku) {
               const inv = await tx.storeInventory.findUnique({
                 where: { storeId_productId: { storeId, productId: prizeRecord.productId } },
               });
@@ -226,7 +264,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
             }
           }
 
-          // 持久化抽獎明細，關鍵：帶入 productId 供未來作廢回補庫存
+          // 持久化抽獎明細，關鍵：帶入 productId 與明確 quantity 供未來作廢回補
           await tx.orderItem.create({
             data: {
               orderId: order.id,
@@ -236,6 +274,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
               prizeGrade: lot.prize,
               prizeName: lot.prizeName,
               pickType: lot.type === '點數' ? DrawPickType.POINTS : DrawPickType.TAKE_AWAY,
+              quantity: lot.draws,
               draws: lot.draws,
               unitPrice: lot.unitPrice,
               amount: lot.amount,
@@ -460,36 +499,99 @@ export async function orderRoutes(fastify: FastifyInstance) {
       // 3. 回補商品庫存與福袋抽數
       for (const item of order.items) {
         if (item.itemType === OrderItemType.LOTTERY && item.bagId && item.prizeGrade) {
+          const itemDraws = item.draws || item.quantity || 1;
           await tx.luckyBagPrize.updateMany({
             where: {
               bagId: item.bagId,
               prizeGrade: { equals: item.prizeGrade, mode: 'insensitive' },
             },
-            data: { drawnCount: { decrement: item.draws || 1 } },
+            data: { drawnCount: { decrement: itemDraws } },
           });
+
+          // 🛡️ 只要不是明確標記為換點數 (POINTS)，實體商品皆為帶走出庫；作廢時原子回補門市庫存
+          const isVirtualSku = !item.productId ||
+            item.productId.startsWith('SKU-SYS-') ||
+            item.productId === '88888' ||
+            item.productId === '99999';
+
+          const isPointsPick = item.pickType === DrawPickType.POINTS || (item.pickType as any) === 'POINTS';
+          if (!isPointsPick && item.productId && !isVirtualSku) {
+            const inv = await tx.storeInventory.findUnique({
+              where: { storeId_productId: { storeId: order.storeId, productId: item.productId } },
+            });
+            let updatedInv;
+            if (inv) {
+              updatedInv = await tx.storeInventory.update({
+                where: { id: inv.id },
+                data: { quantity: { increment: itemDraws } },
+              });
+            } else {
+              updatedInv = await tx.storeInventory.create({
+                data: {
+                  storeId: order.storeId,
+                  productId: item.productId,
+                  quantity: itemDraws,
+                  safetyStock: 1,
+                  version: 0,
+                },
+              });
+            }
+            await tx.inventoryLog.create({
+              data: {
+                storeId: order.storeId,
+                productId: item.productId,
+                changeType: InventoryChangeType.SALE_VOID_RETURN,
+                delta: itemDraws,
+                balance: updatedInv.quantity,
+                orderId: order.id,
+                operator: user?.email,
+                reason: `訂單作廢回補福袋帶走實體商品: ${checkoutUID}`,
+              },
+            });
+          }
         }
 
-        if (item.productId && item.productId !== '88888' && item.productId !== '99999') {
-          const inv = await tx.storeInventory.findUnique({
-            where: { storeId_productId: { storeId: order.storeId, productId: item.productId } },
-          });
+        // 實體商品直售 (MERCHANDISE) 回補庫存
+        if (item.itemType === OrderItemType.MERCHANDISE && item.productId) {
+          const isVirtualSku = !item.productId ||
+            item.productId.startsWith('SKU-SYS-') ||
+            item.productId === '88888' ||
+            item.productId === '99999';
 
-          if (inv) {
-            const updatedInv = await tx.storeInventory.update({
-              where: { id: inv.id },
-              data: { quantity: { increment: item.quantity } },
+          if (!isVirtualSku) {
+            const inv = await tx.storeInventory.findUnique({
+              where: { storeId_productId: { storeId: order.storeId, productId: item.productId } },
             });
+
+            const restockQty = item.quantity || 1;
+            let updatedInv;
+            if (inv) {
+              updatedInv = await tx.storeInventory.update({
+                where: { id: inv.id },
+                data: { quantity: { increment: restockQty } },
+              });
+            } else {
+              updatedInv = await tx.storeInventory.create({
+                data: {
+                  storeId: order.storeId,
+                  productId: item.productId,
+                  quantity: restockQty,
+                  safetyStock: 1,
+                  version: 0,
+                },
+              });
+            }
 
             await tx.inventoryLog.create({
               data: {
                 storeId: order.storeId,
                 productId: item.productId,
                 changeType: InventoryChangeType.SALE_VOID_RETURN,
-                delta: item.quantity,
+                delta: restockQty,
                 balance: updatedInv.quantity,
                 orderId: order.id,
                 operator: user?.email,
-                reason: `訂單作廢回補: ${checkoutUID}`,
+                reason: `訂單作廢回補商品庫存: ${checkoutUID}`,
               },
             });
           }

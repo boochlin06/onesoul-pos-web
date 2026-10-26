@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { auditApi, reportsApi } from '../api/client';
+import { auditApi } from '../api/client';
 import { 
   ShieldCheck, 
   Search, 
-  Download, 
   Hash, 
   Link2, 
   CheckCircle2, 
@@ -53,17 +52,6 @@ export const AuditView: React.FC = () => {
           <p className="text-xs text-slate-400 mt-0.5">
             每一筆關鍵業務異動（調點、改價、作廢、盤差）皆即時計算 SHA-256 前後鏈條雜湊，確保資料庫紀錄具備不可抵賴性。
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <a
-            href={reportsApi.getExportUrl('audit-logs')}
-            download
-            className="flex items-center gap-2 px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-xl border border-slate-600 transition"
-          >
-            <Download className="w-4 h-4 text-emerald-400" />
-            串流匯出審計日誌 CSV
-          </a>
         </div>
       </div>
 

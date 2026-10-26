@@ -16,195 +16,99 @@ export function createMemoryPrisma() {
   }
 
   const store = {
-    // 👥 來自 Google Sheets sheetMemberList 會員主檔
+    // 👥 來自 Google Sheets sheetMemberList 會員主檔 (保留系統專用加點帳號 88888)
     members: (realStore?.members && realStore.members.length > 0) ? [
-      { id: 'm-chen', phone: '0912345678', name: '陳大明', points: 550, gender: '男', birthday: '1992/05/12', note: 'VIP 熟客', tier: 'VIP', registeredAt: new Date('2026-01-10T14:20:00Z'), createdAt: new Date('2026-01-10T14:20:00Z'), updatedAt: new Date('2026-02-15T16:30:00Z') },
-      { id: 'm-chang', phone: '0988776655', name: '張小美', points: 240, gender: '女', birthday: '1995/08/24', note: '金山常客', tier: 'GOLD', registeredAt: new Date('2026-03-01T11:10:00Z'), createdAt: new Date('2026-03-01T11:10:00Z'), updatedAt: new Date('2026-03-01T11:10:00Z') },
       { id: 'm-sys', phone: '88888', name: '加點專用帳號', points: 0, gender: '系統', birthday: null, note: '內部手動調點', tier: 'SYSTEM', registeredAt: new Date('2026-05-01T10:00:00Z'), createdAt: new Date('2026-05-01T10:00:00Z'), updatedAt: new Date('2026-05-01T10:00:00Z') },
-      { id: 'm1', phone: '0912345679', name: '王小明', points: 500, gender: '男', birthday: null, note: '一般會員', tier: 'GOLD', registeredAt: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      { id: 'm2', phone: '0987654321', name: '李小華', points: 120, gender: '女', birthday: null, note: '新註冊會員', tier: 'GENERAL', registeredAt: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      ...realStore.members.filter((m: any) => !['0912345678', '0912345679', '0987654321', '88888'].includes(m.phone)),
+      ...realStore.members.filter((m: any) => m.phone !== '88888'),
     ] : [
-      { id: 'm-chen', phone: '0912345678', name: '陳大明', points: 550, gender: '男', birthday: '1992/05/12', note: 'VIP 熟客', tier: 'VIP', registeredAt: new Date('2026-01-10T14:20:00Z'), createdAt: new Date('2026-01-10T14:20:00Z'), updatedAt: new Date('2026-02-15T16:30:00Z') },
-      { id: 'm-chang', phone: '0988776655', name: '張小美', points: 240, gender: '女', birthday: '1995/08/24', note: '金山常客', tier: 'GOLD', registeredAt: new Date('2026-03-01T11:10:00Z'), createdAt: new Date('2026-03-01T11:10:00Z'), updatedAt: new Date('2026-03-01T11:10:00Z') },
       { id: 'm-sys', phone: '88888', name: '加點專用帳號', points: 0, gender: '系統', birthday: null, note: '內部手動調點', tier: 'SYSTEM', registeredAt: new Date('2026-05-01T10:00:00Z'), createdAt: new Date('2026-05-01T10:00:00Z'), updatedAt: new Date('2026-05-01T10:00:00Z') },
-      { id: 'm1', phone: '0912345679', name: '王小明', points: 500, gender: '男', birthday: null, note: '一般會員', tier: 'GOLD', registeredAt: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      { id: 'm2', phone: '0987654321', name: '李小華', points: 120, gender: '女', birthday: null, note: '新註冊會員', tier: 'GENERAL', registeredAt: new Date(), createdAt: new Date(), updatedAt: new Date() },
     ],
     // 🏢 門市主檔 (竹北旗艦店 vs 金山概念店)
     stores: ((realStore?.stores && realStore.stores.length > 0) ? realStore.stores : [
       { id: 'chupei', name: '竹北店', code: 'CHUPEI', isActive: true, openTime: '14:00', standardHours: 8, lateGraceMinutes: 15, createdAt: new Date(), updatedAt: new Date() },
       { id: 'jinshan', name: '金山店', code: 'JINSHAN', isActive: true, openTime: '16:00', standardHours: 6, lateGraceMinutes: 15, createdAt: new Date(), updatedAt: new Date() },
     ]) as Array<{ id: string; name: string; code?: string; isActive?: boolean; [key: string]: any }>,
-    // 💼 來自 Google Sheets 班次與日結
+    // 💼 來自 Google Sheets 班次與日結 (100% 真實數據，門市啟動時為真實未開櫃狀態)
     sessions: (realStore?.sessions && realStore.sessions.length > 0) ? [
-      { id: 'sess-1', storeId: 'chupei', openingCash: 3000, openedBy: 'onesoul.chupei@gmail.com', status: 'OPEN', openedAt: new Date(), orders: [] },
-      { id: 'sess-2', storeId: 'chupei', openingCash: 3000, actualCash: 2950, expectedCash: 3000, discrepancy: -50, openedBy: 'onesoul.chupei@gmail.com', closedBy: 'onesoul.chupei@gmail.com', status: 'CLOSED', openedAt: new Date('2026-04-01T13:50:00Z'), closedAt: new Date('2026-04-01T22:10:00Z'), totalRevenue: 350, cashRevenue: 350, cardRevenue: 0, remitRevenue: 0, txCount: 1, voidCount: 0, note: '4月首日結算 (短少50元備用金)' },
-      { id: 'sess-3', storeId: 'jinshan', openingCash: 2000, actualCash: 2000, expectedCash: 2000, discrepancy: 0, openedBy: 'onesoul.jinshan@gmail.com', closedBy: 'onesoul.jinshan@gmail.com', status: 'CLOSED', openedAt: new Date('2026-04-01T15:45:00Z'), closedAt: new Date('2026-04-01T21:50:00Z'), totalRevenue: 300, cashRevenue: 0, cardRevenue: 300, remitRevenue: 0, txCount: 1, voidCount: 0, note: '4月首日平帳' },
       ...realStore.sessions,
-    ] : [
-      { id: 'sess-1', storeId: 'chupei', openingCash: 3000, openedBy: 'onesoul.chupei@gmail.com', status: 'OPEN', openedAt: new Date(), orders: [] },
-      { id: 'sess-2', storeId: 'chupei', openingCash: 3000, actualCash: 2950, expectedCash: 3000, discrepancy: -50, openedBy: 'onesoul.chupei@gmail.com', closedBy: 'onesoul.chupei@gmail.com', status: 'CLOSED', openedAt: new Date('2026-04-01T13:50:00Z'), closedAt: new Date('2026-04-01T22:10:00Z'), totalRevenue: 350, cashRevenue: 350, cardRevenue: 0, remitRevenue: 0, txCount: 1, voidCount: 0, note: '4月首日結算 (短少50元備用金)' },
-      { id: 'sess-3', storeId: 'jinshan', openingCash: 2000, actualCash: 2000, expectedCash: 2000, discrepancy: 0, openedBy: 'onesoul.jinshan@gmail.com', closedBy: 'onesoul.jinshan@gmail.com', status: 'CLOSED', openedAt: new Date('2026-04-01T15:45:00Z'), closedAt: new Date('2026-04-01T21:50:00Z'), totalRevenue: 300, cashRevenue: 0, cardRevenue: 300, remitRevenue: 0, txCount: 1, voidCount: 0, note: '4月首日平帳' },
-    ],
-    // 📦 來自 Google Sheets sheetItemDB 貨品資料庫
+    ] : [],
+    // 📦 來自 Google Sheets sheetItemDB 貨品資料庫 (保留 88888/99999 系統調點商品)
     products: (realStore?.products && realStore.products.length > 0) ? [
-      { id: 'GK001', name: '海賊王 魯夫 GK', category: 'GK', isSpecial: false, sellingPrice: 15000, costPrice: 8000, suggestedPoints: 300, version: 0, barcode: '4710001' },
-      { id: 'GEN001', name: '壓克力展示盒', category: 'GENERAL', isSpecial: false, sellingPrice: 300, costPrice: 150, suggestedPoints: 5, version: 0, barcode: '4710002' },
-      { id: 'BB001', name: 'Labubu 盲盒', category: 'BLIND_BOX', isSpecial: false, sellingPrice: 350, costPrice: 200, suggestedPoints: 10, version: 0, barcode: '4710003' },
       { id: '88888', name: '手動加點', category: 'GENERAL', isSpecial: true, sellingPrice: 0, costPrice: 0, suggestedPoints: 0, version: 0, barcode: null },
       { id: '99999', name: '手動扣點', category: 'GENERAL', isSpecial: true, sellingPrice: 0, costPrice: 0, suggestedPoints: 0, version: 0, barcode: null },
       ...realStore.products.filter((p: any) => !['GK001', 'GEN001', 'BB001', '88888', '99999'].includes(p.id)),
     ] : [
-      { id: 'GK001', name: '海賊王 魯夫 GK', category: 'GK', isSpecial: false, sellingPrice: 15000, costPrice: 8000, suggestedPoints: 300, version: 0, barcode: '4710001' },
-      { id: 'GEN001', name: '壓克力展示盒', category: 'GENERAL', isSpecial: false, sellingPrice: 300, costPrice: 150, suggestedPoints: 5, version: 0, barcode: '4710002' },
-      { id: 'BB001', name: 'Labubu 盲盒', category: 'BLIND_BOX', isSpecial: false, sellingPrice: 350, costPrice: 200, suggestedPoints: 10, version: 0, barcode: '4710003' },
       { id: '88888', name: '手動加點', category: 'GENERAL', isSpecial: true, sellingPrice: 0, costPrice: 0, suggestedPoints: 0, version: 0, barcode: null },
       { id: '99999', name: '手動扣點', category: 'GENERAL', isSpecial: true, sellingPrice: 0, costPrice: 0, suggestedPoints: 0, version: 0, barcode: null },
     ] as any[],
     // 📊 跨店水平庫存 (竹北 vs 金山)
     inventories: (realStore?.inventories && realStore.inventories.length > 0) ? [
-      { id: 'inv-1', storeId: 'chupei', productId: 'GK001', quantity: 15, safetyStock: 2, version: 0, updatedAt: new Date() },
-      { id: 'inv-2', storeId: 'jinshan', productId: 'GK001', quantity: 5, safetyStock: 2, version: 0, updatedAt: new Date() },
-      { id: 'inv-3', storeId: 'chupei', productId: 'GEN001', quantity: 60, safetyStock: 10, version: 0, updatedAt: new Date() },
-      { id: 'inv-4', storeId: 'jinshan', productId: 'GEN001', quantity: 30, safetyStock: 5, version: 0, updatedAt: new Date() },
-      { id: 'inv-5', storeId: 'chupei', productId: 'BB001', quantity: 20, safetyStock: 5, version: 0, updatedAt: new Date() },
-      { id: 'inv-6', storeId: 'jinshan', productId: 'BB001', quantity: 0, safetyStock: 2, version: 0, updatedAt: new Date() },
       ...realStore.inventories.filter((i: any) => !['GK001', 'GEN001', 'BB001'].includes(i.productId)),
-    ] : [
-      { id: 'inv-1', storeId: 'chupei', productId: 'GK001', quantity: 15, safetyStock: 2, version: 0, updatedAt: new Date() },
-      { id: 'inv-2', storeId: 'jinshan', productId: 'GK001', quantity: 5, safetyStock: 2, version: 0, updatedAt: new Date() },
-      { id: 'inv-3', storeId: 'chupei', productId: 'GEN001', quantity: 60, safetyStock: 10, version: 0, updatedAt: new Date() },
-      { id: 'inv-4', storeId: 'jinshan', productId: 'GEN001', quantity: 30, safetyStock: 5, version: 0, updatedAt: new Date() },
-      { id: 'inv-5', storeId: 'chupei', productId: 'BB001', quantity: 20, safetyStock: 5, version: 0, updatedAt: new Date() },
-      { id: 'inv-6', storeId: 'jinshan', productId: 'BB001', quantity: 0, safetyStock: 2, version: 0, updatedAt: new Date() },
-    ] as any[],
-    blindBoxes: [
-      { id: 'BB001', name: 'Labubu', points: 10, manualPrice: 350, cost: 200, inventory: 20, remaining: 20 },
-    ],
+    ] : [] as any[],
+    blindBoxes: (realStore?.blindBoxes && realStore.blindBoxes.length > 0)
+      ? realStore.blindBoxes.filter((b: any) => b.id !== 'BB001')
+      : (realStore?.products || [])
+          .filter((p: any) => p.mainCategory === 'BLIND_BOX' || p.category === 'BLIND_BOX')
+          .map((p: any) => {
+            const pInvs = (realStore?.inventories || []).filter((inv: any) => inv.productId === p.id);
+            const storeStocks = pInvs.reduce((acc: any, cur: any) => {
+              acc[cur.storeId] = cur.quantity || 0;
+              return acc;
+            }, { chupei: 0, jinshan: 0 });
+            const totalStock = pInvs.reduce((sum: number, cur: any) => sum + (cur.quantity || 0), 0);
+            return {
+              id: p.id,
+              barcode: p.barcode || `471${p.id}`,
+              name: p.name,
+              category: '盲盒',
+              costPrice: p.costPrice || 0,
+              sellingPrice: p.sellingPrice || 0,
+              suggestedPoints: p.suggestedPoints || Math.round((p.sellingPrice || 0) * 0.05),
+              stock: totalStock,
+              storeStocks,
+              version: p.version || 0,
+              updatedAt: p.updatedAt || new Date().toISOString(),
+            };
+          }),
     // 🎁 來自 Google Sheets sheetLotteryDB 一番賞套組
     luckyBags: (realStore?.luckyBags && realStore.luckyBags.length > 0) ? [
-      { id: 'LB-2026-01', storeId: 'chupei', name: '海賊王一番賞新年限定套', unitPrice: 350, isPointsSet: false, status: 'ACTIVE', createdAt: new Date('2026-01-01T00:00:00Z'), updatedAt: new Date() },
-      ...realStore.luckyBags,
-    ] : [
-      { id: 'LB-2026-01', storeId: 'chupei', name: '海賊王一番賞新年限定套', unitPrice: 350, isPointsSet: false, status: 'ACTIVE', createdAt: new Date('2026-01-01T00:00:00Z'), updatedAt: new Date() },
-    ],
+      ...realStore.luckyBags.filter((b: any) => b.id !== 'LB-2026-01' && !String(b.name || '').includes('海賊王一番賞新年')),
+    ] : [] as any[],
     luckyBagPrizes: (realStore?.luckyBagPrizes && realStore.luckyBagPrizes.length > 0) ? [
-      { id: 'p1', bagId: 'LB-2026-01', prizeGrade: 'A', prizeName: 'A賞 魯夫 MASTERLISE', productId: 'GK001', points: 150, draws: 2, drawnCount: 1, updatedAt: new Date() },
-      { id: 'p2', bagId: 'LB-2026-01', prizeGrade: 'B', prizeName: 'B賞 索隆 MASTERLISE', productId: null, points: 100, draws: 3, drawnCount: 0, updatedAt: new Date() },
-      ...realStore.luckyBagPrizes,
-    ] : [
-      { id: 'p1', bagId: 'LB-2026-01', prizeGrade: 'A', prizeName: 'A賞 魯夫 MASTERLISE', productId: 'GK001', points: 150, draws: 2, drawnCount: 1, updatedAt: new Date() },
-      { id: 'p2', bagId: 'LB-2026-01', prizeGrade: 'B', prizeName: 'B賞 索隆 MASTERLISE', productId: null, points: 100, draws: 3, drawnCount: 0, updatedAt: new Date() },
-    ],
-    // 🛒 來自 Google Sheets 歷史銷售紀錄
+      ...realStore.luckyBagPrizes.filter((p: any) => p.bagId !== 'LB-2026-01'),
+    ] : [] as any[],
+    // 🛒 來自 Google Sheets 歷史銷售紀錄 (100% 真實數據)
     orders: (realStore?.orders && realStore.orders.length > 0) ? [
-      {
-        id: 'ord-1',
-        checkoutUID: 'ORD-2026-001',
-        storeId: 'chupei',
-        memberId: 'm-chen',
-        sessionId: 'sess-2',
-        receivedAmount: 350,
-        cash: 350,
-        creditCard: 0,
-        remittance: 0,
-        pointsUsed: 0,
-        netPointsDelta: 10,
-        status: 'COMPLETED',
-        createdAt: new Date('2026-04-01T14:30:00Z'),
-        orderNote: '首筆抽獎 (Google Sheets 歷史交易)',
-        items: [
-          { id: 'it-1', orderId: 'ord-1', bagId: 'LB-2026-01', prizeGrade: 'A', prizeName: 'A賞 魯夫 MASTERLISE', productId: 'GK001', draws: 1, pickType: 'TAKEAWAY', unitPrice: 350, amount: 350, pointsImpact: 10, remark: '首筆抽獎' },
-        ],
-      },
       ...realStore.orders,
-    ] : [
-      {
-        id: 'ord-1',
-        checkoutUID: 'ORD-2026-001',
-        storeId: 'chupei',
-        memberId: 'm-chen',
-        sessionId: 'sess-2',
-        receivedAmount: 350,
-        cash: 350,
-        creditCard: 0,
-        remittance: 0,
-        pointsUsed: 0,
-        netPointsDelta: 10,
-        status: 'COMPLETED',
-        createdAt: new Date('2026-04-01T14:30:00Z'),
-        orderNote: '首筆抽獎 (Google Sheets 歷史交易)',
-        items: [
-          { id: 'it-1', orderId: 'ord-1', bagId: 'LB-2026-01', prizeGrade: 'A', prizeName: 'A賞 魯夫 MASTERLISE', productId: 'GK001', draws: 1, pickType: 'TAKEAWAY', unitPrice: 350, amount: 350, pointsImpact: 10, remark: '首筆抽獎' },
-        ],
-      },
-      {
-        id: 'ord-2',
-        checkoutUID: 'ORD-2026-002',
-        storeId: 'jinshan',
-        memberId: 'm-chang',
-        sessionId: 'sess-3',
-        receivedAmount: 300,
-        cash: 0,
-        creditCard: 300,
-        remittance: 0,
-        pointsUsed: 0,
-        netPointsDelta: 5,
-        status: 'COMPLETED',
-        createdAt: new Date('2026-04-01T16:15:00Z'),
-        orderNote: '刷卡購盒 (Google Sheets 歷史交易)',
-        items: [
-          { id: 'it-2', orderId: 'ord-2', productId: 'GEN001', prizeName: '壓克力展示盒', draws: 1, pickType: 'TAKEAWAY', unitPrice: 300, amount: 300, pointsImpact: 5, remark: '刷卡購盒' },
-        ],
-      },
-      {
-        id: 'ord-3',
-        checkoutUID: 'ORD-2026-003',
-        storeId: 'chupei',
-        memberId: 'm-sys',
-        sessionId: 'sess-1',
-        receivedAmount: 0,
-        cash: 0,
-        creditCard: 0,
-        remittance: 0,
-        pointsUsed: 0,
-        netPointsDelta: 50,
-        status: 'COMPLETED',
-        createdAt: new Date('2026-04-01T18:00:00Z'),
-        orderNote: '活動補發點數 (Google Sheets 歷史紀錄)',
-        items: [
-          { id: 'it-3', orderId: 'ord-3', productId: '88888', prizeName: '手動加點', draws: 1, pickType: 'POINTS', unitPrice: 0, amount: 0, pointsImpact: 50, remark: '活動補發點數' },
-        ],
-      },
-    ] as any[],
+    ] : [] as any[],
     // 🪙 點數歷程
-    pointLogs: [
-      { id: 'pl-1', memberId: 'm-chen', type: 'MANUAL', delta: 500, balance: 500, reason: 'Google Sheets 舊系統點數期初結轉', operator: '系統遷移', createdAt: new Date('2026-01-10T14:20:00Z') },
-      { id: 'pl-2', memberId: 'm-chen', type: 'SALE_REWARD', delta: 50, balance: 550, reason: '結帳消費回饋點數', operator: 'POS', createdAt: new Date('2026-02-15T16:30:00Z') },
-      { id: 'pl-3', memberId: 'm-chang', type: 'MANUAL', delta: 240, balance: 240, reason: 'Google Sheets 舊系統點數期初結轉', operator: '系統遷移', createdAt: new Date('2026-03-01T11:10:00Z') },
-    ] as any[],
+    pointLogs: (realStore?.pointLogs && realStore.pointLogs.length > 0) ? [
+      ...realStore.pointLogs,
+    ] : [] as any[],
     inventoryLogs: [] as any[],
     stocktakes: [] as any[],
     stocktakeItems: [] as any[],
-    voidSetLogs: [] as any[],
+    voidSetLogs: (realStore?.voidSetLogs && realStore.voidSetLogs.length > 0) ? realStore.voidSetLogs : [] as any[],
+    purchaseOrders: (realStore?.purchaseOrders && realStore.purchaseOrders.length > 0) ? realStore.purchaseOrders : [] as any[],
+    preOrders: (realStore?.preOrders && realStore.preOrders.length > 0) ? realStore.preOrders : [] as any[],
+    prizeAllocationPlans: (realStore?.prizeAllocationPlans && realStore.prizeAllocationPlans.length > 0) ? realStore.prizeAllocationPlans : [] as any[],
     attendances: [] as any[],
     schedules: [] as any[],
     users: [
       { id: 'u1', email: 'onesoul.admin@gmail.com', name: '總管理員', role: 'SUPER_ADMIN', assignedStoreId: null, isActive: true, createdAt: new Date() },
       { id: 'u2', email: 'onesoul.chupei@gmail.com', name: '竹北店長', role: 'STORE_MANAGER', assignedStoreId: 'chupei', isActive: true, createdAt: new Date() },
     ] as any[],
-    shiftSchedules: [
-      { id: 'sch-1', storeId: 'chupei', date: '2026-10-09', staffName: '王小明', staffEmail: 'onesoul.chupei@gmail.com', shiftType: 'FULL', isClosed: false, note: null, createdAt: new Date(), updatedAt: new Date() },
-    ] as any[],
+    shiftSchedules: (realStore?.shiftSchedules && realStore.shiftSchedules.length > 0) ? [
+      ...realStore.shiftSchedules,
+    ] : [] as any[],
     attendanceRecords: [] as any[],
     integrationConfigs: [
-      { id: 'cfg-1', key: 'LINE_NOTIFY', value: { token: 'mock-token', channels: [{ name: 'admin', targetId: 'mock-admin-group' }] }, description: 'LINE 推播設定', isEnabled: true, updatedAt: new Date() },
-      { id: 'cfg-2', key: 'TRELLO_BOARD', value: { apiKey: 'mock-trello-key', token: 'mock-trello-token', listId: 'mock-list' }, description: 'Trello GK 卡片設定', isEnabled: true, updatedAt: new Date() },
+      { id: 'cfg-1', key: 'LINE_NOTIFY', value: { token: '', channels: [] }, description: 'LINE 推播設定', isEnabled: false, updatedAt: new Date() },
+      { id: 'cfg-2', key: 'TRELLO_BOARD', value: { apiKey: '', token: '', listId: '' }, description: 'Trello GK 卡片設定', isEnabled: false, updatedAt: new Date() },
     ] as any[],
     outboxTasks: [] as any[],
     emergencyNotices: [] as any[],
-    auditLogs: [
+    auditLogs: (realStore?.auditLogs && realStore.auditLogs.length > 0) ? realStore.auditLogs : [
       {
         id: 'audit-mig-1',
         operatorId: 'migration-engine',
@@ -264,6 +168,16 @@ export function createMemoryPrisma() {
         store.stores.push(s);
         return s;
       },
+      update: async ({ where, data }: any) => {
+        const s = store.stores.find((st) => st.id === where.id);
+        if (s) Object.assign(s, data, { updatedAt: new Date() });
+        return s;
+      },
+      delete: async ({ where }: any) => {
+        const idx = store.stores.findIndex((st) => st.id === where.id);
+        if (idx >= 0) return store.stores.splice(idx, 1)[0];
+        return null;
+      },
     },
     member: {
       findMany: async () => store.members,
@@ -300,6 +214,22 @@ export function createMemoryPrisma() {
       update: async ({ where, data }: any) => {
         const m = store.members.find((it) => it.id === where.id);
         if (m) Object.assign(m, data);
+        return m;
+      },
+      upsert: async ({ where, create, update }: any) => {
+        let m = store.members.find((it) => it.id === where.id || (where.phone && it.phone === where.phone));
+        if (m) {
+          Object.assign(m, update, { updatedAt: new Date() });
+        } else {
+          m = {
+            id: where.id || create.id || `m-${Date.now()}`,
+            ...create,
+            registeredAt: create.registeredAt || new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          store.members.push(m);
+        }
         return m;
       },
     },
@@ -345,7 +275,9 @@ export function createMemoryPrisma() {
       findMany: async ({ where }: any = {}) => {
         let res = store.products;
         if (where?.id) res = res.filter((p) => p.id === where.id);
-        if (where?.category) res = res.filter((p) => p.category === where.category);
+        if (where?.mainCategory) res = res.filter((p) => p.mainCategory === where.mainCategory);
+        if (where?.subCategory) res = res.filter((p) => p.subCategory === where.subCategory);
+        if (where?.category) res = res.filter((p) => p.category === where.category || p.subCategory === where.category);
         return res;
       },
       findUnique: async ({ where }: any) => store.products.find((p) => p.id === where.id || (where.barcode && p.barcode === where.barcode)) || null,
@@ -380,7 +312,14 @@ export function createMemoryPrisma() {
     storeInventory: {
       findMany: async ({ where }: any = {}) => {
         return store.inventories
-          .filter((inv) => (!where?.storeId || inv.storeId === where.storeId))
+          .filter((inv) => {
+            if (where?.storeId && inv.storeId !== where.storeId) return false;
+            if (where?.productId) {
+              if (typeof where.productId === 'string' && inv.productId !== where.productId) return false;
+              if (where.productId.in && Array.isArray(where.productId.in) && !where.productId.in.includes(inv.productId)) return false;
+            }
+            return true;
+          })
           .map((inv) => ({
             ...inv,
             product: store.products.find((p) => p.id === inv.productId) || { name: 'Unknown', category: 'GENERAL', suggestedPoints: 0 },
@@ -441,6 +380,20 @@ export function createMemoryPrisma() {
     },
     blindBox: {
       findMany: async () => store.blindBoxes,
+      findUnique: async ({ where }: any) => {
+        return store.blindBoxes.find((it: any) => it.id === where.id) || null;
+      },
+      update: async ({ where, data }: any) => {
+        const item = store.blindBoxes.find((it: any) => it.id === where.id);
+        if (!item) throw new Error(`Blind box ${where.id} not found`);
+        Object.assign(item, data, { updatedAt: new Date() });
+        return item;
+      },
+      create: async ({ data }: any) => {
+        const item = { ...data, createdAt: new Date(), updatedAt: new Date() };
+        store.blindBoxes.push(item);
+        return item;
+      },
     },
     luckyBag: {
       findMany: async () => {
@@ -478,7 +431,20 @@ export function createMemoryPrisma() {
       },
       findMany: async ({ where }: any = {}) => {
         let res = store.luckyBagPrizes;
-        if (where?.bagId) res = res.filter((p: any) => p.bagId === where.bagId);
+        if (where?.bagId) {
+          if (typeof where.bagId === 'object' && Array.isArray(where.bagId.in)) {
+            res = res.filter((p: any) => where.bagId.in.includes(p.bagId));
+          } else {
+            res = res.filter((p: any) => p.bagId === where.bagId);
+          }
+        }
+        if (where?.productId) {
+          if (typeof where.productId === 'object' && where.productId.not === null) {
+            res = res.filter((p: any) => p.productId !== null && p.productId !== undefined);
+          } else if (typeof where.productId === 'string') {
+            res = res.filter((p: any) => p.productId === where.productId);
+          }
+        }
         return res;
       },
       create: async ({ data }: any) => {
@@ -550,7 +516,7 @@ export function createMemoryPrisma() {
           }));
       },
       create: async ({ data }: any) => {
-        const created = { id: `ord-${Date.now()}`, ...data, items: [], createdAt: new Date(), updatedAt: new Date() };
+        const created = { id: `ord-${Date.now()}`, ...data, items: data.items || [], createdAt: data.createdAt || new Date(), updatedAt: new Date() };
         store.orders.push(created);
         return created;
       },
@@ -560,7 +526,7 @@ export function createMemoryPrisma() {
           store.orders.push({
             id: ord.id || `ord-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             ...ord,
-            items: [],
+            items: ord.items || [],
             createdAt: ord.createdAt || new Date(),
             updatedAt: new Date(),
           });
@@ -653,6 +619,139 @@ export function createMemoryPrisma() {
         return data;
       },
       findMany: async () => store.voidSetLogs,
+    },
+    purchaseOrder: {
+      findMany: async ({ where, take, skip }: any = {}) => {
+        let res = store.purchaseOrders;
+        if (where?.status) res = res.filter((p: any) => p.status === where.status);
+        if (skip) res = res.slice(skip);
+        if (take) res = res.slice(0, take);
+        return res;
+      },
+      count: async ({ where }: any = {}) => {
+        let res = store.purchaseOrders;
+        if (where?.status) res = res.filter((p: any) => p.status === where.status);
+        return res.length;
+      },
+      findUnique: async ({ where }: any) => store.purchaseOrders.find((p: any) => p.id === where.id || (where.orderNo && p.orderNo === where.orderNo)) || null,
+      create: async ({ data }: any) => {
+        const po = { id: `po-${Date.now()}`, ...data, createdAt: new Date(), updatedAt: new Date() };
+        store.purchaseOrders.push(po);
+        return po;
+      },
+      update: async ({ where, data }: any) => {
+        const po = store.purchaseOrders.find((p: any) => p.id === where.id);
+        if (po) Object.assign(po, data, { updatedAt: new Date() });
+        return po;
+      },
+    },
+    preOrder: {
+      findMany: async ({ where, take, skip, orderBy, include }: any = {}) => {
+        let res = store.preOrders;
+        if (where?.status) res = res.filter((p: any) => p.status === where.status);
+        if (where?.supplier) res = res.filter((p: any) => p.supplier === where.supplier);
+        if (where?.q) {
+          const qLower = String(where.q).toLowerCase();
+          res = res.filter((p: any) => 
+            String(p.name || '').toLowerCase().includes(qLower) || 
+            String(p.supplier || '').toLowerCase().includes(qLower)
+          );
+        }
+        if (orderBy?.createdAt === 'desc') {
+          res = [...res].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+        if (skip) res = res.slice(skip);
+        if (take) res = res.slice(0, take);
+        if (include?.product || include?.targetStore) {
+          res = res.map((p: any) => ({
+            ...p,
+            product: include?.product ? store.products.find((prod: any) => prod.id === p.productId) || null : undefined,
+            targetStore: include?.targetStore ? store.stores.find((s: any) => s.id === p.targetStoreId) || null : undefined,
+          }));
+        }
+        return res;
+      },
+      count: async ({ where }: any = {}) => {
+        let res = store.preOrders;
+        if (where?.status) res = res.filter((p: any) => p.status === where.status);
+        if (where?.supplier) res = res.filter((p: any) => p.supplier === where.supplier);
+        return res.length;
+      },
+      findUnique: async ({ where, include }: any) => {
+        const p = store.preOrders.find((it: any) => it.id === where.id) || null;
+        if (!p) return null;
+        return {
+          ...p,
+          product: include?.product ? store.products.find((prod: any) => prod.id === p.productId) || null : undefined,
+          targetStore: include?.targetStore ? store.stores.find((s: any) => s.id === p.targetStoreId) || null : undefined,
+        };
+      },
+      findFirst: async ({ where, include }: any = {}) => {
+        let res = store.preOrders;
+        if (where?.productId) res = res.filter((p: any) => p.productId === where.productId);
+        if (where?.id?.not) res = res.filter((p: any) => p.id !== where.id.not);
+        if (where?.status) res = res.filter((p: any) => p.status === where.status);
+        const p = res[0] || null;
+        if (!p) return null;
+        return {
+          ...p,
+          product: include?.product ? store.products.find((prod: any) => prod.id === p.productId) || null : undefined,
+          targetStore: include?.targetStore ? store.stores.find((s: any) => s.id === p.targetStoreId) || null : undefined,
+        };
+      },
+      create: async ({ data }: any) => {
+        const pre = {
+          id: data.id || `pre-${Date.now()}`,
+          ...data,
+          status: data.status || 'PENDING',
+          createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+          updatedAt: new Date(),
+        };
+        store.preOrders.push(pre);
+        return pre;
+      },
+      update: async ({ where, data }: any) => {
+        const pre = store.preOrders.find((p: any) => p.id === where.id);
+        if (pre) Object.assign(pre, data, { updatedAt: new Date() });
+        return pre;
+      },
+      updateMany: async ({ where, data }: any) => {
+        let count = 0;
+        store.preOrders.forEach((p: any) => {
+          let match = true;
+          if (where?.id && p.id !== where.id) match = false;
+          if (where?.status && p.status !== where.status) match = false;
+          if (match) {
+            Object.assign(p, data, { updatedAt: new Date() });
+            count++;
+          }
+        });
+        return { count };
+      },
+    },
+    prizeAllocationPlan: {
+      findMany: async ({ where }: any = {}) => {
+        let res = store.prizeAllocationPlans;
+        if (where?.storeId) res = res.filter((p: any) => p.storeId === where.storeId);
+        if (where?.status) res = res.filter((p: any) => p.status === where.status);
+        return res;
+      },
+      findUnique: async ({ where }: any) => store.prizeAllocationPlans.find((p: any) => p.id === where.id) || null,
+      create: async ({ data }: any) => {
+        const plan = { id: `plan-${Date.now()}`, ...data, createdAt: new Date(), updatedAt: new Date() };
+        store.prizeAllocationPlans.push(plan);
+        return plan;
+      },
+      update: async ({ where, data }: any) => {
+        const plan = store.prizeAllocationPlans.find((p: any) => p.id === where.id);
+        if (plan) Object.assign(plan, data, { updatedAt: new Date() });
+        return plan;
+      },
+      delete: async ({ where }: any) => {
+        const idx = store.prizeAllocationPlans.findIndex((p: any) => p.id === where.id);
+        if (idx >= 0) return store.prizeAllocationPlans.splice(idx, 1)[0];
+        return null;
+      },
     },
     user: {
       findMany: async () => store.users,

@@ -27,12 +27,14 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestInit
 
 // ── 會員 API ──────────────────────────────────────────────────
 export const membersApi = {
-  list: (params: { q?: string; tier?: string; page?: number; pageSize?: number } = {}) => {
+  list: (params: { q?: string; tier?: string; page?: number; pageSize?: number; sortBy?: string; sortOrder?: string } = {}) => {
     const query = new URLSearchParams();
     if (params.q) query.set('q', params.q);
     if (params.tier) query.set('tier', params.tier);
     if (params.page) query.set('page', String(params.page));
     if (params.pageSize) query.set('pageSize', String(params.pageSize));
+    if (params.sortBy) query.set('sortBy', params.sortBy);
+    if (params.sortOrder) query.set('sortOrder', params.sortOrder);
     return apiRequest(`/admin/members?${query.toString()}`);
   },
   adjustPoints: (id: string, delta: number, reason: string) => {
@@ -46,10 +48,19 @@ export const membersApi = {
 
 // ── 庫存與商品 API ──────────────────────────────────────────────
 export const inventoryApi = {
-  summary: (params: { q?: string; category?: string; lowStockOnly?: boolean; page?: number; pageSize?: number; sortBy?: string; sortOrder?: string } = {}) => {
+  suggest: (params: { q: string; storeId?: string; limit?: number }) => {
     const query = new URLSearchParams();
     if (params.q) query.set('q', params.q);
+    if (params.storeId) query.set('storeId', params.storeId);
+    if (params.limit !== undefined) query.set('limit', String(params.limit));
+    return apiRequest(`/admin/inventory/suggest?${query.toString()}`);
+  },
+  summary: (params: { q?: string; mainCategory?: string; category?: string; storeId?: string; lowStockOnly?: boolean; page?: number; pageSize?: number; sortBy?: string; sortOrder?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.q) query.set('q', params.q);
+    if (params.mainCategory) query.set('mainCategory', params.mainCategory);
     if (params.category) query.set('category', params.category);
+    if (params.storeId) query.set('storeId', params.storeId);
     if (params.lowStockOnly) query.set('lowStockOnly', 'true');
     if (params.page !== undefined) query.set('page', String(params.page));
     if (params.pageSize !== undefined) query.set('pageSize', String(params.pageSize));
@@ -154,6 +165,39 @@ export const lotteryApi = {
   },
 };
 
+// ── 配賞工作台 API (Prize Allocation Workbench) ──────────────────
+export const allocationApi = {
+  getLiveStock: (params: { storeId?: string; mainCategory?: string; category?: string; q?: string; minQty?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.storeId) query.set('storeId', params.storeId);
+    if (params.mainCategory) query.set('mainCategory', params.mainCategory);
+    if (params.category) query.set('category', params.category);
+    if (params.q) query.set('q', params.q);
+    if (params.minQty !== undefined) query.set('minQty', String(params.minQty));
+    return apiRequest(`/admin/allocation/live-stock?${query.toString()}`);
+  },
+  getPlans: () => {
+    return apiRequest('/admin/allocation/plans');
+  },
+  savePlan: (data: any) => {
+    return apiRequest('/admin/allocation/plans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  deletePlan: (id: string) => {
+    return apiRequest(`/admin/allocation/plans/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  publishPlan: (data: any) => {
+    return apiRequest('/admin/allocation/plans/publish', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
 // ── 報表與銷售 API ──────────────────────────────────────────────
 export const reportsApi = {
   sales: (params: { storeId?: string; startDate?: string; endDate?: string; paymentMethod?: string; page?: number; pageSize?: number } = {}) => {
@@ -178,7 +222,7 @@ export const reportsApi = {
       body: JSON.stringify({ voidReason }),
     });
   },
-  getExportUrl: (resource: 'members' | 'inventory' | 'sales' | 'audit-logs') => {
+  getExportUrl: (resource: 'members' | 'inventory' | 'sales' | 'audit-logs' | 'sessions' | 'luckybags' | 'purchase-orders' | 'pre-orders') => {
     return `${API_BASE}/admin/export/${resource}`;
   },
 };
@@ -208,7 +252,7 @@ export const scheduleApi = {
   },
 };
 
-// ── 系統設定與公告 API ──────────────────────────────────────────
+// ── 系統設定、門市擴增與品牌 API ──────────────────────────────
 export const settingsApi = {
   getIntegrations: () => apiRequest('/admin/settings/integrations'),
   saveIntegration: (key: string, value: any, description?: string, isEnabled = true) => {
@@ -224,6 +268,49 @@ export const settingsApi = {
     });
   },
   getNotices: () => apiRequest('/admin/settings/emergency-notices'),
+  // 動態門市擴增 (上限 5 間)
+  getStores: () => apiRequest('/admin/settings/stores'),
+  createStore: (data: { name: string; code?: string; openTime?: string; standardHours?: number }) => {
+    return apiRequest('/admin/settings/stores', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  updateStore: (id: string, data: any) => {
+    return apiRequest(`/admin/settings/stores/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  deleteStore: (id: string) => {
+    return apiRequest(`/admin/settings/stores/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  // 店家品牌資訊客製化
+  getBrand: () => apiRequest('/admin/settings/brand'),
+  updateBrand: (data: {
+    brandName: string;
+    brandSubtitle?: string;
+    logoText?: string;
+    supportPhone?: string;
+    primaryColor?: string;
+    blindBoxPointsValue?: number;
+    pointRateTwd?: number;
+    smallPrizePointsValue?: number;
+  }) => {
+    return apiRequest('/admin/settings/brand', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+export const storesApi = {
+  list: () => settingsApi.getStores(),
+  create: (data: any) => settingsApi.createStore(data),
+  update: (id: string, data: any) => settingsApi.updateStore(id, data),
+  delete: (id: string) => settingsApi.deleteStore(id),
 };
 
 // ── 審計日誌 API ────────────────────────────────────────────────
@@ -245,6 +332,34 @@ export const posCoreApi = {
   getStores: () => apiRequest('/v1/stores'),
 };
 
+// ── 營業班次與開關櫃即時戰情 API ──────────────────────────────
+export const sessionsAdminApi = {
+  getLiveShift: (storeId?: string, sessionId?: string) => {
+    const query = new URLSearchParams();
+    if (storeId) query.set('storeId', storeId);
+    if (sessionId) query.set('sessionId', sessionId);
+    return apiRequest(`/admin/sessions/live-shift?${query.toString()}`);
+  },
+  openSession: (data: { storeId: string; amount: number; openedBy?: string }) => {
+    return apiRequest('/admin/sessions/open', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  closeSession: (data: { storeId: string; actualCash: number; note?: string; closedBy?: string }) => {
+    return apiRequest('/admin/sessions/close', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  simulateOrder: (data?: any) => {
+    return apiRequest('/admin/sessions/simulate-order', {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    });
+  },
+};
+
 // ── Google Sheets 全量一鍵極速遷移 API ──────────────────────────
 export const migrationApi = {
   getStatus: () => apiRequest('/admin/migration/status'),
@@ -257,3 +372,62 @@ export const migrationApi = {
   getHistory: () => apiRequest('/admin/migration/history'),
   getProgressStreamUrl: () => `${API_BASE}/admin/migration/progress`,
 };
+
+// ── 盲盒商品資料庫專區 API ──────────────────────────────────────
+export const blindBoxesApi = {
+  list: (params?: { q?: string; storeId?: string; sortBy?: string; sortOrder?: string; page?: number; pageSize?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.q) query.set('q', params.q);
+    if (params?.storeId) query.set('storeId', params.storeId);
+    if (params?.sortBy) query.set('sortBy', params.sortBy);
+    if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+    return apiRequest(`/admin/blindboxes?${query.toString()}`);
+  },
+  update: (id: string, data: any) => {
+    return apiRequest(`/admin/blindboxes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  batchUpdate: (updates: any[], reason?: string) => {
+    return apiRequest('/admin/blindboxes/batch-update', {
+      method: 'POST',
+      body: JSON.stringify({ updates, reason }),
+    });
+  },
+};
+
+// ── 廠商預購管理 API ──────────────────────────────────────────
+export const preOrdersApi = {
+  list: (params?: { q?: string; status?: string; supplier?: string; page?: number; pageSize?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.q) query.set('q', params.q);
+    if (params?.status) query.set('status', params.status);
+    if (params?.supplier) query.set('supplier', params.supplier);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+    return apiRequest(`/admin/preorders?${query.toString()}`);
+  },
+  suggestNextId: () => apiRequest('/admin/preorders/suggest-next-id'),
+  create: (data: any) => {
+    return apiRequest('/admin/preorders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  receive: (id: string, data: any) => {
+    return apiRequest(`/admin/preorders/${id}/receive`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  cancel: (id: string, reason?: string) => {
+    return apiRequest(`/admin/preorders/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+};
+

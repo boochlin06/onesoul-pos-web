@@ -99,13 +99,28 @@ function _getChannelTargets(channel) {
 // ── 用量追蹤 ──────────────────────────────────────────────
 
 /**
- * 記錄每次 doPost 呼叫（GAS API 整體用量）
+ * 記錄每次 doPost 呼叫（GAS API 整體用量，滾動清理歷史舊 Key，避免膨脹 500KB）
  */
 function _countGasCall() {
   try {
     var props = PropertiesService.getScriptProperties();
     var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd');
     var month = today.substring(0, 6);
+
+    // 換日自動釋放舊日期的暫存 Key，防止墓碑堆積
+    var lastDate = props.getProperty('gas_api_last_date');
+    if (lastDate && lastDate !== today) {
+      try {
+        props.deleteProperty('gas_api_' + lastDate);
+        props.deleteProperty('uf_push_' + lastDate);
+        props.deleteProperty('uf_reply_' + lastDate);
+        props.deleteProperty('uf_total_' + lastDate);
+      } catch(delErr) {}
+      props.setProperty('gas_api_last_date', today);
+    } else if (!lastDate) {
+      props.setProperty('gas_api_last_date', today);
+    }
+
     var dayKey = 'gas_api_' + today;
     var monthKey = 'gas_api_month_' + month;
     props.setProperty(dayKey, String(parseInt(props.getProperty(dayKey) || '0') + 1));
@@ -134,6 +149,53 @@ function _countUrlFetch(type) {
     }
   } catch(e) {
     console.warn("UrlFetch 額度紀錄失敗: " + e.message);
+  }
+}
+
+/**
+ * 針對性清理歷史累積的無用屬性：
+ * 只刪除歷史日期計數器 (gas_api_YYYYMMDD / uf_*_YYYYMMDD) 與舊版 draft_* 草稿
+ * 嚴格保留 API_KEY, ALLOWED_EMAILS, GOOGLE_CLIENT_ID, openingCash_*, LINE_* 等業務屬性
+ */
+function purgeLegacyQuotaAndDraftProperties() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var all = props.getProperties();
+    var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd');
+    var month = today.substring(0, 6);
+    var keysToDelete = [];
+
+    for (var k in all) {
+      // 1. 清理舊版 draft_* (已遷移至 CacheService)
+      if (k.indexOf('draft_') === 0) {
+        keysToDelete.push(k);
+        continue;
+      }
+      // 2. 清理歷史計數器 (非今日、非本月的計數器)
+      if (k.indexOf('gas_api_') === 0) {
+        if (k !== ('gas_api_' + today) && k !== ('gas_api_month_' + month) && k !== 'gas_api_last_date') {
+          keysToDelete.push(k);
+        }
+        continue;
+      }
+      if (k.indexOf('uf_') === 0) {
+        if (k !== ('uf_push_' + today) && k !== ('uf_reply_' + today) && k !== ('uf_total_' + today) && k !== ('uf_push_month_' + month)) {
+          keysToDelete.push(k);
+        }
+        continue;
+      }
+    }
+
+    // 針對性逐一刪除
+    for (var i = 0; i < keysToDelete.length; i++) {
+      try {
+        props.deleteProperty(keysToDelete[i]);
+      } catch(delE) {}
+    }
+
+    return { success: true, count: keysToDelete.length, message: '已針對性清除 ' + keysToDelete.length + ' 個歷史垃圾屬性' };
+  } catch(error) {
+    return { success: false, message: error.toString() };
   }
 }
 

@@ -257,6 +257,30 @@ export const adminReportsRoutes: FastifyPluginAsync = async (fastify) => {
         for (const l of logs) {
           yield `${sanitizeCsvCell(l.id)},${sanitizeCsvCell(l.operatorId)},${sanitizeCsvCell(l.action)},${sanitizeCsvCell(l.targetType)},${sanitizeCsvCell(l.targetId)},${l.delta ?? 0},${sanitizeCsvCell(l.reason)},${sanitizeCsvCell(l.prevHash)},${sanitizeCsvCell(l.currentHash)},${sanitizeCsvCell(new Date(l.createdAt).toISOString())}\n`;
         }
+      } else if (resource === 'sessions') {
+        yield '班次ID,門市,開櫃準備金,實收現金,應收現金,現金差異,本日營業額,交易筆數,關帳時間\n';
+        const sessions = await prisma.cashRegisterSession.findMany({ orderBy: { openedAt: 'desc' } });
+        for (const s of sessions) {
+          yield `${sanitizeCsvCell(s.id)},${sanitizeCsvCell(s.storeId)},${s.openingCash},${s.actualCash ?? 0},${s.expectedCash ?? 0},${s.discrepancy ?? 0},${s.totalRevenue ?? 0},${s.txCount ?? 0},${sanitizeCsvCell(s.closedAt ? new Date(s.closedAt).toISOString() : '')}\n`;
+        }
+      } else if (resource === 'luckybags') {
+        yield '套號,門市,套名,單抽售價,狀態,建立時間\n';
+        const bags = await prisma.luckyBag.findMany({ orderBy: { createdAt: 'desc' } });
+        for (const b of bags) {
+          yield `${sanitizeCsvCell(b.id)},${sanitizeCsvCell(b.storeId)},${sanitizeCsvCell(b.name)},${b.unitPrice},${sanitizeCsvCell(b.status)},${sanitizeCsvCell(new Date(b.createdAt).toISOString())}\n`;
+        }
+      } else if (resource === 'purchase-orders') {
+        yield '採購單號,品名說明,廠商,單價,竹北量,金山量,總採購量,總採購金額,狀態,建立時間\n';
+        const pos = await (prisma as any).purchaseOrder?.findMany({ orderBy: { createdAt: 'desc' } }) || [];
+        for (const p of pos) {
+          yield `${sanitizeCsvCell(p.orderNo)},${sanitizeCsvCell(p.title)},${sanitizeCsvCell(p.supplier || '')},${p.unitPrice},${p.qtyChupei},${p.qtyJinshan},${p.totalQty},${p.totalAmount},${sanitizeCsvCell(p.status)},${sanitizeCsvCell(new Date(p.createdAt).toISOString())}\n`;
+        }
+      } else if (resource === 'pre-orders') {
+        yield '預購名稱,版本,數量,預付訂金,廠商,狀態,建立時間\n';
+        const pres = await (prisma as any).preOrder?.findMany({ orderBy: { createdAt: 'desc' } }) || [];
+        for (const pr of pres) {
+          yield `${sanitizeCsvCell(pr.name)},${sanitizeCsvCell(pr.version || '')},${pr.quantity},${pr.deposit},${sanitizeCsvCell(pr.supplier || '')},${sanitizeCsvCell(pr.status)},${sanitizeCsvCell(new Date(pr.createdAt).toISOString())}\n`;
+        }
       } else {
         yield '未知資源\n';
       }

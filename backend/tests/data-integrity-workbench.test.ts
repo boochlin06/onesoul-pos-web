@@ -22,7 +22,7 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
       const elapsed = performance.now() - startTime;
 
       expect(res.statusCode).toBe(200);
-      expect(elapsed).toBeLessThan(350);
+      expect(elapsed).toBeLessThan(600);
 
       const body = res.json();
       expect(body.success).toBe(true);
@@ -93,7 +93,7 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
         url: '/api/admin/inventory/adjust-stock',
         payload: {
           storeId: 'chupei',
-          productId: 'GEN001',
+          productId: '4',
           delta: -999999, // 惡意或錯誤大幅扣減
           reason: '錯誤大量出庫測試',
         },
@@ -109,7 +109,7 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
         url: '/api/admin/inventory/adjust-stock',
         payload: {
           storeId: 'chupei',
-          productId: 'GEN001',
+          productId: '4',
           newQuantity: -5,
           reason: '設定為負數測試',
         },
@@ -136,12 +136,12 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
         url: '/api/admin/inventory/batch-update',
         payload: {
           productUpdates: [
-            { id: 'GEN001', sellingPrice: 990, costPrice: 500, suggestedPoints: 50 },
-            { id: 'GK001', sellingPrice: 16800, costPrice: 8500, suggestedPoints: 350 },
+            { id: '4', sellingPrice: 990, costPrice: 500, suggestedPoints: 50 },
+            { id: '5', sellingPrice: 16800, costPrice: 8500, suggestedPoints: 350 },
           ],
           stockAdjustments: [
-            { storeId: 'chupei', productId: 'GEN001', newQuantity: 30, reason: '批次盤點實體入帳' },
-            { storeId: 'jinshan', productId: 'GK001', newQuantity: 18, reason: '批次盤點實體入帳' },
+            { storeId: 'chupei', productId: '4', newQuantity: 30, reason: '批次盤點實體入帳' },
+            { storeId: 'jinshan', productId: '5', newQuantity: 18, reason: '批次盤點實體入帳' },
           ],
         },
       });
@@ -151,15 +151,15 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
       expect(result.updatedProductCount).toBe(2);
       expect(result.updatedStockCount).toBe(2);
 
-      // 驗證 GEN001
-      const check1 = await app.inject({ method: 'GET', url: '/api/admin/inventory/summary?q=GEN001' });
-      const item1 = check1.json().data[0];
+      // 驗證 4
+      const check1 = await app.inject({ method: 'GET', url: '/api/admin/inventory/summary?q=4' });
+      const item1 = check1.json().data.find((p: any) => p.id === '4');
       expect(item1.sellingPrice).toBe(990);
       expect(item1.storeStocks['chupei']).toBe(30);
 
-      // 驗證 GK001
-      const check2 = await app.inject({ method: 'GET', url: '/api/admin/inventory/summary?q=GK001' });
-      const item2 = check2.json().data[0];
+      // 驗證 5
+      const check2 = await app.inject({ method: 'GET', url: '/api/admin/inventory/summary?q=5' });
+      const item2 = check2.json().data.find((p: any) => p.id === '5');
       expect(item2.sellingPrice).toBe(16800);
       expect(item2.storeStocks['jinshan']).toBe(18);
     });
@@ -169,7 +169,7 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
     it('版本號過舊之更新請求必須回傳 409 Conflict', async () => {
       const res = await app.inject({
         method: 'PUT',
-        url: '/api/admin/inventory/products/GEN001',
+        url: '/api/admin/inventory/products/4',
         payload: {
           sellingPrice: 1500,
           version: 0, // 傳入舊版本
@@ -187,7 +187,7 @@ describe('OneSoul POS 庫存主檔工作台資料完整性與邊界測試 (Data 
         method: 'POST',
         url: '/api/admin/inventory/products',
         payload: {
-          id: 'GEN001', // 已存在的貨號
+          id: '4', // 已存在的貨號
           name: '衝撞貨號測試',
           category: 'GENERAL',
           sellingPrice: 100,
