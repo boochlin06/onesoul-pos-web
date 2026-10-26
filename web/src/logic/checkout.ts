@@ -29,6 +29,33 @@ export const emptyMerch = (): MerchItem => ({
   suggestedPoints: 0, actualAmount: 0, totalPoints: 0, remark: '',
 });
 
+export function isActiveLottery(l: LotteryItem): boolean {
+  return Boolean(
+    l.id ||
+    l.prize ||
+    l.setName ||
+    l.prizeName ||
+    l.amount > 0 ||
+    (l.pointsCost || 0) > 0 ||
+    (l.totalPoints || 0) > 0 ||
+    l.draws > 1 ||
+    (l.remark && l.remark.trim() !== '')
+  );
+}
+
+export function isActiveMerch(m: MerchItem): boolean {
+  return Boolean(
+    m.id ||
+    m.name ||
+    m.quantity > 1 ||
+    m.unitAmount > 0 ||
+    m.actualAmount > 0 ||
+    (m.totalPoints || 0) > 0 ||
+    (m.suggestedPoints || 0) > 0 ||
+    (m.remark && m.remark.trim() !== '')
+  );
+}
+
 // ── Summary calculation ──
 export function calcSummary(lotteries: LotteryItem[], merchandises: MerchItem[]) {
   let due = 0, pts = 0;
@@ -96,14 +123,18 @@ export function applyLotteryUpdate(
     if (normalizedPrize === 'z' && (!updated.unitPoints || updated.unitPoints === 0)) updated.unitPoints = 1;
   }
   const isPointsSet = updated.remark === '點數套';
-  if (field !== 'amount' && field !== 'remark' && field !== 'pointsCost') {
-    if (isPointsSet) {
-      updated.amount = 0;
-      // 預設扣抵點數 = 單抽價 / 20 * 抽數
+  if (isPointsSet) {
+    updated.amount = 0;
+    if (field !== 'pointsCost') {
       updated.pointsCost = Math.floor((updated.unitPrice || 0) / 20) * updated.draws;
-    } else {
-      if (field !== 'type') updated.amount = updated.draws * (updated.unitPrice || 0);
     }
+  } else {
+    if (field !== 'amount' && field !== 'remark' && field !== 'pointsCost' && field !== 'type') {
+      updated.amount = updated.draws * (updated.unitPrice || 0);
+    }
+  }
+
+  if (field !== 'amount' && field !== 'remark' && field !== 'pointsCost') {
     const normalizedPrize = String(updated.prize || '').trim().toLowerCase();
     const fallbackPoints = normalizedPrize === 'x' ? 10 : normalizedPrize === 'z' ? 1 : 0;
     const effectivePoints = updated.unitPoints !== undefined && updated.unitPoints !== 0 ? updated.unitPoints : fallbackPoints;
@@ -149,7 +180,12 @@ export function applyMerchUpdate(
           updated.remark = otherBranch && otherBranch !== branch ? `在${otherBranch}店` : crossEntry.remark;
         } else {
           const bb = blindBoxes.find(b => b.id === String(value));
-          if (bb) { updated.name = bb.name; updated.suggestedPoints = bb.points; updated.unitAmount = bb.manualPrice; updated.remark = bb.remark; updated.isGk = false; }
+          if (bb) {
+            updated.name = bb.name; updated.suggestedPoints = bb.points; updated.unitAmount = bb.manualPrice; updated.remark = bb.remark; updated.isGk = false;
+          } else {
+            // 未命中任何庫存或貨號被清空時，重置所有關聯欄位
+            updated.name = ''; updated.suggestedPoints = 0; updated.unitAmount = 0; updated.actualAmount = 0; updated.totalPoints = 0; updated.remark = ''; updated.isGk = false;
+          }
         }
       }
     }
@@ -207,8 +243,8 @@ export interface ValidationInput {
 
 export function validateCheckout(input: ValidationInput): string | null {
   const { lotteries, merchandises, customer, payment, summary } = input;
-  const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName || l.amount > 0);
-  const filteredMerch = merchandises.filter(m => m.id || m.name || m.quantity > 1);
+  const filteredLotteries = lotteries.filter(isActiveLottery);
+  const filteredMerch = merchandises.filter(isActiveMerch);
 
   if (filteredLotteries.length === 0 && filteredMerch.length === 0) return MSG.validation.emptyCart;
   if (!customer.phoneName) return MSG.validation.noPhone;
@@ -238,17 +274,38 @@ export function validateCheckout(input: ValidationInput): string | null {
     if (!l.id || !l.prize || !l.setName || !l.prizeName || l.draws < 1 || !Number.isInteger(l.draws)) {
       return MSG.validation.lotteryIncomplete(i + 1);
     }
+    // 限定點數套不變量防護
+    if (l.remark === '點數套') {
+      if (l.amount !== 0) {
+        return `無法結帳：福袋區第 ${i + 1} 項為限定點數套，金額必須為 $0`;
+      }
+      if (!l.pointsCost || l.pointsCost <= 0 || !Number.isInteger(l.pointsCost)) {
+        return `無法結帳：福袋區第 ${i + 1} 項為限定點數套，扣抵點數必須大於 0 之整數`;
+      }
+    }
   }
   for (let i = 0; i < filteredMerch.length; i++) {
     const m = filteredMerch[i];
     if (!m.id || !m.name || m.quantity < 1 || !Number.isInteger(m.quantity)) {
       return MSG.validation.merchIncomplete(i + 1);
     }
+    if (m.paymentType === '現金' && m.actualAmount < 0) {
+      return MSG.validation.negativeValues;
+    }
   }
 
   const isNeg = payment.cash < 0 || payment.remittance < 0 || payment.creditCard < 0 || payment.pointsUsed < 0;
-  const isNegPrice = filteredLotteries.some(l => l.amount < 0) || filteredMerch.some(m => m.actualAmount < 0);
+  const isNegPrice = filteredLotteries.some(l => l.amount < 0 || (l.pointsCost || 0) < 0 || (l.totalPoints || 0) < 0) ||
+                     filteredMerch.some(m => m.actualAmount < 0 || (m.totalPoints || 0) < 0);
   if (isNeg || isNegPrice || summary.dueAmount < 0) return MSG.validation.negativeValues;
+
+  const isNonInteger = !Number.isInteger(payment.cash) ||
+                       !Number.isInteger(payment.remittance) ||
+                       !Number.isInteger(payment.creditCard) ||
+                       !Number.isInteger(payment.pointsUsed);
+  if (isNonInteger) {
+    return '無法結帳：付款金額與折抵點數必須為整數';
+  }
 
   const totalReceived = payment.cash + payment.remittance + payment.creditCard;
   if (totalReceived !== summary.dueAmount) return MSG.validation.amountMismatch(totalReceived, summary.dueAmount);

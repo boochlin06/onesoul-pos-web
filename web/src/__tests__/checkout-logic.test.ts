@@ -4,6 +4,7 @@ import {
   calcSummary,
   applyLotteryUpdate, applyMerchUpdate,
   filterMembers, validateCheckout, isWalkInCustomer,
+  isActiveLottery, isActiveMerch,
 } from '../logic/checkout';
 import type { PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
 
@@ -847,5 +848,180 @@ describe('限定點數套公式與狀態機轉移 (Points Set Transitions)', () 
     item = applyLotteryUpdate(item, 'type', '帶走', pointsPrizes);
     expect(item.totalPoints).toBe(0);
   });
+
+  it('限定點數套強制鎖定 amount 為 0，不受手動 amount 更新竄改', () => {
+    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    item = applyLotteryUpdate(item, 'amount', 500, pointsPrizes);
+    expect(item.amount).toBe(0);
+  });
 });
+
+// ═══════════════════════════════════════════════════
+// Adversarial Reviewer 專用：商品/福袋啟用判定與防呆脫鉤防護
+// ═══════════════════════════════════════════════════
+describe('isActiveLottery & isActiveMerch 精確活性判定', () => {
+  it('預設空列判定為非活性 (false)', () => {
+    expect(isActiveLottery(emptyLottery())).toBe(false);
+    expect(isActiveMerch(emptyMerch())).toBe(false);
+  });
+
+  it('直購商品有金額但無貨號/名稱時，正確判定為活性 (true)', () => {
+    expect(isActiveMerch({ ...emptyMerch(), actualAmount: 500 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), unitAmount: 300 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), totalPoints: 10 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), suggestedPoints: 5 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), quantity: 2 })).toBe(true);
+    expect(isActiveMerch({ ...emptyMerch(), remark: '特別備註' })).toBe(true);
+  });
+
+  it('抽獎項目有金額或扣抵點數時，正確判定為活性 (true)', () => {
+    expect(isActiveLottery({ ...emptyLottery(), amount: 700 })).toBe(true);
+    expect(isActiveLottery({ ...emptyLottery(), pointsCost: 20 })).toBe(true);
+    expect(isActiveLottery({ ...emptyLottery(), totalPoints: 10 })).toBe(true);
+    expect(isActiveLottery({ ...emptyLottery(), draws: 3 })).toBe(true);
+    expect(isActiveLottery({ ...emptyLottery(), remark: '點數套' })).toBe(true);
+  });
+});
+
+describe('applyMerchUpdate 欄位清空與防呆', () => {
+  const currentBranch = '竹北';
+  const allStocks = [...stocks, makeStock('CROSS001', { branch: '金山' })];
+
+  it('商品由既有貨號修改為不存在的貨號時，所有派生欄位全數清空', () => {
+    let item = applyMerchUpdate(emptyMerch(), 'id', '100065', stocks, blindBoxes, allStocks, currentBranch);
+    expect(item.name).toBe('商品100065');
+    expect(item.suggestedPoints).toBe(5);
+
+    // 修改為無效 ID
+    item = applyMerchUpdate(item, 'id', 'NOTEXIST', stocks, blindBoxes, allStocks, currentBranch);
+    expect(item.name).toBe('');
+    expect(item.suggestedPoints).toBe(0);
+    expect(item.actualAmount).toBe(0);
+    expect(item.totalPoints).toBe(0);
+    expect(item.remark).toBe('');
+    expect(item.isGk).toBe(false);
+  });
+
+  it('商品貨號被清空為空字串時，所有派生欄位全數清空', () => {
+    let item = applyMerchUpdate(emptyMerch(), 'id', 'GK001', stocks, blindBoxes, allStocks, currentBranch);
+    expect(item.isGk).toBe(true);
+
+    item = applyMerchUpdate(item, 'id', '', stocks, blindBoxes, allStocks, currentBranch);
+    expect(item.name).toBe('');
+    expect(item.isGk).toBe(false);
+    expect(item.suggestedPoints).toBe(0);
+  });
+});
+
+describe('Adversarial Edge Cases: validateCheckout 核心不變量與防竄改', () => {
+  const baseValidInput = () => ({
+    lotteries: [{
+      ...emptyLottery(),
+      id: 'S1',
+      prize: 'A',
+      setName: '套S1',
+      prizeName: '獎A',
+      unitPrice: 700,
+      draws: 1,
+      amount: 700,
+      type: '帶走' as const,
+    }],
+    merchandises: [] as ReturnType<typeof emptyMerch>[],
+    customer: { phoneName: '0912345678', name: '王小明', currentPoints: 100 },
+    payment: { cash: 700, remittance: 0, creditCard: 0, pointsUsed: 0 },
+    summary: { dueAmount: 700, pointsChange: 0 },
+  });
+
+  it('商品欄位未填貨號但有金額時，精確阻擋並提示商品不完整 (避免後端 400 災難)', () => {
+    const input = baseValidInput();
+    input.merchandises = [{
+      ...emptyMerch(),
+      id: '',
+      name: '',
+      quantity: 1,
+      unitAmount: 500,
+      actualAmount: 500,
+      paymentType: '現金',
+    }];
+    input.summary.dueAmount = 1200; // 700 + 500
+    input.payment.cash = 1200;
+
+    const err = validateCheckout(input);
+    expect(err).toContain('直購商品區第 1 項資料不完整');
+  });
+
+  it('限定點數套金額非 0 (amount > 0) 嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.lotteries = [{
+      ...emptyLottery(),
+      id: 'PS1',
+      prize: 'A',
+      setName: '限定點數套',
+      prizeName: '大賞',
+      unitPrice: 400,
+      draws: 1,
+      amount: 400, // 惡意帶入金額
+      pointsCost: 20,
+      remark: '點數套',
+      type: '帶走',
+    }];
+    input.summary = { dueAmount: 400, pointsChange: -20 };
+    input.payment.cash = 400;
+
+    const err = validateCheckout(input);
+    expect(err).toContain('限定點數套，金額必須為 $0');
+  });
+
+  it('限定點數套扣抵點數 <= 0 嚴格阻斷 (防範 0 元 0 點零元領走大賞公仔)', () => {
+    const input = baseValidInput();
+    input.lotteries = [{
+      ...emptyLottery(),
+      id: 'PS1',
+      prize: 'A',
+      setName: '限定點數套',
+      prizeName: '大賞',
+      unitPrice: 400,
+      draws: 1,
+      amount: 0,
+      pointsCost: 0, // 惡意 0 點
+      remark: '點數套',
+      type: '帶走',
+    }];
+    input.summary = { dueAmount: 0, pointsChange: 0 };
+    input.payment.cash = 0;
+
+    const err = validateCheckout(input);
+    expect(err).toContain('限定點數套，扣抵點數必須大於 0 之整數');
+  });
+
+  it('負數 pointsCost 意圖憑空增加點數時嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.lotteries[0].pointsCost = -100;
+    const err = validateCheckout(input);
+    expect(err).toContain('不能為負數');
+  });
+
+  it('負數 totalPoints 嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.lotteries[0].totalPoints = -50;
+    const err = validateCheckout(input);
+    expect(err).toContain('不能為負數');
+  });
+
+  it('非整數 payment.pointsUsed (如 10.5 點) 嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.payment.pointsUsed = 10.5;
+    const err = validateCheckout(input);
+    expect(err).toContain('整數');
+  });
+
+  it('非整數現金支付 (如 699.5 元) 嚴格阻斷', () => {
+    const input = baseValidInput();
+    input.payment.cash = 699.5;
+    input.payment.remittance = 0.5;
+    const err = validateCheckout(input);
+    expect(err).toContain('整數');
+  });
+});
+
 

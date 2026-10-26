@@ -2,13 +2,12 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry } from '../types';
 import { useStickyState } from './useStickyState';
 import { gasPost, apiSaveDraft, apiClearDraft } from '../services/api';
-import { setLocalCache } from '../services/localDb';
 import type { BannerState } from './useBanner';
 import { MSG } from '../constants/messages';
 import {
   emptyLottery, emptyMerch,
   calcSummary, applyLotteryUpdate, applyMerchUpdate,
-  filterMembers, validateCheckout,
+  filterMembers, validateCheckout, isActiveLottery, isActiveMerch,
 } from '../logic/checkout';
 
 interface UseCheckoutDeps {
@@ -25,7 +24,7 @@ interface UseCheckoutDeps {
 }
 
 export function useCheckout({
-  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers: _unusedFetchMembers, showBanner, email,
+  branch, prizes, stocks, allStocks, blindBoxes, members, setMembers, fetchMembers, showBanner, email,
 }: UseCheckoutDeps) {
   // ── Draft monitoring ──
   const sessionIdRef = useRef(Date.now().toString(36) + Math.random().toString(36).slice(2));
@@ -162,8 +161,8 @@ export function useCheckout({
   // ── Submit Checkout ──
   const handleCheckout = useCallback(async () => {
     setIsConfirmModalOpen(false);
-    const filteredLotteries = lotteries.filter(l => l.id || l.prize || l.setName || l.amount > 0);
-    const filteredMerch = merchandises.filter(m => m.id || m.name || m.quantity > 1);
+    const filteredLotteries = lotteries.filter(isActiveLottery);
+    const filteredMerch = merchandises.filter(isActiveMerch);
 
     // Double check just in case
     const error = validateCheckout({ lotteries, merchandises, customer, payment, summary, orderNote });
@@ -181,12 +180,9 @@ export function useCheckout({
         showBanner(MSG.checkout.success(res.newPoints), 'ok');
         if (typeof res.newPoints !== 'undefined') {
           const rawPhone = customer.phoneName.split(/[- ]/)[0];
-          setMembers(prev => {
-            const next = prev.map(m => String(m.phone).trim() === rawPhone ? { ...m, points: res.newPoints } : m);
-            setLocalCache('members', next);
-            return next;
-          });
+          setMembers(prev => prev.map(m => String(m.phone).trim() === rawPhone ? { ...m, points: res.newPoints } : m));
         }
+        fetchMembers();
         resetFormValues();
         // 清除監控草稿
         lastDraftRef.current = '';
@@ -194,7 +190,7 @@ export function useCheckout({
       } else { showBanner(MSG.checkout.fail(res.message), 'err'); }
     } catch { showBanner(MSG.checkout.networkError, 'err'); }
     finally { setIsSubmitting(false); }
-  }, [branch, customer, payment, lotteries, merchandises, summary, orderNote, isSubmitting, showBanner, setMembers]);
+  }, [branch, customer, payment, lotteries, merchandises, summary, orderNote, isSubmitting, showBanner, setMembers, fetchMembers]);
 
   return {
     customer, setCustomer,
