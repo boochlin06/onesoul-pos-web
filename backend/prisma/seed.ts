@@ -72,25 +72,27 @@ async function main() {
     });
   }
 
-  // 4. 盲盒資料庫 (保留真實盲盒範例或空)
-  await prisma.blindBox.upsert({
-    where: { id: 'BOX-2905' },
-    update: {},
-    create: {
-      id: 'BOX-2905',
-      name: 'WAWA飛翔坊寶寶 盲盒',
-      points: 10,
-      manualPrice: 350,
-      autoSuggestPrice: 350,
-      cost: 200,
-      prizePoints: 10,
-      inventory: 30,
-      configuring: 0,
-      shipped: 0,
-      remaining: 30,
-      remark: '真實進貨',
-    },
-  });
+  // 4. 盲盒資料庫 (若 schema 定義 blindBox 則植入，否則跳過)
+  if ((prisma as any).blindBox) {
+    await (prisma as any).blindBox.upsert({
+      where: { id: 'BOX-2905' },
+      update: {},
+      create: {
+        id: 'BOX-2905',
+        name: 'WAWA飛翔坊寶寶 盲盒',
+        points: 10,
+        manualPrice: 350,
+        autoSuggestPrice: 350,
+        cost: 200,
+        prizePoints: 10,
+        inventory: 30,
+        configuring: 0,
+        shipped: 0,
+        remaining: 30,
+        remark: '真實進貨',
+      },
+    });
+  }
 
   // 5. 福袋與獎項庫 (竹北店 - 真實 WAWA飛翔坊寶寶A款)
   const bag1 = await prisma.luckyBag.upsert({
