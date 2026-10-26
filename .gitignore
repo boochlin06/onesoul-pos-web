@@ -1,2 +1,26 @@
 .clasp.json
 node_modules/
+**/node_modules/
+admin/node_modules
+web/node_modules
+dist/
+**/dist/
+.DS_Store
+**/.DS_Store
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# 環境變數
+.env
+.env.local
+.env.prod
+backend/.env
+!*.env.example
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/
+.agents/
+scratch/
+__pycache__/
+**/__pycache__/

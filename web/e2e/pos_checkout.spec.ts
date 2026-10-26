@@ -53,8 +53,8 @@ test.describe('POS 系統自動化測試', () => {
             jsonResponse = {
               success: true,
               data: [
-                { id: '12345', name: '測試公仔', type: '模型', listPrice: 500, suggestPrice: 450, stock: 10, targetPoints: 0 },
-                { id: '88888', name: '現金買點數', type: '系統', listPrice: 1, suggestPrice: 1, stock: 999, targetPoints: 1 }
+                { id: '12345', name: '測試公仔', type: '模型', category: '模型', listPrice: 500, suggestPrice: 450, stock: 10, quantity: 10, points: 50, branch: '竹北' },
+                { id: '88888', name: '現金買點數', type: '系統', category: '系統', listPrice: 1, suggestPrice: 1, stock: 999, quantity: 999, points: 1, branch: '竹北' }
               ]
             };
             break;
@@ -69,7 +69,7 @@ test.describe('POS 系統自動化測試', () => {
             jsonResponse = { success: true, message: '結帳成功', newPoints: 2000, checkoutUID: 'TEST_UID' };
             break;
           case 'getStockItemByNo':
-            if (payload.itemNo === 'SET-111') {
+            if (payload.payload?.itemNo === 'SET-111' || payload.itemNo === 'SET-111') {
               jsonResponse = { success: true, data: { name: '測試一番賞', points: 350 } };
             } else {
               jsonResponse = { success: false, message: '查無此貨號' };
@@ -126,7 +126,7 @@ test.describe('POS 系統自動化測試', () => {
       // 應顯示導覽列 (結帳按鈕)
       await expect(page.getByText('結帳').first()).toBeVisible();
       // 應顯示分店切換
-      await expect(page.getByText('竹北門市')).toBeVisible();
+      await expect(page.getByRole('button', { name: '竹北門市' })).toBeVisible();
       await page.waitForLoadState('networkidle');
     });
 
@@ -145,7 +145,7 @@ test.describe('POS 系統自動化測試', () => {
       await page.waitForTimeout(100);
 
       // 成功查詢，顯示名稱與點數
-      await expect(page.getByText('測試大師')).toBeVisible();
+      await expect(page.getByText('測試大師', { exact: true })).toBeVisible();
     });
 
     test('結帳防呆驗證與參考相關TAB抓取貨號', async ({ page }) => {
@@ -165,7 +165,7 @@ test.describe('POS 系統自動化測試', () => {
       await page.getByRole('button', { name: '送出結帳' }).click();
 
       // 應出現防呆提示：購物車不能為空
-      await expect(page.getByText(/購物車不能為空|請選擇一個商品|最少需一筆結帳項目/)).toBeVisible();
+      await expect(page.getByText(/購物車不能為空|請選擇一個商品|最少需一筆結帳項目|無法結帳：請至少輸入一項/)).toBeVisible();
 
       const numberInput = page.getByPlaceholder('輸入貨號').last();
       await numberInput.focus();
@@ -175,13 +175,13 @@ test.describe('POS 系統自動化測試', () => {
 
       // 小心有時因為 debounce 或 blur 觸發新增，所以用 Enter
       // 驗證已加入購物車 (出現商品名稱)
-      await expect(page.getByText('測試公仔').first()).toBeVisible();
+      await expect(page.locator('input[placeholder="商品名稱"]').last()).toHaveValue('測試公仔');
 
       // 再次嘗試結帳
       await page.getByRole('button', { name: '送出結帳' }).click();
 
       // 防呆：客戶欄位不可為空
-      await expect(page.getByText(/請填寫「客戶電話或直接稱呼」|請填寫客戶資訊/)).toBeVisible();
+      await expect(page.getByText(/請填寫「客戶電話或直接稱呼」|請填寫客戶資訊|請輸入客戶電話號碼/)).toBeVisible();
     });
 
     test('順利結帳流程 (模擬發送)', async ({ page }) => {
@@ -199,9 +199,15 @@ test.describe('POS 系統自動化測試', () => {
       
       const phoneInput = page.getByPlaceholder('輸入號碼或姓名尋找...');
       await phoneInput.fill('0955881093');
+      await phoneInput.press('Enter');
+      await page.waitForTimeout(200);
       
-      // 修改實收
-      const cashInput = page.getByLabel('實收').first();
+      // 填寫商品實收金額 500
+      const merchRow = page.locator('table').last().locator('tbody tr').last();
+      await merchRow.locator('input[placeholder="0"]').last().fill('500');
+
+      // 修改付款現金 500
+      const cashInput = page.locator('div:has(> label:has-text("現金")) input');
       await cashInput.fill('500');
 
       // 3. 送出結帳
@@ -214,7 +220,7 @@ test.describe('POS 系統自動化測試', () => {
       await expect(page.getByText('結帳成功')).toBeVisible();
       
       // 購物車應被清空
-      await expect(page.getByText('測試公仔')).not.toBeVisible();
+      await expect(page.locator('input[placeholder="商品名稱"]').last()).toHaveValue('');
     });
 
     test('福袋編號也是去tab找尋並結帳', async ({ page }) => {
@@ -237,12 +243,14 @@ test.describe('POS 系統自動化測試', () => {
       await page.waitForTimeout(100);
 
       // 驗證已加入購物車
-      await expect(page.getByText('限量福袋').first()).toBeVisible();
+      await expect(page.locator('input[placeholder="商品名稱"]').last()).toHaveValue('限量福袋');
       
       const phoneInput = page.getByPlaceholder('輸入號碼或姓名尋找...');
       await phoneInput.fill('0955881093');
+      await phoneInput.press('Enter');
+      await page.waitForTimeout(200);
       
-      const cashInput = page.getByLabel('實收').first();
+      const cashInput = page.locator('div:has(> label:has-text("現金")) input');
       await cashInput.fill('200');
 
       await page.getByRole('button', { name: '送出結帳' }).click();
@@ -264,7 +272,7 @@ test.describe('POS 系統自動化測試', () => {
     });
 
     test('開套流程測試', async ({ page }) => {
-      await page.getByText('獎項庫').click();
+      await page.getByRole('button', { name: '獎項庫', exact: true }).click();
       await page.getByRole('button', { name: '開套' }).click();
 
       const itemNoInput = page.getByPlaceholder('輸入貨號後按 Enter 或點查詢');
@@ -290,7 +298,7 @@ test.describe('POS 系統自動化測試', () => {
     });
 
     test('廢套流程測試', async ({ page }) => {
-      await page.getByText('獎項庫').click();
+      await page.getByRole('button', { name: '獎項庫', exact: true }).click();
       // 確保 mock 的內容出現
       await expect(page.getByText('測試舊套').first()).toBeVisible();
       

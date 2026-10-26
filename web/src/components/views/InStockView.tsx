@@ -130,7 +130,7 @@ export function InStockView({ stocks, isLoading, onRefresh }: Props) {
               ) : (
                 filteredAndSorted.map((s, i) => (
                   <tr key={`${s.id}-${s.branch}-${i}`} className="hover:bg-indigo-50/50 transition-colors bg-white">
-                    <td className="px-5 py-3 font-mono font-bold text-slate-500 text-xs">{s.id}</td>
+                    <td className="px-5 py-3 font-mono font-bold text-slate-500 text-xs">NO. {s.id}</td>
                     <td className="px-5 py-3 font-bold text-slate-800 whitespace-normal min-w-[200px] hover:text-indigo-700 transition-colors cursor-default">
                       {s.name}
                     </td>
