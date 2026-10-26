@@ -44,6 +44,7 @@ async function main() {
     { id: '99999', name: '手動扣點 (隨便扣)', category: 'GENERAL', isSpecial: true, suggestedPoints: 0 },
     { id: '2905', name: 'WAWA飛翔坊寶寶A款', category: 'GK', costPrice: 1200, sellingPrice: 2200, suggestedPoints: 80 },
     { id: '2906', name: 'WAWA飛翔坊寶寶B款', category: 'GK', costPrice: 1200, sellingPrice: 2200, suggestedPoints: 80 },
+    { id: 'GK002', name: 'A賞 自在極意功悟空', category: 'GK', costPrice: 1500, sellingPrice: 3000, suggestedPoints: 120 },
   ];
 
   for (const p of products) {
@@ -58,6 +59,7 @@ async function main() {
   const inventories = [
     { storeId: 'chupei', productId: '2905', quantity: 5, safetyStock: 1 },
     { storeId: 'chupei', productId: '2906', quantity: 3, safetyStock: 1 },
+    { storeId: 'chupei', productId: 'GK002', quantity: 2, safetyStock: 1 },
     { storeId: 'jinshan', productId: '2905', quantity: 2, safetyStock: 1 },
     { storeId: 'jinshan', productId: '2906', quantity: 1, safetyStock: 1 },
   ];
