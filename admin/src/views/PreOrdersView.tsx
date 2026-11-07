@@ -11,9 +11,6 @@ import {
   DollarSign, 
   Truck, 
   ArrowRight, 
-  Store as StoreIcon, 
-  Tag, 
-  Layers,
   AlertCircle,
   AlertTriangle
 } from 'lucide-react';

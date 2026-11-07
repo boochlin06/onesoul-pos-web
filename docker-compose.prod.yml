@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-onesoul_prod_secret_2026}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD environment variable is required}
       POSTGRES_DB: ${DB_NAME:-onesoul_pos}
     ports:
       # 🛡️ 僅綁定本機 Loopback，杜絕公網直連威脅
@@ -33,7 +33,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-onesoul_prod_secret_2026}@postgres:5432/${DB_NAME:-onesoul_pos}?schema=public
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:?DB_PASSWORD environment variable is required}@postgres:5432/${DB_NAME:-onesoul_pos}?schema=public
       CORS_ORIGIN: https://erp.boochlin.com,http://localhost:5174,http://127.0.0.1:8080,http://178.128.89.67:8080
       CORS_ORIGINS: https://erp.boochlin.com,http://localhost:5174,http://127.0.0.1:8080,http://178.128.89.67:8080
     ports:

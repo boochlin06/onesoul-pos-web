@@ -14,13 +14,13 @@
 
 | 開發任務場景 | 必讀規格與章節 | 核心檔案與程式碼指針 (SSOT) | 必過驗收指令 | 核心業務不變量與防呆 |
 | :--- | :--- | :--- | :--- | :--- |
-| **新增 / 修改業務 API** | 附錄 B.1 ~ B.17 | [`backend/src/app.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/app.ts#L75-L88)<br>掛載於 `/api/v1/*` 或 `/api/admin/*` | `npm --prefix backend run test` | 嚴格使用 Zod Schema 驗證 Payload；禁止在 Log 輸出電話/Token (MASVS) |
-| **修改收銀台結帳 / 算費** | 4.1 Seam 1<br>4.2 狀態機 1, 2 | [`web/src/logic/checkout.ts`](file:///Users/heaton/code/onesoul_dev/web/src/logic/checkout.ts)<br>純函數 `calcSummary` / `validateCheckout` | `npm --prefix web run test` | **不變量 #1 (散客穿透阻斷)**<br>限定點數套金額歸零，每抽扣除 `floor(單抽價/20)` 點 |
-| **修改門市庫存 / 調撥 / 盤點** | 3.4 節<br>附錄 A.1 Models 8, 9, 10 | [`backend/src/modules/orders/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/orders/routes.ts#L200-L240)<br>[`backend/src/modules/stocktakes/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/stocktakes/routes.ts) | `npm --prefix backend run test` | **不變量 #2 (發布開套不預扣)**<br>**不變量 #3 (字典序防死鎖)**<br>任何庫存異動必須觸發 `InventoryLog` |
-| **修改一番賞開套 / 配賞看板** | 3.1 節<br>4.1 Seam 3 | [`backend/src/modules/admin/allocation.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/allocation.routes.ts)<br>[`admin/src/views/PrizeAllocationWorkbenchView.tsx`](file:///Users/heaton/code/onesoul_dev/admin/src/views/PrizeAllocationWorkbenchView.tsx) | `npm --prefix backend run test` | **不變量 #2 (在庫在場動態解耦)**<br>X 賞等價 10 點、Z 賞保底 1 點注入；抽數必須嚴格平帳 |
-| **修改會員點數 / 錢包** | 3.6 節<br>附錄 A.1 Models 5, 6 | [`backend/src/modules/members/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/members/routes.ts)<br>[`backend/src/modules/orders/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/orders/routes.ts) | `npm --prefix backend run test` | **不變量 #1 (散客穿透阻斷)**<br>行級悲觀鎖 (`FOR UPDATE`) 保護點數扣減 |
-| **修改資料庫模型 (Prisma)** | 附錄 A 全章 (29 Models, 19 Enums) | [`backend/prisma/schema.prisma`](file:///Users/heaton/code/onesoul_dev/backend/prisma/schema.prisma) | `npm --prefix backend run prisma:generate` | 遵循 `@@map` 蛇形命名規範；外鍵約束具備級聯完整性保護 |
-| **修改廠商預購單 (PreOrders)** | 3.5 節<br>4.2 狀態機 3 | [`backend/src/modules/admin/preorders.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/preorders.routes.ts) | `npm --prefix backend run test` | 驗收入庫自動防禦貨號碰撞；原子生成 Product 主檔與門市庫存 |
+| **新增 / 修改業務 API** | 附錄 B.1 ~ B.17 | [`backend/src/app.ts`](../backend/src/app.ts#L75-L88)<br>掛載於 `/api/v1/*` 或 `/api/admin/*` | `npm --prefix backend run test` | 嚴格使用 Zod Schema 驗證 Payload；禁止在 Log 輸出電話/Token (MASVS) |
+| **修改收銀台結帳 / 算費** | 4.1 Seam 1<br>4.2 狀態機 1, 2 | [`web/src/logic/checkout.ts`](../web/src/logic/checkout.ts)<br>純函數 `calcSummary` / `validateCheckout` | `npm --prefix web run test` | **不變量 #1 (散客穿透阻斷)**<br>限定點數套金額歸零，每抽扣除 `floor(單抽價/20)` 點 |
+| **修改門市庫存 / 調撥 / 盤點** | 3.4 節<br>附錄 A.1 Models 8, 9, 10 | [`backend/src/modules/orders/routes.ts`](../backend/src/modules/orders/routes.ts#L200-L240)<br>[`backend/src/modules/stocktakes/routes.ts`](../backend/src/modules/stocktakes/routes.ts) | `npm --prefix backend run test` | **不變量 #2 (發布開套不預扣)**<br>**不變量 #3 (字典序防死鎖)**<br>任何庫存異動必須觸發 `InventoryLog` |
+| **修改一番賞開套 / 配賞看板** | 3.1 節<br>4.1 Seam 3 | [`backend/src/modules/admin/allocation.routes.ts`](../backend/src/modules/admin/allocation.routes.ts)<br>[`admin/src/views/PrizeAllocationWorkbenchView.tsx`](../admin/src/views/PrizeAllocationWorkbenchView.tsx) | `npm --prefix backend run test` | **不變量 #2 (在庫在場動態解耦)**<br>X 賞等價 10 點、Z 賞保底 1 點注入；抽數必須嚴格平帳 |
+| **修改會員點數 / 錢包** | 3.6 節<br>附錄 A.1 Models 5, 6 | [`backend/src/modules/members/routes.ts`](../backend/src/modules/members/routes.ts)<br>[`backend/src/modules/orders/routes.ts`](../backend/src/modules/orders/routes.ts) | `npm --prefix backend run test` | **不變量 #1 (散客穿透阻斷)**<br>行級悲觀鎖 (`FOR UPDATE`) 保護點數扣減 |
+| **修改資料庫模型 (Prisma)** | 附錄 A 全章 (29 Models, 19 Enums) | [`backend/prisma/schema.prisma`](../backend/prisma/schema.prisma) | `npm --prefix backend run prisma:generate` | 遵循 `@@map` 蛇形命名規範；外鍵約束具備級聯完整性保護 |
+| **修改廠商預購單 (PreOrders)** | 3.5 節<br>4.2 狀態機 3 | [`backend/src/modules/admin/preorders.routes.ts`](../backend/src/modules/admin/preorders.routes.ts) | `npm --prefix backend run test` | 驗收入庫自動防禦貨號碰撞；原子生成 Product 主檔與門市庫存 |
 
 ---
 
@@ -188,7 +188,7 @@ flowchart TD
 
 ### 4.1 核心模組與 Seam 切割設計
 
-#### Seam 1: 收銀台算費與防呆純函數模組 ([`web/src/logic/checkout.ts`](file:///Users/heaton/code/onesoul_dev/web/src/logic/checkout.ts))
+#### Seam 1: 收銀台算費與防呆純函數模組 ([`web/src/logic/checkout.ts`](../web/src/logic/checkout.ts))
 - **Interface**:
   - `calcSummary(lotteries, merchandises): { dueAmount, pointsChange }`
   - `applyLotteryUpdate(item, field, value, prizes): LotteryItem`
@@ -198,7 +198,7 @@ flowchart TD
   - 封裝了限定點數套零元計算、單抽價除以 20 之點數成本折抵、X 賞 10 點與 Z 賞 1 點之小賞換點邏輯、GK 商品自動切換點數結帳、散客散號防呆、負數防禦、實收與應付平帳校驗、會員點數餘額即時比對。
   - 抽離任何 DOM 或 React 狀態，桌面視圖、卡片視圖與單元測試共用此單一 Seam。
 
-#### Seam 2: 訂單結帳與事務原子庫存模組 ([`backend/src/modules/orders/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/orders/routes.ts))
+#### Seam 2: 訂單結帳與事務原子庫存模組 ([`backend/src/modules/orders/routes.ts`](../backend/src/modules/orders/routes.ts))
 - **Interface**:
   - `POST /api/v1/orders/checkout`: 結帳下單 (含 Anti-Tampering, 冪等鍵, 散客防護, 行級鎖扣點, 實體商品原子出庫)
   - `POST /api/v1/orders/:checkoutUID/void`: 作廢訂單 (原子回補庫存、回滾抽數、反向退回點數)
@@ -207,7 +207,7 @@ flowchart TD
   - **防死鎖法則**：處理直購商品庫存扣減時，強制將 `productId` 進行字典序排列（`localeCompare`）後循序鎖定，徹底根除並發交叉死鎖（PostgreSQL 40P01）。
   - **實體庫存扣減時機**：只有一番賞提貨為 `TAKE_AWAY` 且對應實體商品貨號時扣減庫存；X/Z 虛擬小賞或選 `POINTS` 提貨不扣零售庫存。
 
-#### Seam 3: 配賞工作台與生命週期模組 ([`backend/src/modules/admin/allocation.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/allocation.routes.ts))
+#### Seam 3: 配賞工作台與生命週期模組 ([`backend/src/modules/admin/allocation.routes.ts`](../backend/src/modules/admin/allocation.routes.ts))
 - **Interface**:
   - `GET /api/admin/allocation/live-stock`: 門市現貨看板 (支援 `mainCategory: 'GK'`, `minQty: 1`)
   - `GET /api/admin/allocation/plans`: 取得草稿與內建模版
@@ -216,7 +216,7 @@ flowchart TD
   - **在庫在場動態解耦**：`live-stock` 動態統計活躍套組的獎項作為 `allocatedCount`，**發布開套時嚴禁預扣 `storeInventory`**，實體商品庫存統一由 POS 提貨時核銷，確保庫存不被雙重扣減。
   - **雙層設定 Fallback**：若方案未指定 `blindBoxPointsValue`，自動讀取 `STORE_BRAND_INFO` 設定作為預設點數。
 
-#### Seam 4: 防篡改雜湊鏈審計日誌模組 ([`backend/src/modules/admin/audit.service.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/audit.service.ts))
+#### Seam 4: 防篡改雜湊鏈審計日誌模組 ([`backend/src/modules/admin/audit.service.ts`](../backend/src/modules/admin/audit.service.ts))
 - **Interface**:
   - `recordAuditLog(tx, entry): Promise<AuditLog>`
 - **Depth**:
@@ -293,10 +293,10 @@ stateDiagram-v2
    - 算費與防呆：透過 `validateCheckout` 與 `applyLotteryUpdate` 的完整輸入輸出進行黑箱驗證，不測試內部私有正則表達式。
    - 後端 API：透過 Fastify `app.inject()` 進行完整的 HTTP 請求模擬，驗證真實 Prisma 資料庫異動與 HTTP 回應狀態碼。
 2. **Prior Art (既有測試資產)**：
-   - 收銀邏輯測試：[`web/src/__tests__/checkout-logic.test.ts`](file:///Users/heaton/code/onesoul_dev/web/src/__tests__/checkout-logic.test.ts)（60 項測試，涵蓋 X 賞 10P、Z 賞 1P、點數套帶走/換點、會員餘額防呆、undefined 防護）。
-   - 配賞整合測試：[`backend/tests/allocation.test.ts`](file:///Users/heaton/code/onesoul_dev/backend/tests/allocation.test.ts)（12 項測試，涵蓋現貨 GK 篩選、抽數未平帳拒絕、限定點數套發布、雙層點數注入）。
-   - 預購單生命週期測試：[`backend/tests/preorders.test.ts`](file:///Users/heaton/code/onesoul_dev/backend/tests/preorders.test.ts)（7 項測試，涵蓋建立、入庫轉現貨、防貨號碰撞、散客防護）。
-   - 資料一致性工作台測試：[`backend/tests/data-integrity-workbench.test.ts`](file:///Users/heaton/code/onesoul_dev/backend/tests/data-integrity-workbench.test.ts)（9 項測試，涵蓋銷售扣庫存、作廢回補、盤點審核過帳）。
+   - 收銀邏輯測試：[`web/src/__tests__/checkout-logic.test.ts`](../web/src/__tests__/checkout-logic.test.ts)（60 項測試，涵蓋 X 賞 10P、Z 賞 1P、點數套帶走/換點、會員餘額防呆、undefined 防護）。
+   - 配賞整合測試：[`backend/tests/allocation.test.ts`](../backend/tests/allocation.test.ts)（12 項測試，涵蓋現貨 GK 篩選、抽數未平帳拒絕、限定點數套發布、雙層點數注入）。
+   - 預購單生命週期測試：[`backend/tests/preorders.test.ts`](../backend/tests/preorders.test.ts)（7 項測試，涵蓋建立、入庫轉現貨、防貨號碰撞、散客防護）。
+   - 資料一致性工作台測試：[`backend/tests/data-integrity-workbench.test.ts`](../backend/tests/data-integrity-workbench.test.ts)（9 項測試，涵蓋銷售扣庫存、作廢回補、盤點審核過帳）。
 
 ### 5.1 Checkable Completion Criteria (可機器檢驗的完成標準)
 
@@ -322,7 +322,7 @@ stateDiagram-v2
 1. **單一真實來源 (Single Source of Truth)**：
    - 關於名詞定義，一律參照根目錄 [GLOSSARY.md](../GLOSSARY.md)，嚴禁混用同義詞。
    - 關於開發流程與不變量，一律參照根目錄 [AGENTS.md](../AGENTS.md)。
-   - 關於資料模型，一律以 [`backend/prisma/schema.prisma`](file:///Users/heaton/code/onesoul_dev/backend/prisma/schema.prisma) 為唯一準則。
+   - 關於資料模型，一律以 [`backend/prisma/schema.prisma`](../backend/prisma/schema.prisma) 為唯一準則。
 2. **後續 Agent 開發注意事項**：
    - 任何涉及「一番賞開套發布」的改動，切記不可在發布時預扣庫存，實體商品庫存一律由收銀台結帳核銷。
    - 任何涉及「點數套」的改動，預設提貨模式必須維持 `type = '帶走'`，客人抽中大賞是拿走實體，不可誤算為加發點數。
@@ -335,7 +335,7 @@ stateDiagram-v2
 
 ## 附錄 A：全資料庫 29 Models 與 19 Enums 資料字典 (Data Dictionary)
 
-本資料字典直接對齊 [`backend/prisma/schema.prisma`](file:///Users/heaton/code/onesoul_dev/backend/prisma/schema.prisma)（802 行），為整個資料庫實體模型之唯一權威對照。
+本資料字典直接對齊 [`backend/prisma/schema.prisma`](../backend/prisma/schema.prisma)（802 行），為整個資料庫實體模型之唯一權威對照。
 
 ### A.1 核心實體模型 (29 Models)
 
@@ -408,7 +408,7 @@ stateDiagram-v2
 > - 系統大盤與健康端點掛載於根路徑：`/health`, `/api/dashboard`
 
 ### B.1 收銀台核心與訂單模組 (Orders & POS, 7 端點)
-- **檔案位置**：[`backend/src/modules/orders/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/orders/routes.ts)
+- **檔案位置**：[`backend/src/modules/orders/routes.ts`](../backend/src/modules/orders/routes.ts)
 - **掛載前綴**：`/api/v1/orders`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -424,7 +424,7 @@ stateDiagram-v2
 ---
 
 ### B.2 一番賞套組與獎項庫模組 (LuckyBags & Prizes, 3 端點)
-- **檔案位置**：[`backend/src/modules/luckybags/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/luckybags/routes.ts)
+- **檔案位置**：[`backend/src/modules/luckybags/routes.ts`](../backend/src/modules/luckybags/routes.ts)
 - **掛載前綴**：`/api/v1/luckybags`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -436,7 +436,7 @@ stateDiagram-v2
 ---
 
 ### B.3 配賞工作台模組 (Allocation Workbench, 5 端點)
-- **檔案位置**：[`backend/src/modules/admin/allocation.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/allocation.routes.ts)
+- **檔案位置**：[`backend/src/modules/admin/allocation.routes.ts`](../backend/src/modules/admin/allocation.routes.ts)
 - **掛載前綴**：`/api/admin/allocation`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -450,7 +450,7 @@ stateDiagram-v2
 ---
 
 ### B.4 收銀班次與開關帳模組 (Cash Register Sessions & Z-Report, 9 端點)
-- **檔案位置**：[`backend/src/modules/sessions/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/sessions/routes.ts) 與 [`backend/src/modules/admin/sessions.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/sessions.routes.ts)
+- **檔案位置**：[`backend/src/modules/sessions/routes.ts`](../backend/src/modules/sessions/routes.ts) 與 [`backend/src/modules/admin/sessions.routes.ts`](../backend/src/modules/admin/sessions.routes.ts)
 - **掛載前綴**：`/api/v1/sessions` (POS 端) 與 `/api/admin/sessions` (管理端)
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -468,7 +468,7 @@ stateDiagram-v2
 ---
 
 ### B.5 商品主檔與庫存工作台模組 (Products & Inventory, 10 端點)
-- **檔案位置**：[`backend/src/modules/products/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/products/routes.ts) 與 [`backend/src/modules/admin/inventory.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/inventory.routes.ts)
+- **檔案位置**：[`backend/src/modules/products/routes.ts`](../backend/src/modules/products/routes.ts) 與 [`backend/src/modules/admin/inventory.routes.ts`](../backend/src/modules/admin/inventory.routes.ts)
 - **掛載前綴**：`/api/v1/products` (POS 端) 與 `/api/admin/inventory` (管理端)
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -487,7 +487,7 @@ stateDiagram-v2
 ---
 
 ### B.6 盒玩盲盒專區模組 (BlindBoxes, 3 端點)
-- **檔案位置**：[`backend/src/modules/admin/blindboxes.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/blindboxes.routes.ts)
+- **檔案位置**：[`backend/src/modules/admin/blindboxes.routes.ts`](../backend/src/modules/admin/blindboxes.routes.ts)
 - **掛載前綴**：`/api/admin/blindboxes`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -499,7 +499,7 @@ stateDiagram-v2
 ---
 
 ### B.7 廠商預購單與期貨入庫追蹤模組 (PreOrders, 5 端點)
-- **檔案位置**：[`backend/src/modules/admin/preorders.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/preorders.routes.ts)
+- **檔案位置**：[`backend/src/modules/admin/preorders.routes.ts`](../backend/src/modules/admin/preorders.routes.ts)
 - **掛載前綴**：`/api/admin/preorders`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -513,7 +513,7 @@ stateDiagram-v2
 ---
 
 ### B.8 會員錢包與經營分析模組 (Members & Loyalty, 7 端點)
-- **檔案位置**：[`backend/src/modules/members/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/members/routes.ts) 與 [`backend/src/modules/admin/members.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/members.routes.ts)
+- **檔案位置**：[`backend/src/modules/members/routes.ts`](../backend/src/modules/members/routes.ts) 與 [`backend/src/modules/admin/members.routes.ts`](../backend/src/modules/admin/members.routes.ts)
 - **掛載前綴**：`/api/v1/members` (POS 端) 與 `/api/admin/members` (管理端)
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -529,7 +529,7 @@ stateDiagram-v2
 ---
 
 ### B.9 門市主檔管理模組 (Stores, 6 端點)
-- **檔案位置**：[`backend/src/modules/stores/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/stores/routes.ts) 與 [`backend/src/modules/admin/settings.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/settings.routes.ts)
+- **檔案位置**：[`backend/src/modules/stores/routes.ts`](../backend/src/modules/stores/routes.ts) 與 [`backend/src/modules/admin/settings.routes.ts`](../backend/src/modules/admin/settings.routes.ts)
 - **掛載前綴**：`/api/v1/stores` (POS 端) 與 `/api/admin/settings/stores` (管理端)
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -544,7 +544,7 @@ stateDiagram-v2
 ---
 
 ### B.10 門市實盤作業模組 (Stocktakes, 3 端點)
-- **檔案位置**：[`backend/src/modules/stocktakes/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/stocktakes/routes.ts)
+- **檔案位置**：[`backend/src/modules/stocktakes/routes.ts`](../backend/src/modules/stocktakes/routes.ts)
 - **掛載前綴**：`/api/v1/stocktakes`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -556,7 +556,7 @@ stateDiagram-v2
 ---
 
 ### B.11 排班、考勤與打卡模組 (Schedules & Attendance, 9 端點)
-- **檔案位置**：[`backend/src/modules/operations/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/operations/routes.ts) 與 [`backend/src/modules/admin/schedule.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/schedule.routes.ts)
+- **檔案位置**：[`backend/src/modules/operations/routes.ts`](../backend/src/modules/operations/routes.ts) 與 [`backend/src/modules/admin/schedule.routes.ts`](../backend/src/modules/admin/schedule.routes.ts)
 - **掛載前綴**：`/api/v1/operations` (POS 端) 與 `/api/admin/schedule`, `/api/admin/attendance` (管理端)
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -574,7 +574,7 @@ stateDiagram-v2
 ---
 
 ### B.12 報表分析、訂單作廢與大宗匯出模組 (Reports & Exports, 4 端點)
-- **檔案位置**：[`backend/src/modules/admin/reports.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/reports.routes.ts)
+- **檔案位置**：[`backend/src/modules/admin/reports.routes.ts`](../backend/src/modules/admin/reports.routes.ts)
 - **掛載前綴**：`/api/admin/reports`, `/api/admin/orders`, `/api/admin/export`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -587,7 +587,7 @@ stateDiagram-v2
 ---
 
 ### B.13 系統品牌設定與即時緊急公告模組 (Settings & Notices, 8 端點)
-- **檔案位置**：[`backend/src/modules/admin/settings.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/settings.routes.ts)
+- **檔案位置**：[`backend/src/modules/admin/settings.routes.ts`](../backend/src/modules/admin/settings.routes.ts)
 - **掛載前綴**：`/api/admin/settings`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -604,7 +604,7 @@ stateDiagram-v2
 ---
 
 ### B.14 密碼學雜湊審計日誌模組 (Audit Logs, 1 端點)
-- **檔案位置**：[`backend/src/modules/admin/audit.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/audit.routes.ts)
+- **檔案位置**：[`backend/src/modules/admin/audit.routes.ts`](../backend/src/modules/admin/audit.routes.ts)
 - **掛載前綴**：`/api/admin/audit-logs`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -614,7 +614,7 @@ stateDiagram-v2
 ---
 
 ### B.15 通知推播與即時看板模組 (Notifications & Dashboard, 4 端點)
-- **檔案位置**：[`backend/src/modules/notifications/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/notifications/routes.ts) 與 [`backend/src/modules/dashboard/routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/dashboard/routes.ts)
+- **檔案位置**：[`backend/src/modules/notifications/routes.ts`](../backend/src/modules/notifications/routes.ts) 與 [`backend/src/modules/dashboard/routes.ts`](../backend/src/modules/dashboard/routes.ts)
 - **掛載前綴**：`/api/v1/notifications` 與根路徑 `/api/dashboard`, `/health`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -628,7 +628,7 @@ stateDiagram-v2
 ---
 
 ### B.16 試算表遷移與維運服務模組 (Migration Engine, 4 端點)
-- **檔案位置**：[`backend/src/modules/admin/migration.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/migration.routes.ts)
+- **檔案位置**：[`backend/src/modules/admin/migration.routes.ts`](../backend/src/modules/admin/migration.routes.ts)
 - **掛載前綴**：`/api/admin/migration`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |
@@ -641,7 +641,7 @@ stateDiagram-v2
 ---
 
 ### B.17 一番賞後台維護模組 (Admin Lottery Management, 8 端點)
-- **檔案位置**：[`backend/src/modules/admin/lottery.routes.ts`](file:///Users/heaton/code/onesoul_dev/backend/src/modules/admin/lottery.routes.ts)
+- **檔案位置**：[`backend/src/modules/admin/lottery.routes.ts`](../backend/src/modules/admin/lottery.routes.ts)
 - **掛載前綴**：`/api/admin/lottery`
 
 | Method | Path | 主要功能與業務不變量 | 主要輸入 (Payload / Query) | 成功狀態碼 |

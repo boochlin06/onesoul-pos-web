@@ -392,8 +392,8 @@ export const adminSessionsRoutes: FastifyPluginAsync = async (fastify) => {
       amount = 760,
       draws = 2,
       pickType = 'TAKE_AWAY',
-      memberName = '曾瑋崧',
-      memberPhone = '0955881093',
+      memberName = '測試會員',
+      memberPhone = '0911000001',
     } = (request.body as any) || {};
 
     const activeSession =

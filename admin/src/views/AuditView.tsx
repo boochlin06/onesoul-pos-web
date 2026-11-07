@@ -3,13 +3,10 @@ import { auditApi } from '../api/client';
 import { 
   ShieldCheck, 
   Search, 
-  Hash, 
   Link2, 
   CheckCircle2, 
-  AlertCircle,
   Clock,
-  User,
-  Filter
+  User
 } from 'lucide-react';
 
 export const AuditView: React.FC = () => {

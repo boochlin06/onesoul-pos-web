@@ -1,7 +1,10 @@
 import crypto from 'crypto';
 import type { PrismaClient } from '@prisma/client';
 
-const AUDIT_SECRET = process.env.AUDIT_SECRET || 'onesoul-audit-key-2026';
+const AUDIT_SECRET = process.env.AUDIT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'onesoul-audit-key-2026');
+if (process.env.NODE_ENV === 'production' && !AUDIT_SECRET) {
+  throw new Error('AUDIT_SECRET must be configured in environment in production mode');
+}
 
 export interface CreateAuditLogParams {
   operatorId: string;

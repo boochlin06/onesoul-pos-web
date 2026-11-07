@@ -6,7 +6,7 @@ import { gasPost } from '../services/api';
 vi.mock('../hooks/useAuth', () => ({ getIdToken: () => 'fake-token' }));
 
 // ── Setup ──
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const mockFetch = vi.fn() as ReturnType<typeof vi.fn>;
 globalThis.fetch = mockFetch;
 

@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
 import { config } from './config';
+import { prisma } from './plugins/prisma';
 import { storeRoutes } from './modules/stores/routes';
 import { memberRoutes } from './modules/members/routes';
 import { productRoutes } from './modules/products/routes';
@@ -18,6 +19,7 @@ import { adminPlugin } from './modules/admin';
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
+    bodyLimit: 10 * 1024 * 1024, // 10MB: 容納 Base64 編碼後的自訂品牌 Logo (<= 2MB 原圖約 2.7MB)
     logger: {
       level: config.NODE_ENV === 'production' ? 'info' : 'debug',
       // MASVS-STORAGE / PII: 日誌全面脫敏防護，禁止印出電話、Token 等敏感個資
@@ -82,6 +84,61 @@ export function buildApp(): FastifyInstance {
   app.register(stocktakeRoutes, { prefix: '/api/v1/stocktakes' });
   app.register(operationRoutes, { prefix: '/api/v1/operations' });
   app.register(notificationRoutes, { prefix: '/api/v1/notifications' });
+
+  // 公開業務路由：取得店家品牌與 Logo 資訊 (供 POS 前台、顧客端或未登入頁面展示)
+  app.get('/api/v1/brand', async (_request, reply) => {
+    const brandConfig = await prisma.integrationConfig.findUnique({
+      where: { key: 'STORE_BRAND_INFO' },
+    });
+
+    const defaultBrand = {
+      brandName: 'OneSoul 模型玩具一番賞',
+      brandSubtitle: '門市管理與即時營運系統',
+      logoText: 'OS',
+      supportPhone: '0912-345-678',
+      blindBoxPointsValue: 10,
+      pointRateTwd: 20,
+      smallPrizePointsValue: 1,
+      logoHorizontal: null as string | null,
+      logoSquare: null as string | null,
+    };
+
+    let brandData = { ...defaultBrand };
+    if (brandConfig?.value) {
+      try {
+        const parsed = typeof brandConfig.value === 'string'
+          ? JSON.parse(brandConfig.value)
+          : (brandConfig.value as any);
+        brandData = { ...defaultBrand, ...parsed };
+      } catch {
+        brandData = { ...defaultBrand };
+      }
+    }
+
+    const defaultHorizontal = '/logo-horizontal.png';
+    const defaultSquare = '/logo-square.png';
+
+    return reply.send({
+      success: true,
+      data: {
+        brandName: brandData.brandName,
+        brandSubtitle: brandData.brandSubtitle,
+        logoText: brandData.logoText,
+        supportPhone: brandData.supportPhone,
+        blindBoxPointsValue: brandData.blindBoxPointsValue,
+        pointRateTwd: brandData.pointRateTwd,
+        smallPrizePointsValue: brandData.smallPrizePointsValue,
+        logoHorizontal: brandData.logoHorizontal || defaultHorizontal,
+        logoSquare: brandData.logoSquare || defaultSquare,
+        hasCustomHorizontalLogo: !!brandData.logoHorizontal,
+        hasCustomSquareLogo: !!brandData.logoSquare,
+        defaultLogos: {
+          horizontal: defaultHorizontal,
+          square: defaultSquare,
+        },
+      },
+    });
+  });
 
   // 註冊 Admin ERP 旗艦後台專屬管理路由
   app.register(adminPlugin, { prefix: '/api/admin' });

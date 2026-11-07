@@ -3,20 +3,15 @@ import { membersApi } from '../api/client';
 import { 
   Users, 
   Search, 
-  Sliders, 
   Coins, 
-  FileText, 
   X, 
   AlertCircle, 
-  CheckCircle, 
   ChevronRight,
   ChevronLeft,
   ChevronsLeft,
   ChevronsRight,
   History,
-  ShieldCheck,
   Crown,
-  Sparkles,
   ArrowUpDown,
   ArrowUp,
   ArrowDown
@@ -74,11 +69,6 @@ export const MembersView: React.FC<MembersViewProps> = ({ onSelectMember }) => {
   const [adjustReason, setAdjustReason] = useState<string>('');
   const [adjustLoading, setAdjustLoading] = useState(false);
   const [adjustError, setAdjustError] = useState<string | null>(null);
-
-  // 會員歷程抽屜
-  const [historyTarget, setHistoryTarget] = useState<any | null>(null);
-  const [historyData, setHistoryData] = useState<any | null>(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
 
   // 搜尋、篩選或排序變更時重設至第一頁
   useEffect(() => {
@@ -150,21 +140,6 @@ export const MembersView: React.FC<MembersViewProps> = ({ onSelectMember }) => {
       setAdjustError(err.message || '調整失敗');
     } finally {
       setAdjustLoading(false);
-    }
-  };
-
-  const openHistoryDrawer = async (member: any) => {
-    setHistoryTarget(member);
-    setHistoryLoading(true);
-    try {
-      const res = await membersApi.history(member.id);
-      if (res.success) {
-        setHistoryData(res.data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setHistoryLoading(false);
     }
   };
 
@@ -600,80 +575,6 @@ export const MembersView: React.FC<MembersViewProps> = ({ onSelectMember }) => {
         </div>
       )}
 
-      {/* 會員歷程抽屜 (Drawer) */}
-      {historyTarget && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex justify-end z-50">
-          <div className="w-full max-w-md bg-slate-900 border-l border-slate-800 h-full p-6 overflow-y-auto space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div>
-                <h3 className="text-lg font-bold text-white">{historyTarget.name} 的消費與點數歷程</h3>
-                <p className="text-xs text-slate-400 font-mono">{historyTarget.phone}</p>
-              </div>
-              <button
-                onClick={() => setHistoryTarget(null)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {historyLoading ? (
-              <div className="text-center py-12 text-slate-500 text-sm">載入會員歷史中...</div>
-            ) : (
-              <div className="space-y-6">
-                {/* 點數歷程 */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Coins className="w-4 h-4 text-amber-400" />
-                    <h4 className="text-sm font-semibold text-white">點數異動紀錄</h4>
-                  </div>
-                  {(!historyData?.pointLogs || historyData.pointLogs.length === 0) ? (
-                    <div className="text-xs text-slate-500 bg-slate-800/40 p-3 rounded-xl">尚無點數記錄</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {historyData.pointLogs.map((log: any, idx: number) => (
-                        <div key={idx} className="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl text-xs">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-semibold text-slate-300">{log.reason || '點數變更'}</span>
-                            <span className={`font-bold ${log.delta > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {log.delta > 0 ? `+${log.delta}` : log.delta} pts
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-[11px] text-slate-500">
-                            <span>結餘: {log.balance} pts</span>
-                            <span>{new Date(log.createdAt).toLocaleString('zh-TW')}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 審計鏈日誌 */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <h4 className="text-sm font-semibold text-white">防竄改審計日誌 (Audit Chain)</h4>
-                  </div>
-                  {(!historyData?.auditLogs || historyData.auditLogs.length === 0) ? (
-                    <div className="text-xs text-slate-500 bg-slate-800/40 p-3 rounded-xl">尚無審計日誌</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {historyData.auditLogs.map((aud: any, idx: number) => (
-                        <div key={idx} className="bg-slate-800/40 border border-slate-700/40 p-3 rounded-xl text-xs font-mono">
-                          <div className="text-slate-300 font-sans font-medium">{aud.action}</div>
-                          <div className="text-[11px] text-slate-400 mt-1">{aud.reason}</div>
-                          <div className="text-[10px] text-slate-500 truncate mt-1">Hash: {aud.currentHash}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

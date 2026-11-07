@@ -34,8 +34,8 @@ export function InStockView({ stocks, isLoading, onRefresh }: Props) {
 
     // 2. 排序
     return result.sort((a, b) => {
-      let valA = a[sortField];
-      let valB = b[sortField];
+      const valA = a[sortField];
+      const valB = b[sortField];
 
       if (typeof valA === 'string' && typeof valB === 'string') {
         return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);

@@ -8,5 +8,7 @@
 *   **狀態同步與單頁面 (SPA) 路由管理**
 *   快速成型，具備高度的實用價值與模組可重用性。
 
-## 🎯 面試與推銷指南 (Interview & Pitch Guide)
-👉 **[點此查看面試攻略 (interview.md)](./interview.md)**
+## 📚 系統權威文檔與開發指南 (Documentation)
+*   📖 **[系統架構與規格書 (docs/SYSTEM_SPECIFICATION.md)](./docs/SYSTEM_SPECIFICATION.md)**
+*   🤖 **[開發者營運手冊 (AGENTS.md)](./AGENTS.md)**
+*   📚 **[領域名詞術語表 (GLOSSARY.md)](./GLOSSARY.md)**

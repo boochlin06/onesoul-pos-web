@@ -4,21 +4,14 @@ import {
   Calendar, 
   Clock, 
   UserCheck, 
-  AlertCircle, 
-  CheckCircle2, 
-  ChevronLeft, 
-  ChevronRight,
-  Plus,
-  X,
-  Store
+  X
 } from 'lucide-react';
 
 export const ScheduleView: React.FC = () => {
   const [storeId, setStoreId] = useState<'chupei' | 'jinshan'>('chupei');
-  const [yearMonth, setYearMonth] = useState('2026-10');
+  const [yearMonth] = useState('2026-10');
   const [scheduleData, setScheduleData] = useState<any>(null);
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // 編輯單日排班 Modal
   const [editDay, setEditDay] = useState<string | null>(null);
@@ -40,7 +33,6 @@ export const ScheduleView: React.FC = () => {
   }, [storeId, yearMonth]);
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const [schRes, attRes] = await Promise.all([
         scheduleApi.getMonth(storeId, yearMonth),
@@ -51,8 +43,6 @@ export const ScheduleView: React.FC = () => {
       if (attRes.success) setAttendanceList(attRes.data);
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 

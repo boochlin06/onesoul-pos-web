@@ -5,19 +5,19 @@
 /* ── 夜晚深色模式 (Dark Theme - Default) ────────────────── */
 :root,
 html.dark {
-  --color-slate-50: 15 23 42;
-  --color-slate-100: 30 41 59;
-  --color-slate-200: 51 65 85;
-  --color-slate-300: 71 85 105;
+  --color-slate-50: 248 250 252;
+  --color-slate-100: 241 245 249;
+  --color-slate-200: 226 232 240;
+  --color-slate-300: 203 213 225;
   --color-slate-400: 148 163 184;
-  --color-slate-500: 148 163 184;
-  --color-slate-600: 203 213 225;
-  --color-slate-700: 226 232 240;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 71 85 105;
+  --color-slate-700: 51 65 85;
   --color-slate-750: 39 51 70;
-  --color-slate-800: 241 245 249;
-  --color-slate-850: 248 250 252;
-  --color-slate-900: 255 255 255;
-  --color-slate-950: 255 255 255;
+  --color-slate-800: 30 41 59;
+  --color-slate-850: 22 32 50;
+  --color-slate-900: 15 23 42;
+  --color-slate-950: 11 15 25;
 
   /* 預設品牌主色 Token (Indigo) */
   --color-brand-50: 238 242 255;
@@ -69,7 +69,7 @@ html.light {
   --color-slate-800: 30 41 59;
   --color-slate-850: 22 32 50;
   --color-slate-900: 15 23 42;
-  --color-slate-950: 2 6 23;
+  --color-slate-950: 11 15 25;
 
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -120,7 +120,13 @@ html.dark .bg-slate-50 {
 
 html.dark .bg-white {
   background-color: #1e293b !important;
-  color: #f1f5f9 !important;
+}
+
+html.dark .bg-white\/90,
+html.dark .bg-white\/95,
+html.dark .bg-white\/80 {
+  background-color: rgba(15, 23, 42, 0.94) !important;
+  border-color: #334155 !important;
 }
 
 html.dark .bg-slate-100 {
@@ -144,12 +150,85 @@ html.dark .text-slate-500 {
   color: #94a3b8 !important;
 }
 
-html.dark input:not([type="checkbox"]):not([type="radio"]),
-html.dark select,
-html.dark textarea {
+/* ── 收銀卡片彩色區塊夜間對齊 ── */
+html.dark .bg-indigo-50,
+html.dark .bg-indigo-50\/60,
+html.dark .bg-indigo-50\/50 {
+  background-color: #1e1b4b !important;
+  border-color: #312e81 !important;
+}
+html.dark .text-indigo-900,
+html.dark .text-indigo-700 {
+  color: #a5b4fc !important;
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/60,
+html.dark .bg-emerald-50\/50 {
+  background-color: #064e3b !important;
+  border-color: #065f46 !important;
+}
+html.dark .text-emerald-900,
+html.dark .text-emerald-700 {
+  color: #6ee7b7 !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-100\/50 {
+  background-color: #451a03 !important;
+  border-color: #78350f !important;
+}
+html.dark .text-amber-900,
+html.dark .text-amber-800,
+html.dark .text-amber-700 {
+  color: #fcd34d !important;
+}
+
+html.dark .bg-rose-50,
+html.dark .bg-rose-100\/50 {
+  background-color: #4c0519 !important;
+  border-color: #881337 !important;
+}
+html.dark .text-rose-900,
+html.dark .text-rose-800,
+html.dark .text-rose-700 {
+  color: #fda4af !important;
+}
+
+/* 輸入框可編輯 vs 唯讀透明態 */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not(:disabled):not(:read-only),
+html.dark textarea:not(:disabled):not(:read-only) {
   background-color: #0f172a !important;
   color: #f8fafc !important;
   border-color: #334155 !important;
+}
+
+html.dark input:disabled,
+html.dark input:read-only,
+html.dark textarea:disabled,
+html.dark textarea:read-only {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark select {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+html.dark select.\!bg-emerald-50 {
+  background-color: #064e3b !important;
+  color: #6ee7b7 !important;
+  border-color: #059669 !important;
+}
+
+html.dark select.\!bg-indigo-50 {
+  background-color: #1e1b4b !important;
+  color: #a5b4fc !important;
+  border-color: #4f46e5 !important;
 }
 
 html.dark input::placeholder,
@@ -157,18 +236,22 @@ html.dark textarea::placeholder {
   color: #64748b !important;
 }
 
-/* 保持所有主題下的實體功能按鈕純白字體 */
-button[class*="bg-indigo-"],
-button[class*="bg-brand-"],
-button[class*="bg-emerald-"],
-button[class*="bg-rose-"],
-button[class*="bg-blue-"],
-button[class*="bg-purple-"],
-[class*="bg-indigo-"] .text-white,
-[class*="bg-brand-"] .text-white,
-[class*="bg-emerald-"] .text-white,
-[class*="bg-rose-"] .text-white,
-[class*="bg-purple-"] .text-white {
+/* 保持彩色實體功能按鈕純白字體，避免誤傷 hover 樣式 */
+button.text-white,
+button .text-white,
+a.text-white,
+button.bg-indigo-600,
+button.bg-indigo-500,
+button.bg-brand-600,
+button.bg-brand-500,
+button.bg-emerald-600,
+button.bg-emerald-500,
+button.bg-rose-600,
+button.bg-rose-500,
+button.bg-amber-500,
+button.bg-amber-600,
+button.bg-blue-600,
+button.bg-purple-600 {
   color: #ffffff !important;
 }
 

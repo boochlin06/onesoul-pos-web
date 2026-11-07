@@ -12,7 +12,7 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().optional(),
   LINE_CHANNEL_ACCESS_TOKEN: z.string().optional().default(''),
   LINE_BOSS_TARGET_ID: z.string().optional().default(''),
-  ADMIN_EMAILS: z.string().default('onesoul.chupei@gmail.com,gamejeffjeff@gmail.com,admin@onesoul.com'),
+  ADMIN_EMAILS: z.string().default('admin@onesoul.com,onesoul.chupei@gmail.com,chupei@onesoul.com,jinshan@onesoul.com'),
 });
 
 const parsed = envSchema.safeParse(process.env);

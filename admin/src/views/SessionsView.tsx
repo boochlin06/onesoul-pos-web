@@ -2,25 +2,17 @@ import React, { useEffect, useState, useRef } from 'react';
 import { sessionsAdminApi } from '../api/client';
 import { 
   CircleDollarSign, 
-  Store, 
   Clock, 
-  CheckCircle2, 
-  AlertCircle, 
   RefreshCw,
   Coins,
   Package,
   CreditCard,
   Banknote,
   Search,
-  Filter,
-  ShieldCheck,
   Award,
-  ChevronRight,
   Sparkles,
-  ArrowRight,
   TrendingUp,
   Receipt,
-  UserCheck,
   DoorOpen,
   DoorClosed,
   X
@@ -134,8 +126,8 @@ export const SessionsView: React.FC = () => {
         amount: 760,
         draws: 2,
         pickType: 'TAKE_AWAY',
-        memberName: '曾瑋崧',
-        memberPhone: '0955881093',
+        memberName: '測試會員',
+        memberPhone: '0911000001',
       });
       loadLiveShift();
     } catch (err: any) {

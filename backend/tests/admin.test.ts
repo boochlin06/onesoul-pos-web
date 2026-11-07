@@ -120,14 +120,15 @@ describe('OneSoul ERP Admin API Suite', () => {
       expect(json.meta.totalProducts).toBeGreaterThanOrEqual(1);
     });
 
-    it('商品主檔修改應支援樂觀鎖 (Version Check)', async () => {
-      // 成功更新
+    it('商品主檔修改應支援樂觀鎖 (Version Check) 與類別更新', async () => {
+      // 成功更新售價與類別
       const updateRes = await app.inject({
         method: 'PUT',
         url: '/api/admin/inventory/products/4',
-        payload: { sellingPrice: 4200, version: 0 },
+        payload: { sellingPrice: 4200, category: '咒術迴戰', version: 0 },
       });
       expect(updateRes.statusCode).toBe(200);
+      expect(updateRes.json().data.category).toBe('咒術迴戰');
 
       // 拿舊版本號再次更新應觸發 409 衝突
       const conflictRes = await app.inject({
@@ -136,6 +137,14 @@ describe('OneSoul ERP Admin API Suite', () => {
         payload: { sellingPrice: 4500, version: 0 },
       });
       expect(conflictRes.statusCode).toBe(409);
+
+      // 驗證 categories 清單包含新類別
+      const catRes = await app.inject({
+        method: 'GET',
+        url: '/api/admin/inventory/categories',
+      });
+      expect(catRes.statusCode).toBe(200);
+      expect(catRes.json().data).toContain('咒術迴戰');
     });
 
     it('單品庫存調帳應記錄異動日誌與審計日誌', async () => {
@@ -192,19 +201,62 @@ describe('OneSoul ERP Admin API Suite', () => {
       expect(prod.storeStocks.chupei).toBe(28);
     });
 
-    it('Excel 批次上架精靈 (Bulk Import) 應能正確解析並批量入庫', async () => {
+    it('點擊決策看板各 IP 卡片應能精準連動篩選試算表商品清單 (Canonical IP Filtering)', async () => {
+      // 1. 測試火影忍者（歷史資料庫主檔 category 為 '火影'，需規範化精準命中）
+      const narutoRes = await app.inject({
+        method: 'GET',
+        url: `/api/admin/inventory/summary?category=${encodeURIComponent('火影忍者')}`,
+      });
+      expect(narutoRes.statusCode).toBe(200);
+      const narutoList = narutoRes.json().data;
+      expect(narutoList.length).toBeGreaterThan(100);
+      expect(narutoList.every((p: any) => p.name.includes('火影') || p.category === '火影' || p.category === '火影忍者')).toBe(true);
+
+      // 2. 測試蠟筆小新（歷史資料庫為 '小新'）
+      const shinRes = await app.inject({
+        method: 'GET',
+        url: `/api/admin/inventory/summary?category=${encodeURIComponent('蠟筆小新')}`,
+      });
+      expect(shinRes.statusCode).toBe(200);
+      const shinList = shinRes.json().data;
+      expect(shinList.length).toBeGreaterThan(10);
+
+      // 3. 測試間諜家家酒（歷史資料庫為 '安妮雅'）
+      const spyRes = await app.inject({
+        method: 'GET',
+        url: `/api/admin/inventory/summary?category=${encodeURIComponent('間諜家家酒')}`,
+      });
+      expect(spyRes.statusCode).toBe(200);
+      const spyList = spyRes.json().data;
+      expect(spyList.length).toBeGreaterThan(10);
+    });
+
+    it('Excel 批次上架精靈 (Bulk Import) 應支援類別自動規範化、點數換算與雙門市初始庫存', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/admin/inventory/products/bulk-import',
         payload: {
+          defaultStoreId: 'chupei',
           items: [
-            { id: 'BULK001', name: '批量測試景品A', costPrice: 200, sellingPrice: 400, quantity: 10, safetyStock: 2 },
-            { id: 'BULK002', name: '批量測試景品B', costPrice: 250, sellingPrice: 500, quantity: 5, safetyStock: 1 },
+            { id: 'BULK001', name: '航海王魯夫五檔 雕像', costPrice: 2000, sellingPrice: 4000, quantity: 10, safetyStock: 2 },
+            { id: 'BULK002', name: '批量測試景品B', category: '七龍珠', costPrice: 250, sellingPrice: 500, quantity: 5, safetyStock: 1 },
           ],
         },
       });
       expect(res.statusCode).toBe(200);
       expect(res.json().data.successCount).toBe(2);
+
+      // 驗證 BULK001 自動推導類別為海賊王、點數自動換算 5% 為 200 點
+      const prodRes = await app.inject({
+        method: 'GET',
+        url: '/api/admin/inventory/summary?q=BULK001',
+      });
+      expect(prodRes.statusCode).toBe(200);
+      const prod = prodRes.json().data[0];
+      expect(prod.category).toBe('海賊王');
+      expect(prod.suggestedPoints).toBe(200);
+      expect(prod.storeStocks.chupei).toBe(10);
+      expect(prod.storeStocks.jinshan).toBe(0);
     });
 
     it('應支援動態排序 (價格降冪與升冪、最新建立優先)', async () => {
@@ -227,6 +279,65 @@ describe('OneSoul ERP Admin API Suite', () => {
       if (listAsc.length >= 2) {
         expect(listAsc[0].sellingPrice).toBeLessThanOrEqual(listAsc[1].sellingPrice);
       }
+    });
+
+    it('跨店 IP 存貨平衡與動銷決策看板 (Decision Analytics) 應回傳完整分析指標與補平調撥建議', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/admin/inventory/decision-analytics?days=30',
+      });
+      expect(res.statusCode).toBe(200);
+      const json = res.json();
+      expect(json.success).toBe(true);
+
+      const { ipSummary, topSelling, slowMoving, salesTrend, totals } = json.data;
+
+      // 1. 驗證 IP 總量與款式判斷
+      expect(Array.isArray(ipSummary)).toBe(true);
+      expect(ipSummary.length).toBeGreaterThan(0);
+      const onePiece = ipSummary.find((item: any) => item.ip === '海賊王');
+      expect(onePiece).toBeDefined();
+      expect(onePiece.productCount).toBeGreaterThan(0);
+
+      // 2. 驗證跨店存量平衡指標與自動計算補平調撥建議
+      for (const ipItem of ipSummary) {
+        expect(ipItem).toHaveProperty('ip');
+        expect(ipItem).toHaveProperty('totalStock');
+        expect(ipItem).toHaveProperty('chupeiStock');
+        expect(ipItem).toHaveProperty('jinshanStock');
+        expect(ipItem).toHaveProperty('stockShareChupei');
+        expect(ipItem).toHaveProperty('stockShareJinshan');
+        expect(ipItem).toHaveProperty('status');
+        expect(ipItem).toHaveProperty('rebalanceSuggestion');
+        if (ipItem.totalStock > 0) {
+          expect(ipItem.stockShareChupei + ipItem.stockShareJinshan).toBeCloseTo(100, -1);
+        }
+        if (ipItem.suggestTransfer) {
+          expect(ipItem.suggestTransfer.quantity).toBeGreaterThan(0);
+          expect(['chupei', 'jinshan']).toContain(ipItem.suggestTransfer.fromStoreId);
+        }
+      }
+
+      // 3. 驗證爆款狂銷與滯銷積壓預警 Top 5
+      expect(Array.isArray(topSelling)).toBe(true);
+      expect(topSelling.length).toBeLessThanOrEqual(5);
+      expect(Array.isArray(slowMoving)).toBe(true);
+      expect(slowMoving.length).toBeLessThanOrEqual(5);
+      if (slowMoving.length > 0) {
+        expect(slowMoving[0]).toHaveProperty('decisionAdvice');
+        expect(slowMoving[0].currentStock).toBeGreaterThanOrEqual(1);
+      }
+
+      // 4. 驗證 30 天各 IP 銷量趨勢與 4 週時間走勢
+      expect(salesTrend).toBeDefined();
+      expect(Array.isArray(salesTrend.byIP)).toBe(true);
+      expect(Array.isArray(salesTrend.weeklyTrend)).toBe(true);
+      expect(salesTrend.weeklyTrend.length).toBe(4);
+
+      // 5. 驗證全店宏觀指標
+      expect(totals.totalProducts).toBeGreaterThan(0);
+      expect(totals.totalStock).toBeGreaterThanOrEqual(0);
+      expect(totals.balancedIpCount + totals.rebalanceNeededCount + totals.lowStockIpCount).toBe(ipSummary.length);
     });
 
     it('新增單品主檔：品名為必填，若為空應回傳 400', async () => {

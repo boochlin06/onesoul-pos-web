@@ -22,7 +22,7 @@ export function LoginScreen({ renderGoogleButton, error, isLoading }: LoginScree
         {/* Card */}
         <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-8 text-center">
           {/* Logo */}
-          <img src={`${import.meta.env.BASE_URL}logo-full.png`} alt="OneSoul 玩獸" className="w-48 mx-auto mb-4 drop-shadow-2xl" />
+          <img src={`${import.meta.env.BASE_URL}logo-horizontal.png`} alt="OneSoul 玩獸" className="w-52 sm:w-56 h-auto max-h-24 object-contain mx-auto mb-4 filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] drop-shadow-[0_0_1px_rgba(255,255,255,0.3)] transition-transform hover:scale-105 duration-300" />
           <h1 className="text-3xl font-black text-white mb-1 tracking-tight">OneSoul POS</h1>
           <p className="text-white/50 text-sm mb-8">銷售管理系統</p>
 

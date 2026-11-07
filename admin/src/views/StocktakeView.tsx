@@ -2,12 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { posCoreApi } from '../api/client';
 import { 
   ClipboardList, 
-  CheckCircle2, 
-  AlertTriangle, 
-  RefreshCw, 
-  Store,
-  Calendar,
-  Layers
+  RefreshCw 
 } from 'lucide-react';
 
 export const StocktakeView: React.FC = () => {

@@ -4,15 +4,12 @@ import {
   CloudLightning, 
   Play, 
   RotateCw, 
-  CheckCircle2, 
-  AlertCircle, 
   Terminal, 
   Database, 
   Users, 
   Package, 
   Gift, 
   CircleDollarSign, 
-  Sparkles,
   ShieldAlert
 } from 'lucide-react';
 

@@ -1,13 +1,19 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { config } from '../config';
 
-export const ALLOWED_EMAILS = [
+const DEFAULT_ALLOWED_EMAILS = [
+  'admin@onesoul.com',
+  'staff@onesoul.com',
+  'chupei@onesoul.com',
+  'jinshan@onesoul.com',
   'onesoul.chupei@gmail.com',
   'onesoul.jinsang@gmail.com',
   'onesoul.chupei.user@gmail.com',
-  'gamejeffjeff@gmail.com',
-  'admin@onesoul.com',
 ];
+
+export const ALLOWED_EMAILS = process.env.ALLOWED_EMAILS
+  ? process.env.ALLOWED_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+  : DEFAULT_ALLOWED_EMAILS;
 
 export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
   // 支援 x-caller-email 標頭，或未來的 Bearer token

@@ -29,7 +29,7 @@ test.describe('POS 系統自動化測試', () => {
             jsonResponse = {
               success: true,
               data: [
-                { checkoutUID: 'UID-TEST-1', branch: '竹北', cash: 500, time: '10:00:00', phone: '0955881093', name: '測試品', points: 100 }
+                { checkoutUID: 'UID-TEST-1', branch: '竹北', cash: 500, time: '10:00:00', phone: '0911000001', name: '測試品', points: 100 }
               ]
             }
             break;
@@ -59,7 +59,7 @@ test.describe('POS 系統自動化測試', () => {
             };
             break;
           case 'getMember':
-            if (payload.payload?.phone === '0955881093') {
+            if (payload.payload?.phone === '0911000001') {
               jsonResponse = { success: true, data: { name: '測試大師', points: 1500, info: '' } };
             } else {
               jsonResponse = { success: false, message: '找不到會員' };
@@ -107,10 +107,10 @@ test.describe('POS 系統自動化測試', () => {
     test.beforeEach(async ({ page }) => {
       await page.goto(BASE);
       await page.evaluate(() => {
-        const fakePayload = btoa(JSON.stringify({ email: 'gamejeffjeff@gmail.com', exp: 9999999999 }));
+        const fakePayload = btoa(JSON.stringify({ email: 'admin@onesoul.com', exp: 9999999999 }));
         const fakeToken = `fake.${fakePayload}.fake`;
         sessionStorage.setItem('os_auth_user', JSON.stringify({
-          email: 'gamejeffjeff@gmail.com',
+          email: 'admin@onesoul.com',
           name: 'Admin Tester',
           idToken: fakeToken,
           picture: ''
@@ -140,7 +140,7 @@ test.describe('POS 系統自動化測試', () => {
       await expect(page.getByText('找不到會員')).toBeVisible();
 
       // 輸入有效電話
-      await phoneInput.fill('0955881093');
+      await phoneInput.fill('0911000001');
       await phoneInput.press('Enter');
       await page.waitForTimeout(100);
 
@@ -198,7 +198,7 @@ test.describe('POS 系統自動化測試', () => {
       await page.waitForTimeout(100);
       
       const phoneInput = page.getByPlaceholder('輸入號碼或姓名尋找...');
-      await phoneInput.fill('0955881093');
+      await phoneInput.fill('0911000001');
       await phoneInput.press('Enter');
       await page.waitForTimeout(200);
       
@@ -246,7 +246,7 @@ test.describe('POS 系統自動化測試', () => {
       await expect(page.locator('input[placeholder="商品名稱"]').last()).toHaveValue('限量福袋');
       
       const phoneInput = page.getByPlaceholder('輸入號碼或姓名尋找...');
-      await phoneInput.fill('0955881093');
+      await phoneInput.fill('0911000001');
       await phoneInput.press('Enter');
       await page.waitForTimeout(200);
       

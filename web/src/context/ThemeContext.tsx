@@ -148,7 +148,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {
       // fallback
     }
-    return 'dark'; // 預設深色護眼
+    return 'light'; // 預設白天明亮模式 (門市收銀台專用高對比)
   });
 
   const [brandColor, setBrandColorState] = useState<BrandColor>(() => {

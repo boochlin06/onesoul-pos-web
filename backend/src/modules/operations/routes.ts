@@ -101,6 +101,7 @@ export async function operationRoutes(fastify: FastifyInstance) {
     const now = new Date();
 
     // 判斷是否遲到
+    let status: 'NORMAL' | 'LATE' = 'NORMAL';
     let lateMinutes = 0;
     if (store?.openTime) {
       const [h, m] = store.openTime.split(':').map(Number);

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const ARTIFACT_DIR = '/Users/heaton/.gemini/antigravity/brain/a201c8d9-67ea-4859-9f21-47a5c2a01628';
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || path.join(__dirname, '../../test-artifacts');
 
 test.describe('OneSoul POS 庫存主檔工作台 Google Sheets 旗艦試算表 E2E 測試', () => {
 

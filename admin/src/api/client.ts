@@ -95,11 +95,18 @@ export const inventoryApi = {
       body: JSON.stringify(data),
     });
   },
-  bulkImport: (items: any[]) => {
+  bulkImport: (items: any[], defaultStoreId?: string) => {
     return apiRequest('/admin/inventory/products/bulk-import', {
       method: 'POST',
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, defaultStoreId }),
     });
+  },
+  getCategories: () => apiRequest('/admin/inventory/categories'),
+  getDecisionAnalytics: (params: { days?: number; storeId?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.days !== undefined) query.set('days', String(params.days));
+    if (params.storeId) query.set('storeId', params.storeId);
+    return apiRequest(`/admin/inventory/decision-analytics?${query.toString()}`);
   },
 };
 

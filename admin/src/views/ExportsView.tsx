@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { reportsApi } from '../api/client';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { reportsApi, inventoryApi, storesApi } from '../api/client';
 import { 
   Download, 
   FileSpreadsheet, 
@@ -16,9 +16,15 @@ import {
   Info, 
   ShieldAlert,
   Search,
-  Layers,
   ArrowDownToLine,
-  BookmarkCheck
+  BookmarkCheck,
+  UploadCloud,
+  FileUp,
+  AlertTriangle,
+  RotateCw,
+  FileText,
+  Trash2,
+  Store
 } from 'lucide-react';
 
 interface ExportDataset {
@@ -36,10 +42,34 @@ interface ExportDataset {
 }
 
 export const ExportsView: React.FC = () => {
+  // ── 主視圖切換：資料串流匯出 vs 商品批次上架入庫 ──
+  const [activeTab, setActiveTab] = useState<'export' | 'import'>('export');
+
+  // ── 匯出狀態 ──
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isBatchDownloading, setIsBatchDownloading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+
+  // ── 批次上架入庫狀態 ──
+  const [bulkCsvText, setBulkCsvText] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<any | null>(null);
+  const [importTargetStore, setImportTargetStore] = useState('chupei');
+  const [storeOptions, setStoreOptions] = useState<Array<{ id: string; name: string }>>([
+    { id: 'chupei', name: '竹北店' },
+    { id: 'jinshan', name: '金山店' },
+  ]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    storesApi.list().then((res) => {
+      if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+        setStoreOptions(res.data);
+        setImportTargetStore(res.data[0].id);
+      }
+    }).catch(() => {});
+  }, []);
 
   const datasets: ExportDataset[] = [
     {
@@ -176,7 +206,7 @@ export const ExportsView: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 600));
     }
     setIsBatchDownloading(false);
   };
@@ -189,13 +219,119 @@ export const ExportsView: React.FC = () => {
       const term = searchTerm.toLowerCase();
       const matchTitle = item.title.toLowerCase().includes(term);
       const matchCategory = item.category.toLowerCase().includes(term);
-      const matchFields = item.fields.some(f => f.toLowerCase().includes(term));
+      const matchFields = item.fields.some((f) => f.toLowerCase().includes(term));
       if (!matchTitle && !matchCategory && !matchFields) {
         return false;
       }
     }
     return true;
   });
+
+  // ── 批次解析即時預覽 (相容 6 欄與 7 欄格式) ──
+  const parsedItems = useMemo(() => {
+    if (!bulkCsvText.trim()) return [];
+    const lines = bulkCsvText.trim().split('\n');
+    const items: Array<{
+      id: string;
+      name: string;
+      category?: string;
+      costPrice: number;
+      sellingPrice: number;
+      quantity: number;
+      safetyStock: number;
+    }> = [];
+
+    for (const line of lines) {
+      const parts = line.split(',').map((p) => p.trim().replace(/^"|"$/g, ''));
+      if (parts.length >= 4 && parts[0] && parts[0] !== '貨號' && parts[0] !== 'id') {
+        const isCol2Numeric = !isNaN(Number(parts[2]));
+        let category: string | undefined = undefined;
+        let costPrice = 0;
+        let sellingPrice = 0;
+        let quantity = 0;
+        let safetyStock = 2;
+
+        if (!isCol2Numeric && parts.length >= 5) {
+          // 7 欄格式：貨號, 品名, 類別, 成本, 售價, 初始入庫量, 安全庫存
+          category = parts[2] || undefined;
+          costPrice = parseFloat(parts[3]) || 0;
+          sellingPrice = parseFloat(parts[4]) || 0;
+          quantity = parts[5] ? parseInt(parts[5], 10) : 0;
+          safetyStock = parts[6] ? parseInt(parts[6], 10) : 2;
+        } else {
+          // 6 欄格式：貨號, 品名, 成本, 售價, 初始入庫量, 安全庫存
+          costPrice = parseFloat(parts[2]) || 0;
+          sellingPrice = parseFloat(parts[3]) || 0;
+          quantity = parts[4] ? parseInt(parts[4], 10) : 0;
+          safetyStock = parts[5] ? parseInt(parts[5], 10) : 2;
+        }
+
+        items.push({
+          id: parts[0],
+          name: parts[1],
+          category,
+          costPrice,
+          sellingPrice,
+          quantity,
+          safetyStock,
+        });
+      }
+    }
+    return items;
+  }, [bulkCsvText]);
+
+  // 執行批次入庫
+  const handleBulkImport = async () => {
+    if (parsedItems.length === 0) return;
+    setBulkLoading(true);
+    setBulkResult(null);
+    try {
+      const res = await inventoryApi.bulkImport(parsedItems, importTargetStore);
+      if (res.success) {
+        setBulkResult(res.data);
+      }
+    } catch (err: any) {
+      setBulkResult({ error: err.message || '批次解析入庫失敗，請檢查資料格式' });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  // 檔案上傳讀取
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setBulkCsvText(text);
+        setBulkResult(null);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // 下載標準 CSV 範本
+  const handleDownloadTemplate = () => {
+    const csvContent =
+      '\uFEFF貨號,品名,類別,成本,售價,初始入庫量,安全庫存\n' +
+      'GK101,航海王艾斯 雕像,海賊王,5000,9800,2,1\n' +
+      'FIG202,七龍珠 超賽悟飯,七龍珠,400,850,10,3\n' +
+      'POK303,寶可夢 耿鬼家族原色版,寶可夢,1200,2400,5,2\n' +
+      'NAR404,火影忍者 疾風傳鳴人螺旋丸,火影忍者,350,780,8,2\n';
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'OneSoul_商品批次上架入庫標準範本.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -207,30 +343,37 @@ export const ExportsView: React.FC = () => {
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">資料匯出與報表歸檔中心</h1>
+              <h1 className="text-xl font-bold text-white">資料匯出入與報表歸檔中心</h1>
               <p className="text-xs text-slate-400 mt-0.5">
-                集中管理會員、商品庫存、抽賞交易、開關帳日結與防竄改日誌之安全串流匯出。
+                集中管理會員、商品庫存、抽賞交易、開關帳日結串流匯出，以及支援 Excel / CSV 批次商品上架入庫。
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
-            <CheckCircle2 className="w-4 h-4" />
-            全線支援 Excel 繁中 UTF-8 BOM
-          </span>
+        {/* 頂部切換頁籤：匯出中心 vs 批次匯入 */}
+        <div className="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-700/80">
           <button
-            onClick={handleDownloadAll}
-            disabled={isBatchDownloading || filteredDatasets.length === 0}
+            onClick={() => setActiveTab('export')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow ${
-              isBatchDownloading
-                ? 'bg-amber-600 text-white cursor-wait'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              activeTab === 'export'
+                ? 'bg-emerald-600 text-white shadow-emerald-500/20'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <ArrowDownToLine className={`w-4 h-4 ${isBatchDownloading ? 'animate-bounce' : ''}`} />
-            {isBatchDownloading ? '正在批次序列匯出中...' : `一鍵打包匯出全部 (${filteredDatasets.length} 項)`}
+            <ArrowDownToLine className="w-4 h-4" />
+            資料串流匯出 ({filteredDatasets.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('import')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow ${
+              activeTab === 'import'
+                ? 'bg-indigo-600 text-white shadow-indigo-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UploadCloud className="w-4 h-4" />
+            Excel / CSV 批次商品上架
           </button>
         </div>
       </div>
@@ -260,117 +403,391 @@ export const ExportsView: React.FC = () => {
         <div className="bg-slate-800/40 border border-slate-700/60 p-3.5 rounded-xl flex items-start gap-3">
           <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <div className="text-xs font-bold text-slate-200">Zero-OOM 非同步串流管線</div>
+            <div className="text-xs font-bold text-slate-200">雙軌高效管線架構</div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              後端採用 Node.js Async Generator 串流分塊傳輸，萬筆巨量資料匯出不塞車、不佔用主機伺服器記憶體。
+              匯出採用 Node.js Async Generator 串流分塊傳輸零 OOM；匯入提供批次事務原子寫入，商品與雙店初始庫存一次完成。
             </div>
           </div>
         </div>
       </div>
 
-      {/* 搜尋與分類標籤列 */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-800/60 p-3.5 rounded-2xl border border-slate-700/60">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          {categories.map((c) => (
-            <button
-              key={c.key}
-              onClick={() => setSelectedCategory(c.key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition ${
-                selectedCategory === c.key
-                  ? 'bg-indigo-600 text-white font-bold shadow'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60'
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative min-w-[240px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="搜尋資料集、類別或欄位代碼..."
-            className="w-full pl-9 pr-4 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-      </div>
-
-      {/* 匯出資料集卡片網格 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDatasets.map((item) => {
-          const Icon = item.icon;
-          const isDownloading = downloadingId === item.id;
-          const exportUrl = reportsApi.getExportUrl(item.id);
-
-          return (
-            <div 
-              key={item.id}
-              className="bg-slate-800/60 hover:bg-slate-800/90 border border-slate-700/60 hover:border-slate-600 rounded-2xl p-5 flex flex-col justify-between transition group shadow-sm hover:shadow-lg"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className={`w-11 h-11 rounded-xl ${item.bgColor} border ${item.borderColor} flex items-center justify-center ${item.color} shrink-0`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <span className="text-[11px] font-mono font-medium px-2.5 py-1 bg-slate-900/80 border border-slate-700/60 text-slate-300 rounded-lg">
-                    {item.countLabel}
-                  </span>
-                </div>
-
-                <div className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 mb-1">
-                  {item.category}
-                </div>
-                <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                  {item.description}
-                </p>
-
-                {/* 欄位標籤預覽 */}
-                <div className="mt-4 pt-3.5 border-t border-slate-700/50">
-                  <div className="text-[10px] text-slate-500 uppercase font-semibold mb-1.5 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    匯出欄位涵蓋 ({item.fields.length})
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {item.fields.slice(0, 4).map((f, idx) => (
-                      <span key={idx} className="text-[10px] px-2 py-0.5 bg-slate-900/60 text-slate-300 border border-slate-700/40 rounded">
-                        {f}
-                      </span>
-                    ))}
-                    {item.fields.length > 4 && (
-                      <span className="text-[10px] px-1.5 py-0.5 text-slate-500">
-                        +{item.fields.length - 4} 欄
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* 下載按鈕 */}
-              <div className="mt-5 pt-3.5 border-t border-slate-700/60">
-                <a
-                  href={exportUrl}
-                  download
-                  onClick={() => handleDownload(item.id)}
-                  className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${
-                    isDownloading 
-                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' 
-                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 group-hover:scale-[1.01]'
+      {/* ── 視圖 1：資料串流匯出中心 ── */}
+      {activeTab === 'export' && (
+        <div className="space-y-6">
+          {/* 搜尋與分類標籤列 */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-800/60 p-3.5 rounded-2xl border border-slate-700/60">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+              {categories.map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => setSelectedCategory(c.key)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition ${
+                    selectedCategory === c.key
+                      ? 'bg-indigo-600 text-white font-bold shadow'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60'
                   }`}
                 >
-                  <Download className={`w-4 h-4 ${isDownloading ? 'animate-bounce' : ''}`} />
-                  {isDownloading ? '串流下載生成中...' : '立即串流匯出 CSV'}
-                </a>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-[220px]">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="搜尋資料集或欄位代碼..."
+                  className="w-full pl-9 pr-4 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <button
+                onClick={handleDownloadAll}
+                disabled={isBatchDownloading || filteredDatasets.length === 0}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
+                  isBatchDownloading
+                    ? 'bg-amber-600 text-white cursor-wait'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                }`}
+              >
+                <ArrowDownToLine className={`w-3.5 h-3.5 ${isBatchDownloading ? 'animate-bounce' : ''}`} />
+                {isBatchDownloading ? '匯出中...' : '打包匯出全部'}
+              </button>
+            </div>
+          </div>
+
+          {/* 匯出資料集卡片網格 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredDatasets.map((item) => {
+              const Icon = item.icon;
+              const isDownloading = downloadingId === item.id;
+              const exportUrl = reportsApi.getExportUrl(item.id);
+
+              return (
+                <div
+                  key={item.id}
+                  className="bg-slate-800/60 hover:bg-slate-800/90 border border-slate-700/60 hover:border-slate-600 rounded-2xl p-5 flex flex-col justify-between transition group shadow-sm hover:shadow-lg"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div
+                        className={`w-11 h-11 rounded-xl ${item.bgColor} border ${item.borderColor} flex items-center justify-center ${item.color} shrink-0`}
+                      >
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className="text-[11px] font-mono font-medium px-2.5 py-1 bg-slate-900/80 border border-slate-700/60 text-slate-300 rounded-lg">
+                        {item.countLabel}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 mb-1">
+                      {item.category}
+                    </div>
+                    <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                      {item.description}
+                    </p>
+
+                    {/* 欄位標籤預覽 */}
+                    <div className="mt-4 pt-3.5 border-t border-slate-700/50">
+                      <div className="text-[10px] text-slate-500 uppercase font-semibold mb-1.5 flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        匯出欄位涵蓋 ({item.fields.length})
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {item.fields.slice(0, 4).map((f, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] px-2 py-0.5 bg-slate-900/60 text-slate-300 border border-slate-700/40 rounded"
+                          >
+                            {f}
+                          </span>
+                        ))}
+                        {item.fields.length > 4 && (
+                          <span className="text-[10px] px-1.5 py-0.5 text-slate-500">
+                            +{item.fields.length - 4} 欄
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 下載按鈕 */}
+                  <div className="mt-5 pt-3.5 border-t border-slate-700/60">
+                    <a
+                      href={exportUrl}
+                      download
+                      onClick={() => handleDownload(item.id)}
+                      className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                        isDownloading
+                          ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 group-hover:scale-[1.01]'
+                      }`}
+                    >
+                      <Download className={`w-4 h-4 ${isDownloading ? 'animate-bounce' : ''}`} />
+                      {isDownloading ? '串流下載生成中...' : '立即串流匯出 CSV'}
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── 視圖 2：Excel / CSV 批次商品上架入庫中心 ── */}
+      {activeTab === 'import' && (
+        <div className="space-y-6">
+          {/* 上架工作台頂部指引 */}
+          <div className="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-700/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <UploadCloud className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Excel / CSV 批量商品上架精靈</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    支援從 Excel 試算表直接複製貼上，或上傳標準 CSV 檔案進行跨店多筆商品批量入庫。
+                  </p>
+                </div>
+              </div>
+
+              {/* 操作快捷工具列 */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* 目標門市選擇器 */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs">
+                  <Store className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-slate-400">入庫門市：</span>
+                  <select
+                    value={importTargetStore}
+                    onChange={(e) => setImportTargetStore(e.target.value)}
+                    className="bg-transparent text-amber-300 font-bold focus:outline-none cursor-pointer"
+                  >
+                    {storeOptions.map((s) => (
+                      <option key={s.id} value={s.id} className="bg-slate-900 text-white">
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".csv,.txt"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition"
+                >
+                  <FileUp className="w-4 h-4 text-indigo-400" />
+                  上傳 CSV 檔案
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-semibold transition"
+                >
+                  <Download className="w-4 h-4" />
+                  下載標準 CSV 範本
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBulkCsvText(
+                      'GK101,航海王艾斯 雕像,海賊王,5000,9800,2,1\n' +
+                      'FIG202,七龍珠 超賽悟飯,七龍珠,400,850,10,3\n' +
+                      'POK303,寶可夢 耿鬼家族原色版,寶可夢,1200,2400,5,2\n' +
+                      'NAR404,火影忍者 疾風傳鳴人螺旋丸,火影忍者,350,780,8,2\n' +
+                      'HUN505,獵人 奇犽神速狀態,獵人,600,1200,4,2'
+                    );
+                    setBulkResult(null);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold transition"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  帶入測試範例資料
+                </button>
+
+                {bulkCsvText && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBulkCsvText('');
+                      setBulkResult(null);
+                    }}
+                    className="p-2 text-slate-400 hover:text-rose-400 transition"
+                    title="清空輸入框"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
-          );
-        })}
-      </div>
+
+            {/* 欄位順序規格指引 */}
+            <div className="mt-4 p-3.5 bg-slate-900/80 rounded-xl border border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span className="text-slate-300">
+                  標準欄位順序（半形逗號分隔，類別為選填）：
+                  <span className="font-mono text-amber-400 font-semibold ml-1">
+                    貨號, 品名, [類別], 成本價, 零售價, 初始入庫量, 安全庫存
+                  </span>
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400">
+                每行一筆商品，第一列若為表頭將自動跳過；未填類別將由品名自動規範化識別 IP
+              </span>
+            </div>
+
+            {/* CSV 輸入編輯區 */}
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                <span>貼上 CSV 文本或直接編輯：</span>
+                <span className="font-mono text-[11px] text-slate-400">
+                  已解析 {parsedItems.length} 筆有效品項
+                </span>
+              </label>
+              <textarea
+                rows={9}
+                value={bulkCsvText}
+                onChange={(e) => {
+                  setBulkCsvText(e.target.value);
+                  setBulkResult(null);
+                }}
+                placeholder="例：&#10;GK101,航海王艾斯 雕像,5000,9800,2,1&#10;FIG202,七龍珠 超賽悟飯,400,850,10,3&#10;POK303,寶可夢 耿鬼家族,1200,2400,5,2"
+                className="w-full p-3.5 bg-slate-950 border border-slate-700 rounded-xl font-mono text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition leading-relaxed"
+              />
+            </div>
+
+            {/* 結果反饋條 */}
+            {bulkResult && (
+              <div
+                className={`mt-4 p-4 rounded-xl text-xs flex items-center gap-3 ${
+                  bulkResult.error
+                    ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                    : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                }`}
+              >
+                {bulkResult.error ? (
+                  <>
+                    <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                    <div>
+                      <div className="font-bold">入庫失敗</div>
+                      <div className="text-[11px] mt-0.5 text-rose-300/90">{bulkResult.error}</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <div>
+                      <div className="font-bold">🎉 批量上架入庫成功！</div>
+                      <div className="text-[11px] mt-0.5 text-emerald-300/90">
+                        共成功建立 {bulkResult.successCount} 項商品主檔，門市初始庫存與樂觀鎖版本號已同步初始化。
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* 提交執行按鈕列 */}
+            <div className="mt-5 pt-4 border-t border-slate-700/60 flex items-center justify-between">
+              <span className="text-xs text-slate-400">
+                {parsedItems.length > 0
+                  ? `確認格式無誤後點擊右側按鈕，立即寫入資料庫`
+                  : `請於上方輸入框貼上商品資料以啟動批量上架`}
+              </span>
+              <button
+                type="button"
+                onClick={handleBulkImport}
+                disabled={bulkLoading || parsedItems.length === 0}
+                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {bulkLoading ? (
+                  <>
+                    <RotateCw className="w-4 h-4 animate-spin" />
+                    批次入庫處理中...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="w-4 h-4" />
+                    開始批次解析上架 ({parsedItems.length} 項)
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* 即時表格預覽 (Parsed Rows Preview) */}
+          {parsedItems.length > 0 && (
+            <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow">
+              <div className="p-4 bg-slate-800/80 border-b border-slate-700/60 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-400" />
+                  <span className="text-xs font-bold text-slate-200">
+                    解析資料即時預覽 ({parsedItems.length} 筆品項)
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400">
+                  建議點數將依售價自動換算 5% 回饋
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-slate-900/60 text-slate-400 font-semibold border-b border-slate-700/60">
+                    <tr>
+                      <th className="py-2.5 px-4 font-mono">貨號 (ID)</th>
+                      <th className="py-2.5 px-4">商品品名</th>
+                      <th className="py-2.5 px-4">類別 (IP)</th>
+                      <th className="py-2.5 px-4 text-right">進貨成本</th>
+                      <th className="py-2.5 px-4 text-right">標準售價</th>
+                      <th className="py-2.5 px-4 text-right">初始庫存</th>
+                      <th className="py-2.5 px-4 text-right">安全水位</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/40 text-slate-300">
+                    {parsedItems.slice(0, 15).map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-750/30 transition">
+                        <td className="py-2 px-4 font-mono text-indigo-300 font-semibold">{row.id}</td>
+                        <td className="py-2 px-4 text-slate-200">{row.name}</td>
+                        <td className="py-2 px-4 text-slate-300">
+                          <span className="px-1.5 py-0.5 rounded bg-slate-900 text-indigo-300 border border-slate-700 text-[10px] font-mono">
+                            {row.category || '自動規範化'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-4 text-right font-mono text-slate-400">${row.costPrice.toLocaleString()}</td>
+                        <td className="py-2 px-4 text-right font-mono text-amber-400 font-bold">${row.sellingPrice.toLocaleString()}</td>
+                        <td className="py-2 px-4 text-right font-mono text-emerald-400 font-semibold">{row.quantity} 件</td>
+                        <td className="py-2 px-4 text-right font-mono text-slate-400">{row.safetyStock} 件</td>
+                      </tr>
+                    ))}
+                    {parsedItems.length > 15 && (
+                      <tr>
+                        <td colSpan={7} className="py-2.5 px-4 text-center text-xs text-slate-500 bg-slate-900/30 italic">
+                          ... 尚有 {parsedItems.length - 15} 筆品項，將於送出時全數完整寫入
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -11,7 +11,6 @@ import {
   ArrowUpDown, 
   ArrowUp, 
   ArrowDown, 
-  Sparkles, 
   DollarSign, 
   Layers, 
   TrendingUp, 

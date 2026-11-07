@@ -25,14 +25,23 @@ fi
 
 # 2. 檢查 .env 環境變數檔案
 if [ ! -f "${ROOT_DIR}/.env.prod" ]; then
-    echo "⚠️ 未找到 .env.prod，正在從範本生成預設生產環境變數..."
-    cat << 'EOF' > "${ROOT_DIR}/.env.prod"
+    echo "⚠️ 未找到 .env.prod，正在從安全隨機金鑰生成生產環境變數..."
+    GEN_PASSWORD="${DB_PASSWORD:-$(openssl rand -hex 16 2>/dev/null || LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)}"
+    cat << EOF > "${ROOT_DIR}/.env.prod"
 # OneSoul Production Environment Variables
 DB_USER=postgres
-DB_PASSWORD=onesoul_prod_secret_2026
+DB_PASSWORD=${GEN_PASSWORD}
 DB_NAME=onesoul_pos
 EOF
-    echo "✅ 已生成 .env.prod"
+    echo "✅ 已生成 .env.prod（包含安全隨機生成之資料庫密碼）"
+fi
+
+# 載入並驗證生產環境密鑰
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/.env.prod"
+if [ -z "${DB_PASSWORD:-}" ]; then
+    echo "❌ 錯誤: .env.prod 內未指定 DB_PASSWORD，為防範生產環境安全性風險，請設定強密碼後再部署！"
+    exit 1
 fi
 
 # 3. 建置前端與後端容器映像檔

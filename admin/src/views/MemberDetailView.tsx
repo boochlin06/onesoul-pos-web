@@ -2,24 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { membersApi } from '../api/client';
 import { 
   ArrowLeft,
-  Users,
   Wallet,
   Sparkles,
   Calendar,
   Receipt,
   Coins,
-  Package,
-  Store,
-  CreditCard,
-  Banknote,
   Search,
-  Filter,
-  CheckCircle2,
   AlertCircle,
-  Clock,
-  ShieldCheck,
-  ChevronDown,
-  Gift
+  ShieldCheck
 } from 'lucide-react';
 
 interface MemberDetailViewProps {

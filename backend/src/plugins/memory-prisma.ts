@@ -272,9 +272,19 @@ export function createMemoryPrisma() {
       },
     },
     product: {
+      findFirst: async ({ where }: any = {}) => {
+        const list = await client.product.findMany({ where });
+        return list[0] || null;
+      },
       findMany: async ({ where }: any = {}) => {
         let res = store.products;
-        if (where?.id) res = res.filter((p) => p.id === where.id);
+        if (where?.id) {
+          if (typeof where.id === 'string') {
+            res = res.filter((p) => p.id === where.id);
+          } else if (where.id.in && Array.isArray(where.id.in)) {
+            res = res.filter((p) => where.id.in.includes(p.id));
+          }
+        }
         if (where?.mainCategory) res = res.filter((p) => p.mainCategory === where.mainCategory);
         if (where?.subCategory) res = res.filter((p) => p.subCategory === where.subCategory);
         if (where?.category) res = res.filter((p) => p.category === where.category || p.subCategory === where.category);
@@ -843,8 +853,13 @@ export function createMemoryPrisma() {
       },
     },
     auditLog: {
+      findFirst: async ({ where }: any = {}) => {
+        const list = await client.auditLog.findMany({ where });
+        return list[0] || null;
+      },
       findMany: async ({ where, take, orderBy }: any = {}) => {
         let res = [...store.auditLogs];
+        if (where?.action) res = res.filter((l: any) => l.action === where.action);
         if (where?.targetType) res = res.filter((l: any) => l.targetType === where.targetType);
         if (where?.targetId) res = res.filter((l: any) => l.targetId === where.targetId);
         if (take) res = res.slice(-take);
@@ -857,7 +872,16 @@ export function createMemoryPrisma() {
       },
     },
     $transaction: async (cb: any) => {
-      return cb(client);
+      const snapshot = JSON.stringify(store);
+      try {
+        return await cb(client);
+      } catch (err) {
+        const restored = JSON.parse(snapshot);
+        Object.keys(store).forEach((k) => {
+          (store as Record<string, any>)[k] = (restored as Record<string, any>)[k];
+        });
+        throw err;
+      }
     },
     $connect: async () => {},
     $disconnect: async () => {},

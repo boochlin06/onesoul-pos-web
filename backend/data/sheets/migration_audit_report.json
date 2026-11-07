@@ -1,0 +1,36 @@
+{
+  "summary": {
+    "totalExtracted": 0,
+    "totalImported": 0,
+    "totalConflicts": 0,
+    "dryRun": true,
+    "executedAt": "2026-11-07T15:47:51.604Z"
+  },
+  "details": {
+    "members": {
+      "extracted": 0,
+      "imported": 0,
+      "conflicts": 0
+    },
+    "products": {
+      "extracted": 0,
+      "imported": 0
+    },
+    "inventories": {
+      "importedChupei": 0,
+      "importedJinshan": 0
+    },
+    "luckyBags": {
+      "importedBags": 0,
+      "importedPrizes": 0
+    },
+    "sessions": {
+      "imported": 0
+    },
+    "orders": {
+      "imported": 0,
+      "itemsImported": 0
+    }
+  },
+  "conflicts": []
+}

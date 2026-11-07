@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { reportsApi, inventoryApi, lotteryApi, scheduleApi } from '../api/client';
 import { 
   TrendingUp, 
-  Users, 
-  Package, 
   Gift, 
   AlertTriangle, 
   CheckCircle2, 
@@ -19,7 +17,6 @@ interface OverviewViewProps {
 }
 
 export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, selectedStore }) => {
-  const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<any>(null);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [activeBags, setActiveBags] = useState<any[]>([]);
@@ -30,7 +27,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, selected
   }, [selectedStore]);
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const [analyticsRes, invRes, lotteryRes, attRes] = await Promise.all([
         reportsApi.analytics(selectedStore || undefined, '7'),
@@ -45,8 +41,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, selected
       if (attRes.success) setAttendanceToday(attRes.data);
     } catch (err) {
       console.error('Failed to load overview data', err);
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -16,10 +16,10 @@ import type { Branch } from './types';
 /** 角色白名單 — email → 可存取的門市列表
  *  新增帳號只需在這裡加一行即可 */
 export const AUTH_ROLES: Record<string, Branch[]> = {
+  'admin@onesoul.com': ['竹北', '金山'],
   'onesoul.chupei@gmail.com': ['竹北', '金山'],
   'onesoul.jinsang@gmail.com': ['金山'],
   'onesoul.chupei.user@gmail.com': ['竹北'],
-  'gamejeffjeff@gmail.com': ['竹北', '金山'],
 };
 
 // ─────────────────────────────────────────────────────
@@ -73,8 +73,8 @@ export function isOperatingHours(): boolean {
 
 /** 大師帳號 — 可發送緊急通知、看到大師分頁 */
 export const ADMIN_EMAILS = [
+  'admin@onesoul.com',
   'onesoul.chupei@gmail.com',
-  'gamejeffjeff@gmail.com',
 ];
 
 /** 緊急通知輪詢間隔（毫秒） */

@@ -2,16 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { reportsApi } from '../api/client';
 import { 
   BarChart3, 
-  Search, 
   Trash2, 
   AlertCircle, 
   X, 
   TrendingUp, 
-  DollarSign, 
-  CreditCard,
-  Building,
-  Calendar,
-  CheckCircle2
+  DollarSign
 } from 'lucide-react';
 
 export const ReportsView: React.FC = () => {
@@ -22,7 +17,7 @@ export const ReportsView: React.FC = () => {
   // 篩選條件
   const [storeFilter, setStoreFilter] = useState('ALL');
   const [paymentFilter, setPaymentFilter] = useState('ALL');
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
 
   // 訂單作廢 Modal
   const [voidTarget, setVoidTarget] = useState<any | null>(null);

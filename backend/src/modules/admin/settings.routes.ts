@@ -261,8 +261,8 @@ export const adminSettingsRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // 6. 店家品牌與系統資訊設定 (便於推廣給不同店家快速替換品牌)
-  fastify.get('/settings/brand', async (request, reply) => {
+  // 6. 店家品牌與系統資訊設定 (便於推廣給不同店家快速替換品牌與 Logo)
+  fastify.get('/settings/brand', async (_request, reply) => {
     const brandConfig = await prisma.integrationConfig.findUnique({
       where: { key: 'STORE_BRAND_INFO' },
     });
@@ -275,6 +275,8 @@ export const adminSettingsRoutes: FastifyPluginAsync = async (fastify) => {
       blindBoxPointsValue: 10, // 一番賞 X 賞盲盒等價點數 (預設 10 點)
       pointRateTwd: 20, // 點數現金匯率 (預設 1 點 = 20 元台幣)
       smallPrizePointsValue: 1, // 一番賞 Z 賞小賞等價點數 (預設 1 點)
+      logoHorizontal: null as string | null,
+      logoSquare: null as string | null,
     };
 
     let brandData = { ...defaultBrand };
@@ -291,33 +293,339 @@ export const adminSettingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.send({
       success: true,
-      data: brandData,
+      data: {
+        ...brandData,
+        hasCustomHorizontalLogo: !!brandData.logoHorizontal,
+        hasCustomSquareLogo: !!brandData.logoSquare,
+        defaultLogos: {
+          horizontal: '/logo-horizontal.png',
+          square: '/logo-square.png',
+        },
+      },
     });
   });
 
   fastify.put('/settings/brand', async (request, reply) => {
-    const body = request.body as any;
+    const body = (request.body || {}) as any;
     const operatorId = (request as any).user?.email || 'admin@onesoul.com';
 
-    const updated = await prisma.integrationConfig.upsert({
+    // 讀取當前設定進行欄位合併
+    const brandConfig = await prisma.integrationConfig.findUnique({
+      where: { key: 'STORE_BRAND_INFO' },
+    });
+
+    const defaultBrand = {
+      brandName: 'OneSoul 模型玩具一番賞',
+      brandSubtitle: '門市管理與即時營運系統',
+      logoText: 'OS',
+      supportPhone: '0912-345-678',
+      blindBoxPointsValue: 10,
+      pointRateTwd: 20,
+      smallPrizePointsValue: 1,
+      logoHorizontal: null as string | null,
+      logoSquare: null as string | null,
+    };
+
+    let existingData = { ...defaultBrand };
+    if (brandConfig?.value) {
+      try {
+        const parsed = typeof brandConfig.value === 'string'
+          ? JSON.parse(brandConfig.value)
+          : (brandConfig.value as any);
+        existingData = { ...defaultBrand, ...parsed };
+      } catch {
+        existingData = { ...defaultBrand };
+      }
+    }
+
+    // 進行安全檢驗 (若有傳入 Logo 且非 null)
+    if (body.logoHorizontal !== undefined && body.logoHorizontal !== null) {
+      if (typeof body.logoHorizontal !== 'string') {
+        return reply.code(400).send({ success: false, message: '橫式 Logo 必須為字串或 null' });
+      }
+      const v = validateLogoDataUrl(body.logoHorizontal, '橫式 Logo');
+      if (!v.valid) {
+        return reply.code(400).send({ success: false, message: v.error });
+      }
+    }
+
+    if (body.logoSquare !== undefined && body.logoSquare !== null) {
+      if (typeof body.logoSquare !== 'string') {
+        return reply.code(400).send({ success: false, message: '方形 Logo 必須為字串或 null' });
+      }
+      const v = validateLogoDataUrl(body.logoSquare, '方形 Logo');
+      if (!v.valid) {
+        return reply.code(400).send({ success: false, message: v.error });
+      }
+    }
+
+    const updatedData = {
+      ...existingData,
+      ...body,
+    };
+
+    await prisma.integrationConfig.upsert({
       where: { key: 'STORE_BRAND_INFO' },
       create: {
         key: 'STORE_BRAND_INFO',
-        value: JSON.stringify(body),
+        value: JSON.stringify(updatedData),
         description: '店家品牌名稱與Logo客製設定',
         isEnabled: true,
         updatedBy: operatorId,
       },
       update: {
-        value: JSON.stringify(body),
+        value: JSON.stringify(updatedData),
         updatedBy: operatorId,
       },
+    });
+
+    await recordAuditLog(prisma, {
+      operatorId,
+      action: 'UPDATE_BRAND_INFO',
+      targetType: 'StoreBrand',
+      targetId: 'STORE_BRAND_INFO',
+      afterState: {
+        brandName: updatedData.brandName,
+        hasLogoHorizontal: !!updatedData.logoHorizontal,
+        hasLogoSquare: !!updatedData.logoSquare,
+      },
+      reason: '更新店家品牌與 Logo 客製設定',
+      ipAddress: request.ip,
     });
 
     return reply.send({
       success: true,
       message: '店家品牌客製化資訊已更新',
-      data: body,
+      data: {
+        ...updatedData,
+        hasCustomHorizontalLogo: !!updatedData.logoHorizontal,
+        hasCustomSquareLogo: !!updatedData.logoSquare,
+        defaultLogos: {
+          horizontal: '/logo-horizontal.png',
+          square: '/logo-square.png',
+        },
+      },
+    });
+  });
+
+  // 7. 還原品牌 Logo 為系統預設
+  fastify.post('/settings/brand/logo/reset', async (request, reply) => {
+    const { type } = (request.body || {}) as { type?: string };
+    const operatorId = (request as any).user?.email || 'admin@onesoul.com';
+
+    if (!type || !['horizontal', 'square', 'all'].includes(type)) {
+      return reply.code(400).send({
+        success: false,
+        message: '無效的重設類型，僅支援 horizontal、square 或 all',
+      });
+    }
+
+    const brandConfig = await prisma.integrationConfig.findUnique({
+      where: { key: 'STORE_BRAND_INFO' },
+    });
+
+    const defaultBrand = {
+      brandName: 'OneSoul 模型玩具一番賞',
+      brandSubtitle: '門市管理與即時營運系統',
+      logoText: 'OS',
+      supportPhone: '0912-345-678',
+      blindBoxPointsValue: 10,
+      pointRateTwd: 20,
+      smallPrizePointsValue: 1,
+      logoHorizontal: null as string | null,
+      logoSquare: null as string | null,
+    };
+
+    let brandData = { ...defaultBrand };
+    if (brandConfig?.value) {
+      try {
+        const parsed = typeof brandConfig.value === 'string'
+          ? JSON.parse(brandConfig.value)
+          : (brandConfig.value as any);
+        brandData = { ...defaultBrand, ...parsed };
+      } catch {
+        brandData = { ...defaultBrand };
+      }
+    }
+
+    if (type === 'horizontal' || type === 'all') {
+      brandData.logoHorizontal = null;
+    }
+    if (type === 'square' || type === 'all') {
+      brandData.logoSquare = null;
+    }
+
+    await prisma.integrationConfig.upsert({
+      where: { key: 'STORE_BRAND_INFO' },
+      create: {
+        key: 'STORE_BRAND_INFO',
+        value: JSON.stringify(brandData),
+        description: '店家品牌名稱與Logo客製設定',
+        isEnabled: true,
+        updatedBy: operatorId,
+      },
+      update: {
+        value: JSON.stringify(brandData),
+        updatedBy: operatorId,
+      },
+    });
+
+    await recordAuditLog(prisma, {
+      operatorId,
+      action: 'RESET_BRAND_LOGO',
+      targetType: 'StoreBrand',
+      targetId: type,
+      afterState: {
+        type,
+        logoHorizontal: brandData.logoHorizontal,
+        logoSquare: brandData.logoSquare,
+      },
+      reason: `還原品牌 Logo 為預設值：${type}`,
+      ipAddress: request.ip,
+    });
+
+    return reply.send({
+      success: true,
+      message: `已成功將品牌 Logo 還原為系統預設 (${type})`,
+      data: {
+        ...brandData,
+        hasCustomHorizontalLogo: !!brandData.logoHorizontal,
+        hasCustomSquareLogo: !!brandData.logoSquare,
+        defaultLogos: {
+          horizontal: '/logo-horizontal.png',
+          square: '/logo-square.png',
+        },
+      },
     });
   });
 };
+
+const ALLOWED_LOGO_MIMES = ['image/png', 'image/webp', 'image/svg+xml', 'image/jpeg'];
+const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2MB
+
+export function validateLogoDataUrl(dataUrl: string, fieldName: string): { valid: boolean; error?: string } {
+  if (typeof dataUrl !== 'string') {
+    return { valid: false, error: `${fieldName} 格式錯誤：必須為字串或 null` };
+  }
+
+  if (!dataUrl.slice(0, 5).toLowerCase().startsWith('data:')) {
+    return {
+      valid: false,
+      error: `${fieldName} 格式無效：必須為合法的 Data URL (例如 data:image/png;base64,...)`,
+    };
+  }
+
+  const commaIdx = dataUrl.indexOf(',');
+  if (commaIdx === -1) {
+    return {
+      valid: false,
+      error: `${fieldName} 格式無效：缺少逗號分隔符號`,
+    };
+  }
+
+  const header = dataUrl.slice(5, commaIdx).trim(); // e.g. "image/png;base64" or "image/svg+xml;charset=utf-8"
+  const rawData = dataUrl.slice(commaIdx + 1);
+
+  const parts = header.split(';').map((p) => p.trim().toLowerCase());
+  const mime = parts[0];
+  const isBase64 = parts.includes('base64');
+
+  // 1. MIME 白名單檢查
+  if (!ALLOWED_LOGO_MIMES.includes(mime)) {
+    return {
+      valid: false,
+      error: `${fieldName} 格式不支援：檢測到「${mime}」，僅支援 PNG、WebP、JPEG 與 SVG 格式。`,
+    };
+  }
+
+  // 2. 解碼後位元組長度與 Base64 格式檢查 (<= 2MB)
+  let byteLength = 0;
+  let cleanBase64 = '';
+
+  if (isBase64) {
+    cleanBase64 = rawData.replace(/[\r\n\s]/g, '');
+    if (!cleanBase64 || cleanBase64.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(cleanBase64)) {
+      return {
+        valid: false,
+        error: `${fieldName} 格式無效：Base64 編碼結構不合法或包含非法字元。`,
+      };
+    }
+    const padding = cleanBase64.endsWith('==') ? 2 : cleanBase64.endsWith('=') ? 1 : 0;
+    byteLength = (cleanBase64.length * 3) / 4 - padding;
+    if (byteLength === 0) {
+      return {
+        valid: false,
+        error: `${fieldName} 格式無效：檔案內容為空。`,
+      };
+    }
+  } else {
+    try {
+      const decoded = decodeURIComponent(rawData);
+      byteLength = Buffer.byteLength(decoded, 'utf-8');
+      if (byteLength === 0) {
+        return {
+          valid: false,
+          error: `${fieldName} 格式無效：檔案內容為空。`,
+        };
+      }
+    } catch {
+      return {
+        valid: false,
+        error: `${fieldName} 格式無效：URL 編碼無法解析。`,
+      };
+    }
+  }
+
+  if (byteLength > MAX_LOGO_BYTES) {
+    const sizeMb = (byteLength / (1024 * 1024)).toFixed(2);
+    return {
+      valid: false,
+      error: `${fieldName} 檔案大小 (${sizeMb} MB) 超過上限！最大上限為 2.00 MB。`,
+    };
+  }
+
+  // 3. SVG 格式的 XSS 惡意腳本與標籤消毒過濾
+  if (mime === 'image/svg+xml') {
+    let svgContent = '';
+    try {
+      if (isBase64) {
+        svgContent = Buffer.from(cleanBase64, 'base64').toString('utf-8');
+      } else {
+        svgContent = decodeURIComponent(rawData);
+      }
+    } catch {
+      return { valid: false, error: `${fieldName} SVG 解碼失敗。` };
+    }
+
+    // 將 XML 實體反解以防範實體編碼繞過 (如 jav&#x61;script: 或 &#106;avascript:)
+    const normalizedSvg = svgContent
+      .replace(/&#x([0-9a-fA-F]+);?/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/&#([0-9]+);?/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
+
+    const dangerousPatterns = [
+      /<script[\s>]/i,
+      /<\/script>/i,
+      /<!(?:DOCTYPE|ENTITY)/i,
+      /\bon[a-zA-Z0-9_-]+\s*=/i,
+      /javascript\s*:/i,
+      /vbscript\s*:/i,
+      /data:(?:text\/html|application\/xhtml\+xml)/i,
+      /<foreignObject[\s>]/i,
+      /<(?:iframe|embed|object|applet|meta|link|base)[\s>]/i,
+      /(?:href|xlink:href)\s*=\s*['"]?\s*https?:/i,
+      /@import\b/i,
+      /<(?:set|animate)\b[^>]*attributeName\s*=\s*['"]?(?:href|xlink:href|on\w+)/i,
+    ];
+
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(normalizedSvg) || pattern.test(svgContent)) {
+        return {
+          valid: false,
+          error: `${fieldName} 上傳失敗：SVG 檔案中包含潛在危險代碼或腳本 (${pattern.source})，已被安全防護攔截！`,
+        };
+      }
+    }
+  }
+
+  return { valid: true };
+}

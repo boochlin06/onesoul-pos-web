@@ -815,7 +815,7 @@ describe('限定點數套公式與狀態機轉移 (Points Set Transitions)', () 
   ];
 
   it('選入限定點數套：amount 歸零、type 預設帶走、remark 標記為點數套', () => {
-    let item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
+    const item = applyLotteryUpdate(emptyLottery(), 'id', 'PS1', pointsPrizes);
     expect(item.amount).toBe(0);
     expect(item.type).toBe('帶走');
     expect(item.remark).toBe('點數套');

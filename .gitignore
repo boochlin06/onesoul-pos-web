@@ -20,7 +20,10 @@ test-results/
 **/test-results/
 playwright-report/
 **/playwright-report/
+coverage/
+**/coverage/
 .agents/
 scratch/
 __pycache__/
 **/__pycache__/
+scripts/

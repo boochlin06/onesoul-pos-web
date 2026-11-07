@@ -36,8 +36,8 @@ export function StockView({ branch, records, isLoading, onRefresh, setBranch }: 
 
     // 排序
     return result.sort((a, b) => {
-      let valA = a[sortField];
-      let valB = b[sortField];
+      const valA = a[sortField];
+      const valB = b[sortField];
 
       if (sortField === 'id') {
         const strA = String(valA);

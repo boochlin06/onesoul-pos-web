@@ -1,21 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { settingsApi, storesApi } from '../api/client';
 import { OneClickMigrationPanel } from '../components/OneClickMigrationPanel';
+import { BrandLogoSettingsCard } from './settings/components/BrandLogoSettingsCard';
 import { useTheme, BRAND_COLORS, BrandColor } from '../context/ThemeContext';
 import { 
-  Settings, 
   Store, 
   Plus, 
   Trash2, 
-  Edit3, 
   Save, 
   CheckCircle2, 
-  AlertTriangle,
   Building2,
-  Clock,
   MessageSquare,
-  Trello,
-  Radio,
   X,
   Sparkles,
   Sun,
@@ -38,10 +33,12 @@ export const SettingsView: React.FC = () => {
   const [blindBoxPointsValue, setBlindBoxPointsValue] = useState<number>(10);
   const [pointRateTwd, setPointRateTwd] = useState<number>(20);
   const [smallPrizePointsValue, setSmallPrizePointsValue] = useState<number>(1);
+  const [logoHorizontal, setLogoHorizontal] = useState<string | null>(null);
+  const [logoSquare, setLogoSquare] = useState<string | null>(null);
+  const [logoSaving, setLogoSaving] = useState(false);
 
   // ── 門市擴增管理 (上限 5 間) ──
   const [stores, setStores] = useState<any[]>([]);
-  const [storesLoading, setStoresLoading] = useState(false);
   const [editingStore, setEditingStore] = useState<any | null>(null);
   const [newStoreModalOpen, setNewStoreModalOpen] = useState(false);
   const [newStoreName, setNewStoreName] = useState('');
@@ -63,26 +60,16 @@ export const SettingsView: React.FC = () => {
   const [trelloSaving, setTrelloSaving] = useState(false);
   const [trelloSaved, setTrelloSaved] = useState(false);
 
-  // ── 緊急公告 ──
-  const [noticeTitle, setNoticeTitle] = useState('');
-  const [noticeContent, setNoticeContent] = useState('');
-  const [noticeLevel, setNoticeLevel] = useState<'INFO' | 'WARNING' | 'CRITICAL'>('WARNING');
-  const [publishing, setPublishing] = useState(false);
-  const [publishSuccess, setPublishSuccess] = useState(false);
-  const [activeNotices, setActiveNotices] = useState<any[]>([]);
-
   useEffect(() => {
     loadAllSettings();
   }, []);
 
   const loadAllSettings = async () => {
-    setStoresLoading(true);
     try {
-      const [brandRes, storesRes, cfgRes, noticesRes] = await Promise.all([
+      const [brandRes, storesRes, cfgRes] = await Promise.all([
         settingsApi.getBrand(),
         storesApi.list(),
         settingsApi.getIntegrations(),
-        settingsApi.getNotices(),
       ]);
 
       if (brandRes.success && brandRes.data) {
@@ -96,6 +83,8 @@ export const SettingsView: React.FC = () => {
         setBlindBoxPointsValue(brandRes.data.blindBoxPointsValue || 10);
         setPointRateTwd(brandRes.data.pointRateTwd || 20);
         setSmallPrizePointsValue(brandRes.data.smallPrizePointsValue || 1);
+        setLogoHorizontal(brandRes.data.logoHorizontal || null);
+        setLogoSquare(brandRes.data.logoSquare || null);
       }
 
       if (storesRes.success) {
@@ -117,14 +106,8 @@ export const SettingsView: React.FC = () => {
           setTrelloListId(trelloCfg.value?.listId || '');
         }
       }
-
-      if (noticesRes.success) {
-        setActiveNotices(noticesRes.data || []);
-      }
     } catch (err) {
       console.error(err);
-    } finally {
-      setStoresLoading(false);
     }
   };
 
@@ -148,7 +131,9 @@ export const SettingsView: React.FC = () => {
         blindBoxPointsValue: Number(blindBoxPointsValue) || 10,
         pointRateTwd: Number(pointRateTwd) || 20,
         smallPrizePointsValue: Number(smallPrizePointsValue) || 1,
-      });
+        logoHorizontal,
+        logoSquare,
+      } as any);
       if (res.success) {
         setBrandSaved(true);
         setTimeout(() => setBrandSaved(false), 3000);
@@ -157,6 +142,36 @@ export const SettingsView: React.FC = () => {
       alert(`儲存品牌資訊失敗: ${err.message || '未知錯誤'}`);
     } finally {
       setBrandSaving(false);
+    }
+  };
+
+  // 儲存店家品牌 Logo (Data URL 或 null 還原)
+  const handleSaveLogos = async (newHorizontal: string | null, newSquare: string | null): Promise<boolean> => {
+    setLogoSaving(true);
+    try {
+      const res = await settingsApi.updateBrand({
+        brandName,
+        brandSubtitle,
+        logoText,
+        supportPhone,
+        primaryColor: brandColor,
+        blindBoxPointsValue: Number(blindBoxPointsValue) || 10,
+        pointRateTwd: Number(pointRateTwd) || 20,
+        smallPrizePointsValue: Number(smallPrizePointsValue) || 1,
+        logoHorizontal: newHorizontal,
+        logoSquare: newSquare,
+      } as any);
+      if (res.success) {
+        setLogoHorizontal(newHorizontal);
+        setLogoSquare(newSquare);
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      alert(`儲存品牌標誌失敗: ${err.message || '未知錯誤'}`);
+      return false;
+    } finally {
+      setLogoSaving(false);
     }
   };
 
@@ -696,6 +711,14 @@ export const SettingsView: React.FC = () => {
               </div>
             </form>
           </div>
+
+          {/* 品牌 Logo 圖像客製與即時預覽面板 */}
+          <BrandLogoSettingsCard
+            currentHorizontalLogo={logoHorizontal}
+            currentSquareLogo={logoSquare}
+            onSaveLogos={handleSaveLogos}
+            isSaving={logoSaving}
+          />
 
           {/* 舊資料全量遷移面板 */}
           <OneClickMigrationPanel />
