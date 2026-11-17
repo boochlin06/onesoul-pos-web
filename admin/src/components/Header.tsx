@@ -116,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* POS 前台入口 */}
         <a
-          href="http://localhost:5173"
+          href={import.meta.env.VITE_POS_URL || "http://localhost:5173"}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-medium text-slate-200 transition shrink-0"

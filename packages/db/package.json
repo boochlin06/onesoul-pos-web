@@ -1,0 +1,33 @@
+{
+  "name": "@onesoul/db",
+  "version": "1.0.0",
+  "description": "OneSoul D1 SQLite Database Schema, Check Constraints, Relations & Drizzle Client Factory",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./relations": "./src/relations.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "generate": "drizzle-kit generate",
+    "migrate:local": "wrangler d1 migrations apply DB_CHUPEI --local",
+    "migrate:tenants:local": "tsx scripts/migrate-tenants.ts --local",
+    "migrate:tenants:remote": "tsx scripts/migrate-tenants.ts --remote"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.36.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241106.0",
+    "@types/node": "^20.14.9",
+    "drizzle-kit": "^0.28.1",
+    "typescript": "^5.5.3",
+    "vitest": "^1.6.0"
+  }
+}

@@ -1,12 +1,21 @@
 {
   "name": "onesoul",
   "version": "1.0.0",
-  "description": "",
+  "description": "OneSoul Pure-Stack Monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:workspaces": "npm run test --workspaces --if-present",
     "push:dev": "cp .clasp-dev.json .clasp.json && clasp push && clasp deploy -i AKfycbyG4EO3XVIIUIyc05fwgktgcld-RMhdfxp9-ge9TZTLVcOUG_DGvD3wAnxYFneUuSR6",
-    "push:prod": "cp .clasp-prod.json .clasp.json && clasp push && clasp deploy -i AKfycbz7G3Vz5MG6EKM3Xh2nmEL_ksjZhL-F3HKkzyMgvjyssUkW0fZWc48-NEtwqG7Z7i5b"
+    "push:prod": "cp .clasp-prod.json .clasp.json && clasp push && clasp deploy -i AKfycbz7G3Vz5MG6EKM3Xh2nmEL_ksjZhL-F3HKkzyMgvjyssUkW0fZWc48-NEtwqG7Z7i5b",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
   },
   "repository": {
     "type": "git",
@@ -21,6 +30,7 @@
   },
   "homepage": "https://github.com/boochlin06/onesoul-pos-web#readme",
   "devDependencies": {
-    "@types/google-apps-script": "^2.0.8"
+    "@types/google-apps-script": "^2.0.8",
+    "typescript": "^5.5.3"
   }
 }

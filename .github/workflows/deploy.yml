@@ -1,65 +1,192 @@
-name: Deploy to GitHub Pages
+name: Cloudflare Pure-Stack CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'web/**'
-      - '.github/workflows/deploy.yml'
-  workflow_dispatch:  # 也可以在 GitHub 上手動觸發
+    branches:
+      - main
+      - feat/cloudflare-pure-stack-rewrite
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  deployments: write
 
 jobs:
-  build-and-deploy:
+  # ── Phase 1: 程式碼品質與型別檢查門禁 ──
+  quality-gate:
+    name: Lint & TypeCheck (Monorepo)
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: web/package-lock.json
+
+      - name: Install packages/shared dependencies
+        run: npm --prefix packages/shared ci || npm --prefix packages/shared install
+
+      - name: Install packages/db dependencies
+        run: npm --prefix packages/db ci || npm --prefix packages/db install
+
+      - name: Install apps/api dependencies
+        run: npm --prefix apps/api ci || npm --prefix apps/api install
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Install web dependencies
+        run: npm --prefix web ci
+
+      - name: Install admin dependencies
+        run: npm --prefix admin ci
+
+      - name: TypeCheck packages/shared
+        run: npm --prefix packages/shared run typecheck
+
+      - name: TypeCheck packages/db
+        run: npm --prefix packages/db run typecheck
+
+      - name: TypeCheck apps/api
+        run: npm --prefix apps/api run typecheck
+
+      - name: Build web (TypeCheck & Vite Build)
+        run: npm --prefix web run build
+
+      - name: Build admin (TypeCheck & Vite Build)
+        run: npm --prefix admin run build
+
+  # ── Phase 2: 自動化測試矩陣 ──
+  test-matrix:
+    name: Test Matrix (Shared, DB, Backend, Web)
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        working-directory: web
-        run: npm ci
-
-      - name: Create .env from secrets
-        working-directory: web
         run: |
-          cat <<EOF > .env
-          VITE_GAS_URL=${{ secrets.VITE_GAS_URL }}
-          VITE_API_KEY=${{ secrets.VITE_API_KEY }}
-          VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          EOF
+          npm --prefix packages/shared ci || npm --prefix packages/shared install
+          npm --prefix packages/db ci || npm --prefix packages/db install
+          npm --prefix apps/api ci || npm --prefix apps/api install
+          npm --prefix backend ci
+          npm --prefix web ci
 
-      - name: Build
-        working-directory: web
-        run: npm run build
+      - name: Run packages/shared tests
+        run: npm --prefix packages/shared run test
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Run packages/db tests
+        run: npm --prefix packages/db run test
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Run apps/api edge tests
+        run: npm --prefix apps/api run test
+
+      - name: Run backend regression tests
+        run: npm --prefix backend run test
+
+      - name: Run web frontend tests
+        run: npm --prefix web run test
+
+  # ── Phase 3: Cloudflare 邊緣預覽部署 (Pull Request) ──
+  deploy-preview:
+    name: Deploy Preview to Cloudflare Edge
+    needs: test-matrix
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          path: web/dist
+          node-version: 20
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Install and Build Web Frontends
+        run: |
+          npm --prefix web ci && npm --prefix web run build
+          npm --prefix admin ci && npm --prefix admin run build
+
+      - name: Deploy API Gateway Preview to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/api
+          command: deploy
+
+      - name: Deploy Web POS Preview to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy web/dist --project-name=onesoul-pos-web --branch=${{ github.head_ref }}
+
+      - name: Deploy Admin ERP Preview to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy admin/dist --project-name=onesoul-admin-erp --branch=${{ github.head_ref }}
+
+  # ── Phase 4: Cloudflare 邊緣生產環境部署 (Main Branch) ──
+  deploy-production:
+    name: Deploy Production to Cloudflare Workers & Pages
+    needs: test-matrix
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install and Build Web Frontends
+        run: |
+          npm --prefix web ci && npm --prefix web run build
+          npm --prefix admin ci && npm --prefix admin run build
+
+      - name: Deploy API Gateway to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/api
+          command: deploy
+
+      - name: Deploy POS Web to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy web/dist --project-name=onesoul-pos-web --branch=main
+
+      - name: Deploy Admin ERP to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy admin/dist --project-name=onesoul-admin-erp --branch=main

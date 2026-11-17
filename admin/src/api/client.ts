@@ -1,13 +1,30 @@
 // OneSoul Admin API Client
-const API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
+  : typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:3000/api'
   : '/api';
 
+export function getActiveStoreId(): string {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('onesoul_store_id') || 'chupei';
+  }
+  return 'chupei';
+}
+
+export function setActiveStoreId(storeId: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('onesoul_store_id', storeId);
+  }
+}
+
 export async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const storeId = getActiveStoreId();
   const headers = {
     'Content-Type': 'application/json',
     'x-caller-email': 'admin@onesoul.com',
+    'X-Store-Id': storeId,
     ...(options.headers || {}),
   };
 
