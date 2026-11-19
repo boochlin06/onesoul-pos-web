@@ -28,6 +28,7 @@ export function createTestApp(options?: { seedData?: boolean }): TestAppInstance
   }
 
   const env: WorkerEnv = {
+    ENVIRONMENT: 'test',
     DB_CHUPEI: chupei.d1,
     DB_JINSHAN: jinshan.d1,
     DB_WAREHOUSE: warehouse.d1,

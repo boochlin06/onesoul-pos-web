@@ -13,11 +13,14 @@ export interface TenantContext {
 }
 
 export interface WorkerEnv {
-  // D1 Databases
-  DB_CHUPEI: D1Database;
-  DB_JINSHAN: D1Database;
-  DB_WAREHOUSE: D1Database;
-  DB_COORDINATOR: D1Database;
+  // 單一 D1 資料庫 Binding ($0 architecture)
+  DB?: D1Database;
+
+  // 向下相容過渡綁定 (既有測試相容)
+  DB_CHUPEI?: D1Database;
+  DB_JINSHAN?: D1Database;
+  DB_WAREHOUSE?: D1Database;
+  DB_COORDINATOR?: D1Database;
 
   // KV Namespaces
   CONFIG_KV?: KVNamespace;
@@ -26,14 +29,19 @@ export interface WorkerEnv {
   // R2 Buckets
   ASSETS_BUCKET?: R2Bucket;
 
-  // Queues
+  // Queues (向下相容)
   ZREPORT_QUEUE?: Queue;
   TRANSFER_QUEUE?: Queue;
 
-  // Vars
+  // 環境變數與安全金鑰
   ENVIRONMENT?: string;
   DEFAULT_STORE_ID?: string;
   ALLOWED_ORIGINS?: string;
+  AUDIT_SECRET?: string;
+  CF_ACCESS_TEAM_NAME?: string;
+  CF_ACCESS_AUD?: string;
+  CF_ACCESS_JWKS?: string;
+  CF_ACCESS_CERTS_URL?: string;
   LOG_LEVEL?: 'debug' | 'info' | 'warn' | 'error';
 }
 

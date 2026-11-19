@@ -45,7 +45,7 @@ export class D1InventoryRepository implements InventoryRepository {
   async save(inventory: StoreInventory, tx?: any): Promise<void> {
     const executor = this.getExecutor(tx);
     const [existing] = await executor
-      .select()
+      .select({ id: storeInventories.id, quantity: storeInventories.quantity })
       .from(storeInventories)
       .where(
         and(
@@ -56,12 +56,13 @@ export class D1InventoryRepository implements InventoryRepository {
       .limit(1);
 
     if (existing) {
+      const delta = inventory.quantity - existing.quantity;
       await executor
         .update(storeInventories)
         .set({
-          quantity: inventory.quantity,
+          quantity: delta !== 0 ? sql`${storeInventories.quantity} + ${delta}` : storeInventories.quantity,
           safetyStock: inventory.safetyStock,
-          version: inventory.version,
+          version: sql`${storeInventories.version} + 1`,
           updatedAt:
             inventory.updatedAt instanceof Date
               ? inventory.updatedAt.toISOString()

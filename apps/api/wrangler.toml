@@ -3,33 +3,14 @@ main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
-# ── 1. D1-per-Tenant 門市獨立實體 SQLite 資料庫 ──
+# ── 1. 單一 D1 實體 SQLite 資料庫 (邏輯多租戶架構 - $0 架構) ──
 [[d1_databases]]
-binding = "DB_CHUPEI"
-database_name = "onesoul-d1-chupei"
-database_id = "onesoul-d1-chupei-local-id"
+binding = "DB"
+database_name = "onesoul-d1-prod"
+database_id = "onesoul-d1-prod-local-id"
 migrations_dir = "../../packages/db/drizzle/migrations"
 
-[[d1_databases]]
-binding = "DB_JINSHAN"
-database_name = "onesoul-d1-jinshan"
-database_id = "onesoul-d1-jinshan-local-id"
-migrations_dir = "../../packages/db/drizzle/migrations"
-
-[[d1_databases]]
-binding = "DB_WAREHOUSE"
-database_name = "onesoul-d1-warehouse"
-database_id = "onesoul-d1-warehouse-local-id"
-migrations_dir = "../../packages/db/drizzle/migrations"
-
-# ── 2. D1 全域中央協調庫 ──
-[[d1_databases]]
-binding = "DB_COORDINATOR"
-database_name = "onesoul-d1-coordinator"
-database_id = "onesoul-d1-coordinator-local-id"
-migrations_dir = "../../packages/db/drizzle/migrations"
-
-# ── 3. Cloudflare KV 快取與門市組態 ──
+# ── 2. Cloudflare KV 快取與門市組態 ──
 [[kv_namespaces]]
 binding = "CONFIG_KV"
 id = "onesoul-config-kv-local-id"
@@ -38,20 +19,18 @@ id = "onesoul-config-kv-local-id"
 binding = "SESSION_KV"
 id = "onesoul-session-kv-local-id"
 
-# ── 4. Cloudflare R2 靜態資產與大賞圖檔 ──
+# ── 3. Cloudflare R2 靜態資產與大賞圖檔 ──
 [[r2_buckets]]
 binding = "ASSETS_BUCKET"
 bucket_name = "onesoul-assets"
 
-# ── 5. Cloudflare Queues 異步任務隊列 ──
-[[queues.producers]]
-binding = "ZREPORT_QUEUE"
-queue = "onesoul-zreport-queue"
-
-[[queues.producers]]
-binding = "TRANSFER_QUEUE"
-queue = "onesoul-transfer-queue"
+# ── 4. 定時排程觸發器 ($0 月費取代 Queues) ──
+[triggers]
+crons = ["30 14 * * *", "0 15 * * *"] # 台北時間 22:30 催關帳, 23:00 總部 Z-Report
 
 [vars]
 ENVIRONMENT = "development"
 DEFAULT_STORE_ID = "chupei"
+ALLOWED_ORIGINS = "https://pos.onesoul.tw,https://admin.onesoul.tw"
+CF_ACCESS_TEAM_NAME = "onesoul"
+CF_ACCESS_AUD = "onesoul-access-aud-placeholder"

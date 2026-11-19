@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Branch, LotteryItem, MerchItem, MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry, PaymentInfo } from '../types';
 import { useStickyState } from './useStickyState';
 import { gasPost, apiSaveDraft, apiClearDraft } from '../services/api';
+import { edgePosClient } from '../services/edgeClient';
+import { sendPrintJob } from '../services/printClient';
 import type { BannerState } from './useBanner';
 import { MSG } from '../constants/messages';
 import {
@@ -179,7 +181,27 @@ export function useCheckout({
       const totalReceived = payment.cash + payment.remittance + payment.creditCard + (payment.linePay || 0);
       const payloadPayment = { ...payment, receivedAmount: totalReceived };
       const { currentPoints: _unused, ...customerPayload } = customer;
-      const res = await gasPost('checkout', { branch, customer: customerPayload, payment: payloadPayment, summary: expectedSummary, lotteries: filteredLotteries, merchandises: filteredMerch, orderNote });
+
+      const checkoutUID =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `uid_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+      const storeId = branch === '金山' ? 'jinshan' : 'chupei';
+      const checkoutPayload = {
+        branch,
+        storeId,
+        customer: customerPayload,
+        payment: payloadPayment,
+        summary: expectedSummary,
+        lotteries: filteredLotteries,
+        merchandises: filteredMerch,
+        orderNote,
+        checkoutUID,
+        cashierEmail: email || 'cashier@onesoul.tw',
+      };
+
+      const res = await edgePosClient.checkout(checkoutPayload);
       if (res.success) {
         showBanner(MSG.checkout.success(res.newPoints), 'ok');
         if (typeof res.newPoints !== 'undefined') {
@@ -191,10 +213,43 @@ export function useCheckout({
         // 清除監控草稿
         lastDraftRef.current = '';
         apiClearDraft(sessionIdRef.current, branch).catch(() => {});
-      } else { showBanner(MSG.checkout.fail(res.message), 'err'); }
-    } catch { showBanner(MSG.checkout.networkError, 'err'); }
-    finally { setIsSubmitting(false); }
-  }, [branch, customer, payment, lotteries, merchandises, summary, orderNote, isSubmitting, showBanner, setMembers, fetchMembers]);
+
+        // 非同步本機收據出單 (Fire-and-forget, non-blocking)
+        sendPrintJob({
+          orderId: res.orderId || checkoutUID,
+          orderNumber: res.orderId || checkoutUID,
+          storeId,
+          items: [
+            ...filteredLotteries.map(l => ({
+              type: 'lottery' as const,
+              name: l.setName,
+              prize: l.prize,
+              prizeName: l.prizeName,
+              draws: l.draws,
+              amount: l.amount,
+            })),
+            ...filteredMerch.map(m => ({
+              type: 'merchandise' as const,
+              name: m.name,
+              quantity: m.quantity,
+              amount: m.actualAmount,
+            })),
+          ],
+          summary: expectedSummary,
+          payment: payloadPayment,
+          printedAt: new Date().toISOString(),
+        }).catch(err => {
+          console.warn('[PrintClient] Non-blocking print error in useCheckout:', err);
+        });
+      } else {
+        showBanner(MSG.checkout.fail(res.message), 'err');
+      }
+    } catch (err: any) {
+      showBanner(err?.message || MSG.checkout.networkError, 'err');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [branch, customer, payment, lotteries, merchandises, orderNote, isSubmitting, showBanner, setMembers, fetchMembers, resetFormValues, email]);
 
   return {
     customer, setCustomer,

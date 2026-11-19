@@ -1,4 +1,4 @@
-import { eq, or, desc } from 'drizzle-orm';
+import { eq, or, desc, sql } from 'drizzle-orm';
 import type { OneSoulD1Database } from '@onesoul/db';
 import { members, pointLogs } from '@onesoul/db/schema';
 import type { MemberRepository } from '../../core/ports/MemberRepository';
@@ -60,21 +60,27 @@ export class D1MemberRepository implements MemberRepository {
 
   async save(member: Member, tx?: any): Promise<void> {
     const executor = this.getExecutor(tx);
-    const [existing] = await executor
-      .select({ id: members.id })
-      .from(members)
-      .where(eq(members.id, member.id))
-      .limit(1);
+    const wasInsertedInBatch = executor._insertedKeys?.has(`members:${member.id}`);
 
-    if (existing) {
+    const [existing] = wasInsertedInBatch
+      ? [undefined]
+      : await executor
+          .select({ id: members.id, points: members.points, version: members.version })
+          .from(members)
+          .where(eq(members.id, member.id))
+          .limit(1);
+
+    if (existing || wasInsertedInBatch) {
+      const currentPoints = existing ? existing.points : 0;
+      const pointsDelta = member.points - currentPoints;
       await executor
         .update(members)
         .set({
           phone: member.phone,
           name: member.name,
           tier: member.tier as any,
-          points: member.points,
-          version: member.version,
+          points: pointsDelta !== 0 ? sql`${members.points} + ${pointsDelta}` : members.points,
+          version: sql`${members.version} + 1`,
           totalSpent: member.totalSpent,
           orderCount: member.orderCount,
           lastPurchaseAt: member.lastPurchaseAt
@@ -88,6 +94,7 @@ export class D1MemberRepository implements MemberRepository {
         })
         .where(eq(members.id, member.id));
     } else {
+      executor._insertedKeys?.add(`members:${member.id}`);
       await executor.insert(members).values({
         id: member.id,
         phone: member.phone,
@@ -120,7 +127,7 @@ export class D1MemberRepository implements MemberRepository {
       memberId: log.memberId,
       type: log.type as any,
       delta: log.delta,
-      balance: log.balance,
+      balance: sql<number>`(SELECT points FROM members WHERE id = ${log.memberId})`,
       orderId: log.orderId ?? null,
       reason: log.reason ?? null,
       operator: log.operator ?? null,

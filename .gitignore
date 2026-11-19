@@ -26,4 +26,6 @@ coverage/
 scratch/
 __pycache__/
 **/__pycache__/
-scripts/
+/scripts/*
+!/scripts/print-agent.mjs
+packages/db/scripts/

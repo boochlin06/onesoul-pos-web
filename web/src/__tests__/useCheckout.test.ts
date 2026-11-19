@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCheckout } from '../hooks/useCheckout';
+import { edgePosClient } from '../services/edgeClient';
+import { sendPrintJob } from '../services/printClient';
 import type { PrizeEntry, StockEntry, BlindBoxEntry, MemberEntry } from '../types';
 
 // Mock dependencies
@@ -8,6 +10,16 @@ vi.mock('../services/api', () => ({
   gasPost: vi.fn(),
   apiSaveDraft: vi.fn().mockResolvedValue({ success: true }),
   apiClearDraft: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+vi.mock('../services/edgeClient', () => ({
+  edgePosClient: {
+    checkout: vi.fn(),
+  },
+}));
+
+vi.mock('../services/printClient', () => ({
+  sendPrintJob: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 describe('useCheckout Hook (收銀台狀態機與操作流程測試)', () => {
@@ -243,5 +255,98 @@ describe('useCheckout Hook (收銀台狀態機與操作流程測試)', () => {
 
     expect(result.current.isConfirmModalOpen).toBe(false);
     expect(showBannerMock).toHaveBeenCalledWith(expect.stringContaining('散客無會員帳號'), 'err');
+  });
+
+  it('結帳提交 (handleCheckout) 成功時，呼叫 edgePosClient.checkout 注入 checkoutUID 與 storeId，並非同步觸發 sendPrintJob', async () => {
+    const { result } = getHook();
+    const mockCheckout = vi.mocked(edgePosClient.checkout);
+    mockCheckout.mockResolvedValueOnce({
+      success: true,
+      message: '結帳成功',
+      orderId: 'ord-test-999',
+      checkoutUID: 'uid-test-123',
+      newPoints: 250,
+    });
+
+    act(() => {
+      result.current.selectCacheMember(mockMembers[0]);
+      result.current.updateMerch(0, 'id', 'BB001');
+      result.current.setPayment(p => ({ ...p, cash: 300 }));
+    });
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    // 驗證呼叫 edgePosClient.checkout
+    expect(mockCheckout).toHaveBeenCalledTimes(1);
+    const checkoutPayload = mockCheckout.mock.calls[0][0];
+    expect(checkoutPayload.storeId).toBe('chupei');
+    expect(checkoutPayload.checkoutUID).toBeDefined();
+    expect(typeof checkoutPayload.checkoutUID).toBe('string');
+    expect(checkoutPayload.customer.name).toBe('王小明');
+    expect(checkoutPayload.merchandises).toHaveLength(1);
+    expect(checkoutPayload.cashierEmail).toBe('cashier@onesoul.com');
+
+    // 驗證非同步發送出單
+    expect(sendPrintJob).toHaveBeenCalledTimes(1);
+    const printPayload = vi.mocked(sendPrintJob).mock.calls[0][0];
+    expect(printPayload.orderId).toBe('ord-test-999');
+    expect(printPayload.storeId).toBe('chupei');
+    expect(printPayload.items).toHaveLength(1);
+    expect(printPayload.payment.cash).toBe(300);
+
+    // 驗證 Banner 與表單重置
+    expect(showBannerMock).toHaveBeenCalledWith(expect.stringContaining('結帳成功'), 'ok');
+    expect(result.current.customer.phoneName).toBe('');
+  });
+
+  it('結帳成功但本機出單 (sendPrintJob) 失敗時，結帳依然成功，不拋出例外 (Non-blocking Invariant)', async () => {
+    const { result } = getHook();
+    const mockCheckout = vi.mocked(edgePosClient.checkout);
+    mockCheckout.mockResolvedValueOnce({
+      success: true,
+      message: '結帳成功',
+      orderId: 'ord-print-fail-1',
+      checkoutUID: 'uid-fail-456',
+      newPoints: 200,
+    });
+    vi.mocked(sendPrintJob).mockRejectedValueOnce(new Error('Printer offline / paper jam'));
+
+    act(() => {
+      result.current.selectCacheMember(mockMembers[0]);
+      result.current.updateMerch(0, 'id', 'BB001');
+      result.current.setPayment(p => ({ ...p, cash: 300 }));
+    });
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    // 出單失敗不阻斷結帳成功
+    expect(showBannerMock).toHaveBeenCalledWith(expect.stringContaining('結帳成功'), 'ok');
+    expect(result.current.customer.phoneName).toBe('');
+  });
+
+  it('結帳被後端拒絕 (success: false) 時，不觸發 sendPrintJob 出單', async () => {
+    const { result } = getHook();
+    const mockCheckout = vi.mocked(edgePosClient.checkout);
+    mockCheckout.mockResolvedValueOnce({
+      success: false,
+      message: '商品庫存不足',
+    });
+
+    act(() => {
+      result.current.selectCacheMember(mockMembers[0]);
+      result.current.updateMerch(0, 'id', 'BB001');
+      result.current.setPayment(p => ({ ...p, cash: 300 }));
+    });
+
+    await act(async () => {
+      await result.current.handleCheckout();
+    });
+
+    expect(sendPrintJob).not.toHaveBeenCalled();
+    expect(showBannerMock).toHaveBeenCalledWith(expect.stringContaining('商品庫存不足'), 'err');
   });
 });

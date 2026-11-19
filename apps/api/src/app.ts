@@ -6,6 +6,7 @@ import {
   loggerMiddleware,
   securityMiddleware,
   tenantMiddleware,
+  accessAuthMiddleware,
   globalErrorHandler,
   notFoundHandler,
 } from './middleware';
@@ -61,8 +62,9 @@ export function createApp() {
   // 5. Swagger UI 控制台
   app.get('/api/docs', swaggerUI({ url: '/api/doc' }));
 
-  // 6. 租戶隔離中介層 (業務路由強制要求門市識別)
+  // 6. 租戶隔離與後台權限中介層 (管理路由強制優先驗證 Access JWT，通過後再校驗門市租戶)
   app.use('/api/v1/*', tenantMiddleware({ required: true }));
+  app.use('/api/admin/*', accessAuthMiddleware());
   app.use('/api/admin/*', tenantMiddleware({ required: true }));
 
   // 7. 掛載全業務路由

@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import type { OneSoulD1Database } from '@onesoul/db';
 import { cashRegisterSessions } from '@onesoul/db/schema';
 import type {
@@ -49,6 +49,21 @@ export class D1SessionRepository implements SessionRepository {
     tx?: any
   ): Promise<CashRegisterSession> {
     const executor = this.getExecutor(tx);
+    // 門市僅允許單一 OPEN 班次：若該門市存在歷史未關閉班次，先標記封存以維持單一 OPEN 不變量
+    await executor
+      .update(cashRegisterSessions)
+      .set({
+        status: 'CLOSED',
+        closedAt: sql`(CURRENT_TIMESTAMP)`,
+        closedBy: 'system-rollover',
+      })
+      .where(
+        and(
+          eq(cashRegisterSessions.storeId, session.storeId),
+          eq(cashRegisterSessions.status, 'OPEN')
+        )
+      );
+
     await executor.insert(cashRegisterSessions).values({
       id: session.id,
       storeId: session.storeId,

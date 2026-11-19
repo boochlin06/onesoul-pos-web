@@ -1,7 +1,8 @@
 import type { Context } from 'hono';
 import type { Result, AppError } from '@onesoul/shared';
-import type { AppContext, TenantContext } from '../types/env';
+import type { AppContext, TenantContext, WorkerEnv } from '../types/env';
 import { resolveTenantD1 } from '../middleware/tenant';
+import { AuditLog } from '../core/entities/AuditLog';
 
 // Core Ports
 import type {
@@ -77,9 +78,10 @@ export interface AppServices {
 /**
  * 依據當前請求之租戶資料庫連線，合成依賴注入樹
  */
-export function createCompositionRoot(tenant: TenantContext): AppServices {
+export function createCompositionRoot(tenant: TenantContext, env?: WorkerEnv): AppServices {
   const db = tenant.storeDb;
   const txManager = new D1TransactionManager(db);
+  const auditSecret = env?.AUDIT_SECRET || AuditLog.DEFAULT_SECRET;
 
   // 1. Outbound Adapters (10 D1 Repositories)
   const orderRepo = new D1OrderRepository(db);
@@ -90,7 +92,7 @@ export function createCompositionRoot(tenant: TenantContext): AppServices {
   const transferRepo = new D1TransferRepository(db);
   const stocktakeRepo = new D1StocktakeRepository(db);
   const preOrderRepo = new D1PreOrderRepository(db);
-  const auditRepo = new D1AuditRepository(db);
+  const auditRepo = new D1AuditRepository(db, auditSecret);
   const settingsRepo = new D1SettingsRepository(db);
 
   // 2. Application Core (7 Use Cases)
@@ -138,7 +140,7 @@ export function createCompositionRoot(tenant: TenantContext): AppServices {
     txManager
   );
 
-  const audit = new AuditUseCase(auditRepo);
+  const audit = new AuditUseCase(auditRepo, auditSecret);
 
   return {
     tenant,
@@ -174,7 +176,7 @@ export function getServices(c: Context<AppContext>): AppServices {
   let services = c.get('services');
   if (!services) {
     const tenant = resolveTenantD1(c);
-    services = createCompositionRoot(tenant);
+    services = createCompositionRoot(tenant, c.env);
     c.set('services', services);
   }
   return services;

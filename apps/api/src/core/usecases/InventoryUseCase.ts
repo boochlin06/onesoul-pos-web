@@ -126,8 +126,8 @@ export class InventoryUseCase {
           tx
         );
 
-        // 寫入密碼學審計日誌
-        const prevHash = await this.auditRepo.getLatestHash(tx);
+        // 寫入密碼學審計日誌 (Guardrail 4: store_id 分區 CAS 鏈)
+        const prevHash = await (this.auditRepo as any).getLatestHash(tx, command.storeId);
         const currentHash = AuditLog.calculateHash(prevHash, {
           operatorId: command.operator,
           action: 'MANUAL_STOCK_ADJUST',
@@ -138,6 +138,7 @@ export class InventoryUseCase {
         });
         const auditLog = new AuditLog({
           id: `aud-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          storeId: command.storeId,
           operatorId: command.operator,
           action: 'MANUAL_STOCK_ADJUST',
           targetType: 'STORE_INVENTORY',
@@ -285,14 +286,14 @@ export class InventoryUseCase {
         const items = await this.transferRepo.findItemsByTransferId(transferId, tx);
 
         for (const it of items) {
-          await this.inventoryRepo.addQuantities(
-            order.targetStoreId,
-            [{ productId: it.productId, quantity: it.shippedQty }],
-            tx
-          );
           const inv = await this.inventoryRepo.findByStoreAndProduct(
             order.targetStoreId,
             it.productId,
+            tx
+          );
+          await this.inventoryRepo.addQuantities(
+            order.targetStoreId,
+            [{ productId: it.productId, quantity: it.shippedQty }],
             tx
           );
           await this.inventoryRepo.recordLog(
@@ -302,7 +303,7 @@ export class InventoryUseCase {
               productId: it.productId,
               changeType: 'TRANSFER_IN',
               delta: it.shippedQty,
-              balance: inv?.quantity ?? it.shippedQty,
+              balance: (inv?.quantity ?? 0) + it.shippedQty,
               operator,
               reason: `跨店調撥入庫: ${order.transferNo}`,
             }),
@@ -339,14 +340,14 @@ export class InventoryUseCase {
         if (order.status === 'DISPATCHED') {
           const items = await this.transferRepo.findItemsByTransferId(transferId, tx);
           for (const it of items) {
-            await this.inventoryRepo.addQuantities(
-              order.sourceStoreId,
-              [{ productId: it.productId, quantity: it.shippedQty }],
-              tx
-            );
             const inv = await this.inventoryRepo.findByStoreAndProduct(
               order.sourceStoreId,
               it.productId,
+              tx
+            );
+            await this.inventoryRepo.addQuantities(
+              order.sourceStoreId,
+              [{ productId: it.productId, quantity: it.shippedQty }],
               tx
             );
             await this.inventoryRepo.recordLog(
@@ -356,7 +357,7 @@ export class InventoryUseCase {
                 productId: it.productId,
                 changeType: 'TRANSFER_IN',
                 delta: it.shippedQty,
-                balance: inv?.quantity ?? it.shippedQty,
+                balance: (inv?.quantity ?? 0) + it.shippedQty,
                 operator,
                 reason: `調撥單取消退回庫存: ${order.transferNo}`,
               }),

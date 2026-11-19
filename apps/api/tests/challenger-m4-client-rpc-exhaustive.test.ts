@@ -57,15 +57,6 @@ describe('Challenger M4 Exhaustive Client RPC Type Inference & Route Tree Test S
       const listJson = await listRes.json();
       expect(listJson.success).toBe(true);
 
-      // POST /api/v1/orders/drafts
-      const saveDraftRes = await client.api.v1.orders.drafts.$post({
-        json: {
-          draftId: 'draft-test-001',
-          data: { cart: [] },
-        },
-      });
-      expect(saveDraftRes.status).toBe(200);
-
       // GET /api/v1/orders/:id (不存在訂單 -> 404)
       const orderDetailRes = await client.api.v1.orders[':id'].$get({
         param: { id: 'non-existent-order' },
@@ -81,14 +72,6 @@ describe('Challenger M4 Exhaustive Client RPC Type Inference & Route Tree Test S
         },
       });
       expect(voidRes.status).toBe(404);
-
-      // 🚨 Bug 1 鑑識驗證: GET /api/v1/orders/drafts 被 GET /api/v1/orders/:id 遮蔽
-      const draftsRes = await client.api.v1.orders.drafts.$get();
-      const draftsJson = (await draftsRes.json()) as any;
-      console.log('[Routing Forensic Bug 1] GET /api/v1/orders/drafts status & body:', draftsRes.status, draftsJson);
-      // 因為 /:id 註冊在 /drafts 之前，Hono 將 drafts 視為 :id，回傳 404 找不到銷售訂單: drafts
-      expect(draftsRes.status).toBe(404);
-      expect(draftsJson.error?.message).toContain('找不到銷售訂單: drafts');
     });
   });
 

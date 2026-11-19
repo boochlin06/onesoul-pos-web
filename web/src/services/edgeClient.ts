@@ -51,7 +51,8 @@ export class EdgePosClient {
 
     const res = await fetch(url, { ...options, headers });
     const data = await res.json();
-    if (!res.ok) {
+    const isOk = res.ok !== undefined ? res.ok : (res.status ? res.status >= 200 && res.status < 300 : true);
+    if (!isOk) {
       const errMessage = data?.error?.message || data?.message || `HTTP ${res.status}`;
       throw new Error(errMessage);
     }

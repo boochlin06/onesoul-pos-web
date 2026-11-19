@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import type { OneSoulD1Database } from '@onesoul/db';
 import { auditLogs } from '@onesoul/db/schema';
 import type { AuditRepository } from '../../core/ports/AuditRepository';
@@ -18,12 +18,18 @@ export class D1AuditRepository implements AuditRepository {
     return tx ?? this.db;
   }
 
-  async getLatestHash(tx?: any): Promise<string> {
+  async getLatestHash(tx?: any, storeId?: string): Promise<string> {
     const executor = this.getExecutor(tx);
-    const [latest] = await executor
+    const query = executor
       .select({ currentHash: auditLogs.currentHash })
-      .from(auditLogs)
-      .orderBy(sql`${auditLogs.createdAt} DESC, rowid DESC`)
+      .from(auditLogs);
+
+    if (storeId) {
+      query.where(eq(auditLogs.storeId, storeId));
+    }
+
+    const [latest] = await query
+      .orderBy(sql`${auditLogs.sequenceNum} DESC, ${auditLogs.createdAt} DESC, rowid DESC`)
       .limit(1);
 
     return latest?.currentHash ?? AuditLog.GENESIS_HASH;
@@ -31,8 +37,20 @@ export class D1AuditRepository implements AuditRepository {
 
   async append(log: AuditLog, tx?: any): Promise<void> {
     const executor = this.getExecutor(tx);
+    const storeId = log.storeId || 'chupei';
+    let seq = log.sequenceNum;
+    if (!seq || seq <= 0) {
+      const [res] = await executor
+        .select({ maxSeq: sql<number>`coalesce(max(${auditLogs.sequenceNum}), 0)` })
+        .from(auditLogs)
+        .where(eq(auditLogs.storeId, storeId));
+      seq = (Number(res?.maxSeq) || 0) + 1;
+    }
+
     await executor.insert(auditLogs).values({
       id: log.id,
+      storeId,
+      sequenceNum: seq,
       operatorId: log.operatorId,
       action: log.action,
       targetType: log.targetType,
@@ -51,7 +69,34 @@ export class D1AuditRepository implements AuditRepository {
     });
   }
 
-  async verifyChain(): Promise<{
+  async verifyChain(storeId?: string): Promise<{
+    valid: boolean;
+    totalCount: number;
+    brokenAt?: string;
+  }> {
+    if (storeId) {
+      return this.verifyStoreChain(storeId);
+    }
+    const storeRows = await this.db
+      .selectDistinct({ storeId: auditLogs.storeId })
+      .from(auditLogs);
+
+    if (storeRows.length === 0) {
+      return { valid: true, totalCount: 0 };
+    }
+
+    let total = 0;
+    for (const { storeId: sid } of storeRows) {
+      const res = await this.verifyStoreChain(sid);
+      if (!res.valid) {
+        return res;
+      }
+      total += res.totalCount;
+    }
+    return { valid: true, totalCount: total };
+  }
+
+  private async verifyStoreChain(storeId: string): Promise<{
     valid: boolean;
     totalCount: number;
     brokenAt?: string;
@@ -59,7 +104,8 @@ export class D1AuditRepository implements AuditRepository {
     const rows = await this.db
       .select()
       .from(auditLogs)
-      .orderBy(sql`${auditLogs.createdAt} ASC, rowid ASC`);
+      .where(eq(auditLogs.storeId, storeId))
+      .orderBy(sql`${auditLogs.sequenceNum} ASC, rowid ASC`);
 
     let expectedPrevHash = AuditLog.GENESIS_HASH;
 
@@ -125,6 +171,8 @@ export class D1AuditRepository implements AuditRepository {
 
     return new AuditLog({
       id: row.id,
+      storeId: row.storeId,
+      sequenceNum: row.sequenceNum,
       operatorId: row.operatorId,
       action: row.action,
       targetType: row.targetType,

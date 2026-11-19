@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 
 export interface AuditLogProps {
   id: string;
+  storeId?: string;
+  sequenceNum?: number;
   operatorId: string;
   action: string;
   targetType: string;
@@ -38,6 +40,8 @@ export class AuditLog {
   }
 
   public readonly id: string;
+  public readonly storeId: string;
+  public readonly sequenceNum: number;
   public readonly operatorId: string;
   public readonly action: string;
   public readonly targetType: string;
@@ -53,6 +57,8 @@ export class AuditLog {
 
   constructor(props: AuditLogProps) {
     this.id = props.id;
+    this.storeId = props.storeId || 'chupei';
+    this.sequenceNum = props.sequenceNum ?? 0;
     this.operatorId = props.operatorId;
     this.action = props.action;
     this.targetType = props.targetType;

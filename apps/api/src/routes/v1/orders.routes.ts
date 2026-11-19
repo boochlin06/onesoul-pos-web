@@ -9,9 +9,6 @@ import { createRouter } from '../common';
 import { getServices, handleResult } from '../../di/container';
 import { PhoneNumber } from '../../core/entities/PhoneNumber';
 
-// 內存草稿暫存 (TTL 30 分鐘)
-const orderDraftsMap = new Map<string, { data: any; updatedAt: number }>();
-
 const checkoutRoute = createRoute({
   method: 'post',
   path: '/checkout',
@@ -143,53 +140,6 @@ const voidOrderRoute = createRoute({
   },
 });
 
-// 暫存掛單草稿
-const saveDraftRoute = createRoute({
-  method: 'post',
-  path: '/drafts',
-  tags: ['Orders'],
-  summary: '暫存收銀台結帳草稿',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            draftId: z.string().min(1),
-            data: z.any(),
-          }),
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: '草稿儲存成功',
-      content: {
-        'application/json': {
-          schema: makeSuccessResponseSchema(z.object({ saved: z.boolean() })),
-        },
-      },
-    },
-  },
-});
-
-const listDraftsRoute = createRoute({
-  method: 'get',
-  path: '/drafts',
-  tags: ['Orders'],
-  summary: '取得所有暫存掛單草稿',
-  responses: {
-    200: {
-      description: '暫存掛單清單',
-      content: {
-        'application/json': {
-          schema: makeSuccessResponseSchema(z.array(z.any())),
-        },
-      },
-    },
-  },
-});
-
 export const ordersRouter = createRouter()
   .openapi(checkoutRoute, async (c) => {
     const services = getServices(c);
@@ -308,27 +258,4 @@ export const ordersRouter = createRouter()
     const result = await services.useCases.checkout.voidOrder(id, body.reason, operator);
 
     return handleResult(c, result, 200);
-  })
-  .openapi(saveDraftRoute, async (c) => {
-    const body = c.req.valid('json');
-    orderDraftsMap.set(body.draftId, { data: body.data, updatedAt: Date.now() });
-
-    return c.json({
-      success: true as const,
-      data: { saved: true },
-      traceId: c.get('traceId'),
-    });
-  })
-  .openapi(listDraftsRoute, async (c) => {
-    const items = Array.from(orderDraftsMap.entries()).map(([draftId, val]) => ({
-      draftId,
-      data: val.data,
-      updatedAt: val.updatedAt,
-    }));
-
-    return c.json({
-      success: true as const,
-      data: items,
-      traceId: c.get('traceId'),
-    });
   });

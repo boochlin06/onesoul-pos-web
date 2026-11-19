@@ -1,5 +1,6 @@
 import { GAS_URL, API_KEY } from '../constants';
 import { getIdToken } from '../hooks/useAuth';
+import { edgePosClient } from './edgeClient';
 import type {
   MemberEntry, PrizeEntry, StockEntry, BlindBoxEntry,
   SalesEntry, Branch,
@@ -92,8 +93,17 @@ export async function apiGetMemberSalesRecords(phone: string) {
 }
 
 // ── Checkout ───────────────────────────────────────────
-export async function apiCheckout(payload: object) {
-  return gasPost('checkout', payload);
+export async function apiCheckout(payload: any) {
+  const checkoutUID =
+    payload.checkoutUID ||
+    (typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `uid_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+
+  return edgePosClient.checkout({
+    ...payload,
+    checkoutUID,
+  });
 }
 
 // ── Opening Cash ───────────────────────────────────────

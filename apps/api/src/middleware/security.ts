@@ -2,27 +2,31 @@ import { createMiddleware } from 'hono/factory';
 import type { AppContext } from '../types/env';
 
 /**
- * 來源白名單比對 (支援 Localhost, Cloudflare Pages *.pages.dev 及自訂網域)
+ * 來源白名單比對 (支援 Localhost, 官方生產網域及自訂網域，嚴格封殺萬用 *.pages.dev)
  */
 export function isAllowedOrigin(origin: string | undefined, allowedEnvString?: string): boolean {
   if (!origin) return true; // 非瀏覽器請求 (curl, Postman, server-to-server) 允許
 
-  const clean = origin.trim();
+  const clean = origin.trim().toLowerCase();
 
-  // 1. 本機開發環境
+  // 1. 本機開發環境 (localhost / 127.0.0.1)
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(clean)) {
     return true;
   }
 
-  // 2. Cloudflare Pages 預覽與正式網域 (*.pages.dev)
-  if (/^https:\/\/[a-zA-Z0-9_\-]+\.pages\.dev$/.test(clean)) {
+  // 2. 官方正式生產網域 (嚴格白名單，徹底廢除萬用 *.pages.dev 萬用漏洞)
+  const officialOrigins = [
+    'https://pos.onesoul.tw',
+    'https://admin.onesoul.tw',
+  ];
+  if (officialOrigins.includes(clean)) {
     return true;
   }
 
   // 3. 環境變數額外配置之白名單清單 (逗號分隔)
   if (allowedEnvString) {
     const list = allowedEnvString.split(',').map((s) => s.trim().toLowerCase());
-    if (list.includes(clean.toLowerCase())) {
+    if (list.includes(clean)) {
       return true;
     }
   }
@@ -47,7 +51,7 @@ export const securityMiddleware = () =>
       const headers: Record<string, string> = {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
         'Access-Control-Allow-Headers':
-          'Content-Type, Authorization, X-Store-Id, x-store-id, X-Request-Id, x-request-id, X-Trace-Id, x-trace-id, X-Caller-Email, x-caller-email',
+          'Content-Type, Authorization, X-Store-Id, x-store-id, X-Request-Id, x-request-id, X-Trace-Id, x-trace-id, X-Caller-Email, x-caller-email, Cf-Access-Jwt-Assertion, cf-access-jwt-assertion',
         'Access-Control-Expose-Headers': 'X-Request-Id, X-Trace-Id, CF-Ray',
         'Access-Control-Max-Age': '86400',
       };

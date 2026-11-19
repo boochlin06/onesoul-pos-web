@@ -9,6 +9,7 @@ import {
 } from '@onesoul/shared';
 import { CashRegisterSession, type ZReport } from '../entities/CashRegisterSession';
 import { AuditLog } from '../entities/AuditLog';
+import { sessionClosures } from '@onesoul/db/schema';
 
 import type { SessionRepository } from '../ports/SessionRepository';
 import type { OrderRepository } from '../ports/OrderRepository';
@@ -174,6 +175,15 @@ export class SessionUseCase {
       const orders = await this.orderRepo.listBySession(command.sessionId);
 
       return await this.txManager.runInTransaction(async (tx) => {
+        // Guardrail 2 (Sentinel Unique Tables): Insert into session_closures (session_id) on closeSession
+        if (tx && typeof tx.insert === 'function') {
+          await tx.insert(sessionClosures).values({
+            sessionId: session.id,
+            closedAt: (command.closedAt || new Date()).toISOString(),
+            closedBy: command.closedBy,
+          });
+        }
+
         const zReport = session.close({
           closedBy: command.closedBy,
           actualCash: command.actualCash,
@@ -194,9 +204,9 @@ export class SessionUseCase {
           tx
         );
 
-        // 寫入密碼學審計日誌
+        // 寫入密碼學審計日誌 (Guardrail 4: store_id 分區 CAS 鏈)
         const reason = command.note || '收銀班次日結關帳';
-        const prevHash = await this.auditRepo.getLatestHash(tx);
+        const prevHash = await (this.auditRepo as any).getLatestHash(tx, session.storeId);
         const currentHash = AuditLog.calculateHash(prevHash, {
           operatorId: command.closedBy,
           action: 'SESSION_CLOSE_Z_REPORT',
@@ -207,6 +217,7 @@ export class SessionUseCase {
         });
         const auditLog = new AuditLog({
           id: `aud-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          storeId: session.storeId,
           operatorId: command.closedBy,
           action: 'SESSION_CLOSE_Z_REPORT',
           targetType: 'CASH_REGISTER_SESSION',

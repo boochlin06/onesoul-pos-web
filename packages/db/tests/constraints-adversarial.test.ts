@@ -11,18 +11,22 @@ describe('Empirical D1 SQLite Schema Constraints Challenge', () => {
 
   beforeEach(() => {
     db = new DatabaseSync(':memory:');
-    const migrationPath = path.resolve(__dirname, '../drizzle/migrations/0000_smart_ink.sql');
-    const sql = fs.readFileSync(migrationPath, 'utf8');
-    const statements = sql.split('--> statement-breakpoint');
-    for (const stmt of statements) {
-      const trimmed = stmt.trim();
-      if (trimmed) {
-        db.exec(trimmed);
+    const migrationDir = path.resolve(__dirname, '../drizzle/migrations');
+    const files = fs.readdirSync(migrationDir).filter((f: string) => f.endsWith('.sql')).sort();
+    for (const file of files) {
+      const sql = fs.readFileSync(path.join(migrationDir, file), 'utf8');
+      const statements = sql.split('--> statement-breakpoint');
+      for (const stmt of statements) {
+        const trimmed = stmt.trim();
+        if (trimmed) {
+          db.exec(trimmed);
+        }
       }
     }
 
     // Seed common foreign key references
     db.exec(`INSERT INTO stores (id, name, code, type, is_active) VALUES ('chupei', '竹北旗艦店', 'CP01', 'RETAIL', 1);`);
+    db.exec(`INSERT INTO stores (id, name, code, type, is_active) VALUES ('jinshan', '金山概念店', 'JS01', 'RETAIL', 1);`);
     db.exec(`INSERT INTO products (id, name, selling_price, cost_price) VALUES ('P-001', '海賊王 GK 雕像', 3500, 2000);`);
     db.exec(`INSERT INTO products (id, name, selling_price, cost_price) VALUES ('P-002', '火影忍者 鳴人 GK', 4200, 2500);`);
     db.exec(`INSERT INTO cash_register_sessions (id, store_id, opened_by, opening_cash, status) VALUES ('sess-001', 'chupei', 'cashier@onesoul.com', 8000, 'OPEN');`);
@@ -174,6 +178,157 @@ describe('Empirical D1 SQLite Schema Constraints Challenge', () => {
           UPDATE orders SET checkout_uid = 'UID-FIRST' WHERE id = 'ord-002';
         `);
       }).toThrow(/UNIQUE constraint failed: orders\.checkout_uid/);
+    });
+  });
+
+  describe('4. members: CHECK (points >= 0)', () => {
+    it('should REJECT insert with negative points (-1)', () => {
+      expect(() => {
+        db.exec(`
+          INSERT INTO members (id, phone, name, points)
+          VALUES ('mem-neg-1', '0911000001', '負點數測試', -1);
+        `);
+      }).toThrow(/CHECK constraint failed: members_points_check/);
+    });
+
+    it('should REJECT update resulting in negative points', () => {
+      db.exec(`
+        INSERT INTO members (id, phone, name, points)
+        VALUES ('mem-ok-1', '0911000002', '正常會員', 10);
+      `);
+
+      expect(() => {
+        db.exec(`UPDATE members SET points = -5 WHERE id = 'mem-ok-1';`);
+      }).toThrow(/CHECK constraint failed: members_points_check/);
+
+      const row = db.prepare(`SELECT points FROM members WHERE id = 'mem-ok-1';`).get() as { points: number };
+      expect(row.points).toBe(10);
+    });
+
+    it('should ACCEPT points = 0 boundary condition', () => {
+      expect(() => {
+        db.exec(`
+          INSERT INTO members (id, phone, name, points)
+          VALUES ('mem-zero-1', '0911000003', '零點數會員', 0);
+        `);
+      }).not.toThrow();
+    });
+  });
+
+  describe('5. orders: CHECK (is_walkin = 0 OR points_used = 0)', () => {
+    it('should REJECT walk-in order (is_walkin = 1) with points_used > 0 (points_used = 10)', () => {
+      expect(() => {
+        db.exec(`
+          INSERT INTO orders (id, checkout_uid, store_id, session_id, is_walkin, points_used, cashier_email)
+          VALUES ('ord-walkin-pts-fail', 'UID-WALKIN-FAIL', 'chupei', 'sess-001', 1, 10, 'cashier@onesoul.com');
+        `);
+      }).toThrow(/CHECK constraint failed: orders_walkin_points_check/);
+    });
+
+    it('should ACCEPT walk-in order (is_walkin = 1) with points_used = 0', () => {
+      expect(() => {
+        db.exec(`
+          INSERT INTO orders (id, checkout_uid, store_id, session_id, is_walkin, points_used, cashier_email)
+          VALUES ('ord-walkin-ok', 'UID-WALKIN-OK', 'chupei', 'sess-001', 1, 0, 'cashier@onesoul.com');
+        `);
+      }).not.toThrow();
+    });
+
+    it('should ACCEPT registered member order (is_walkin = 0) with points_used > 0', () => {
+      db.exec(`INSERT INTO members (id, phone, name, points) VALUES ('mem-order-1', '0911999999', '點數折抵會員', 100);`);
+      expect(() => {
+        db.exec(`
+          INSERT INTO orders (id, checkout_uid, store_id, session_id, member_id, is_walkin, points_used, cashier_email)
+          VALUES ('ord-member-ok', 'UID-MEMBER-OK', 'chupei', 'sess-001', 'mem-order-1', 0, 50, 'cashier@onesoul.com');
+        `);
+      }).not.toThrow();
+    });
+  });
+
+  describe('6. cash_register_sessions: UNIQUE (store_id) WHERE status = "OPEN"', () => {
+    it('should REJECT opening a second OPEN session for the same store', () => {
+      // sess-001 is already OPEN for 'chupei'
+      expect(() => {
+        db.exec(`
+          INSERT INTO cash_register_sessions (id, store_id, opened_by, status)
+          VALUES ('sess-002', 'chupei', 'cashier2@onesoul.com', 'OPEN');
+        `);
+      }).toThrow(/UNIQUE constraint failed: cash_register_sessions\.store_id/);
+    });
+
+    it('should ACCEPT opening an OPEN session for a different store', () => {
+      expect(() => {
+        db.exec(`
+          INSERT INTO cash_register_sessions (id, store_id, opened_by, status)
+          VALUES ('sess-jinshan-01', 'jinshan', 'cashier-js@onesoul.com', 'OPEN');
+        `);
+      }).not.toThrow();
+    });
+
+    it('should ACCEPT multiple CLOSED sessions for the same store', () => {
+      expect(() => {
+        db.exec(`
+          INSERT INTO cash_register_sessions (id, store_id, opened_by, status)
+          VALUES ('sess-closed-1', 'chupei', 'cashier@onesoul.com', 'CLOSED');
+        `);
+        db.exec(`
+          INSERT INTO cash_register_sessions (id, store_id, opened_by, status)
+          VALUES ('sess-closed-2', 'chupei', 'cashier@onesoul.com', 'CLOSED');
+        `);
+      }).not.toThrow();
+    });
+  });
+
+  describe('7. audit_logs: UNIQUE (store_id, sequence_num) & UNIQUE (store_id, prev_hash)', () => {
+    it('should REJECT duplicate (store_id, sequence_num)', () => {
+      db.exec(`
+        INSERT INTO audit_logs (id, store_id, sequence_num, operator_id, action, target_type, target_id, reason, prev_hash, current_hash)
+        VALUES ('aud-seq-1', 'chupei', 1, 'op-1', 'TEST', 'PRODUCT', 'P-1', 'test reason', 'GENESIS', 'hash-1');
+      `);
+
+      expect(() => {
+        db.exec(`
+          INSERT INTO audit_logs (id, store_id, sequence_num, operator_id, action, target_type, target_id, reason, prev_hash, current_hash)
+          VALUES ('aud-seq-2', 'chupei', 1, 'op-2', 'TEST', 'PRODUCT', 'P-2', 'duplicate seq', 'hash-1', 'hash-2');
+        `);
+      }).toThrow(/UNIQUE constraint failed: audit_logs\.store_id, audit_logs\.sequence_num/);
+    });
+
+    it('should REJECT duplicate (store_id, prev_hash) preventing branch fork', () => {
+      db.exec(`
+        INSERT INTO audit_logs (id, store_id, sequence_num, operator_id, action, target_type, target_id, reason, prev_hash, current_hash)
+        VALUES ('aud-prev-1', 'chupei', 10, 'op-1', 'TEST', 'PRODUCT', 'P-1', 'test reason', 'common-prev-hash', 'hash-10');
+      `);
+
+      expect(() => {
+        db.exec(`
+          INSERT INTO audit_logs (id, store_id, sequence_num, operator_id, action, target_type, target_id, reason, prev_hash, current_hash)
+          VALUES ('aud-prev-2', 'chupei', 11, 'op-2', 'TEST', 'PRODUCT', 'P-2', 'fork attempt', 'common-prev-hash', 'hash-11');
+        `);
+      }).toThrow(/UNIQUE constraint failed: audit_logs\.store_id, audit_logs\.prev_hash/);
+    });
+  });
+
+  describe('8. Sentinel Tables: session_closures & order_voids PK Protection', () => {
+    it('should prevent double-closure via session_closures primary key', () => {
+      db.exec(`INSERT INTO session_closures (session_id, closed_by) VALUES ('sess-001', 'mgr@onesoul.com');`);
+
+      expect(() => {
+        db.exec(`INSERT INTO session_closures (session_id, closed_by) VALUES ('sess-001', 'mgr2@onesoul.com');`);
+      }).toThrow(/UNIQUE constraint failed: session_closures\.session_id/);
+    });
+
+    it('should prevent double-void via order_voids primary key', () => {
+      db.exec(`
+        INSERT INTO orders (id, checkout_uid, store_id, session_id, cashier_email)
+        VALUES ('ord-sentinel-1', 'UID-SENTINEL-1', 'chupei', 'sess-001', 'cashier@onesoul.com');
+      `);
+
+      db.exec(`INSERT INTO order_voids (order_id, operator, reason) VALUES ('ord-sentinel-1', 'cashier@onesoul.com', 'mistake');`);
+
+      expect(() => {
+        db.exec(`INSERT INTO order_voids (order_id, operator, reason) VALUES ('ord-sentinel-1', 'cashier2@onesoul.com', 'duplicate void');`);
+      }).toThrow(/UNIQUE constraint failed: order_voids\.order_id/);
     });
   });
 });

@@ -65,6 +65,9 @@ export const cashRegisterSessions = sqliteTable(
   },
   (table) => ({
     storeStatusIdx: index('cash_register_sessions_store_id_status_idx').on(table.storeId, table.status),
+    singleOpenSessionUnique: uniqueIndex('cash_register_sessions_store_id_open_unique')
+      .on(table.storeId)
+      .where(sql`${table.status} = 'OPEN'`),
   })
 );
 
@@ -137,6 +140,7 @@ export const members = sqliteTable(
   (table) => ({
     phoneIdx: index('members_phone_idx').on(table.phone),
     lineUserIdIdx: index('members_line_user_id_idx').on(table.lineUserId),
+    pointsCheck: check('members_points_check', sql`${table.points} >= 0`),
   })
 );
 
@@ -345,6 +349,7 @@ export const orders = sqliteTable(
     remittance: integer('remittance').notNull().default(0),
     pointsUsed: integer('points_used').notNull().default(0),
     netPointsDelta: integer('net_points_delta').notNull().default(0),
+    isWalkin: integer('is_walkin').notNull().default(0),
     cashierEmail: text('cashier_email').notNull(),
     orderNote: text('order_note'),
     voidReason: text('void_reason'),
@@ -358,6 +363,10 @@ export const orders = sqliteTable(
     sessionIdIdx: index('orders_session_id_idx').on(table.sessionId),
     memberIdIdx: index('orders_member_id_idx').on(table.memberId),
     checkoutUIDUniqueIdx: uniqueIndex('orders_checkout_uid_unique_idx').on(table.checkoutUID),
+    walkinPointsCheck: check(
+      'orders_walkin_points_check',
+      sql`${table.isWalkin} = 0 OR ${table.pointsUsed} = 0`
+    ),
   })
 );
 (orders.checkoutUID as any).isUnique = true;
@@ -536,6 +545,8 @@ export const auditLogs = sqliteTable(
   'audit_logs',
   {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    storeId: text('store_id').notNull().references(() => stores.id),
+    sequenceNum: integer('sequence_num').notNull(),
     operatorId: text('operator_id').notNull(),
     action: text('action').notNull(),
     targetType: text('target_type').notNull(),
@@ -550,6 +561,14 @@ export const auditLogs = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`(CURRENT_TIMESTAMP)`),
   },
   (table) => ({
+    storeSequenceUnique: uniqueIndex('audit_logs_store_sequence_unique').on(
+      table.storeId,
+      table.sequenceNum
+    ),
+    storePrevHashUnique: uniqueIndex('audit_logs_store_prev_hash_unique').on(
+      table.storeId,
+      table.prevHash
+    ),
     targetIdx: index('audit_logs_target_type_target_id_idx').on(table.targetType, table.targetId),
     operatorIdx: index('audit_logs_operator_id_idx').on(table.operatorId),
     createdAtIdx: index('audit_logs_created_at_idx').on(table.createdAt),
@@ -625,3 +644,18 @@ export const prizeAllocationPlans = sqliteTable(
     storeStatusIdx: index('prize_allocation_plans_store_id_status_idx').on(table.storeId, table.status),
   })
 );
+
+// 30. 關帳哨兵防重入表 (session_closures)
+export const sessionClosures = sqliteTable('session_closures', {
+  sessionId: text('session_id').primaryKey().references(() => cashRegisterSessions.id),
+  closedAt: text('closed_at').notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  closedBy: text('closed_by').notNull(),
+});
+
+// 31. 作廢哨兵防重入表 (order_voids)
+export const orderVoids = sqliteTable('order_voids', {
+  orderId: text('order_id').primaryKey().references(() => orders.id),
+  voidedAt: text('voided_at').notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  operator: text('operator').notNull(),
+  reason: text('reason').notNull(),
+});

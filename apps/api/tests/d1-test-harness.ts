@@ -96,16 +96,19 @@ export function createTestD1Database(options?: { autoMigrate?: boolean }): TestD
   }) as OneSoulD1Database;
 
   const applyMigrations = () => {
-    const migrationPath = path.resolve(
+    const migrationDir = path.resolve(
       __dirname,
-      '../../../packages/db/drizzle/migrations/0000_smart_ink.sql'
+      '../../../packages/db/drizzle/migrations'
     );
-    const sql = fs.readFileSync(migrationPath, 'utf8');
-    const statements = sql.split('--> statement-breakpoint');
-    for (const stmt of statements) {
-      const trimmed = stmt.trim();
-      if (trimmed) {
-        rawDb.exec(trimmed);
+    const files = fs.readdirSync(migrationDir).filter((f) => f.endsWith('.sql')).sort();
+    for (const file of files) {
+      const sql = fs.readFileSync(path.join(migrationDir, file), 'utf8');
+      const statements = sql.split('--> statement-breakpoint');
+      for (const stmt of statements) {
+        const trimmed = stmt.trim();
+        if (trimmed) {
+          rawDb.exec(trimmed);
+        }
       }
     }
   };

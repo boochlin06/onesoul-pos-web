@@ -15,6 +15,7 @@ import { Order, OrderItem } from '../entities/Order';
 import { CashRegisterSession } from '../entities/CashRegisterSession';
 import { PointLog } from '../entities/Member';
 import { InventoryLog } from '../entities/Product';
+import { orderVoids } from '@onesoul/db/schema';
 import {
   validateWalkInBlock,
   validatePointsSetOrder,
@@ -333,20 +334,23 @@ export class CheckoutUseCase {
 
           const sortedIds = sortProductIdsForLock([...deductionMap.keys()]);
           const batchDeductions: { productId: string; quantity: number }[] = [];
+          const invMap = new Map<string, number>();
 
           // 1. 預檢各品項庫存是否充足
           for (const pid of sortedIds) {
             const entry = deductionMap.get(pid)!;
             const inv = await this.inventoryRepo.findByStoreAndProduct(command.storeId, pid, tx);
-            if (!inv || inv.quantity < entry.totalQty) {
+            const currentQty = inv?.quantity ?? 0;
+            invMap.set(pid, currentQty);
+            if (!inv || currentQty < entry.totalQty) {
               const prizeItem = entry.items.find((it) => it.source === 'LOTTERY');
               if (prizeItem?.prizeName) {
                 throw new InsufficientStockError(
-                  `大賞商品 [${prizeItem.prizeName}] 門市庫存不足 (現有: ${inv?.quantity ?? 0}, 需提貨: ${entry.totalQty})`
+                  `大賞商品 [${prizeItem.prizeName}] 門市庫存不足 (現有: ${currentQty}, 需提貨: ${entry.totalQty})`
                 );
               }
               throw new InsufficientStockError(
-                `商品 [${pid}] 庫存不足 (現有: ${inv?.quantity ?? 0}, 欲出庫: ${entry.totalQty})`
+                `商品 [${pid}] 庫存不足 (現有: ${currentQty}, 欲出庫: ${entry.totalQty})`
               );
             }
             batchDeductions.push({ productId: pid, quantity: entry.totalQty });
@@ -358,8 +362,7 @@ export class CheckoutUseCase {
           // 3. 循序寫入庫存異動流水 (InventoryLog)
           for (const pid of sortedIds) {
             const entry = deductionMap.get(pid)!;
-            const inv = await this.inventoryRepo.findByStoreAndProduct(command.storeId, pid, tx);
-            let runningBalance = (inv?.quantity ?? 0) + entry.totalQty;
+            let runningBalance = invMap.get(pid) ?? 0;
 
             for (const item of entry.items) {
               runningBalance -= item.quantity;
@@ -491,6 +494,16 @@ export class CheckoutUseCase {
       }
 
       return await this.txManager.runInTransaction(async (tx) => {
+        // Guardrail 2 (Sentinel Unique Tables): Insert into order_voids (order_id) on voidOrder
+        if (tx && typeof tx.insert === 'function') {
+          await tx.insert(orderVoids).values({
+            orderId: order.id,
+            voidedAt: (order.voidedAt instanceof Date ? order.voidedAt : new Date()).toISOString(),
+            operator,
+            reason: voidReason,
+          });
+        }
+
         // 1. 軟作廢標記
         order.void(voidReason, operator);
         await this.orderRepo.updateStatus(
@@ -533,7 +546,9 @@ export class CheckoutUseCase {
           }
         }
 
-        // 3. 籤位與庫存回滾
+        // 3. 籤位與庫存回滾 (Guardrail 5: 聚合品項並依字典序加回庫存)
+        const inventoryRestores = new Map<string, { quantity: number; reason: string }>();
+
         for (const item of order.items) {
           if (item.itemType === 'LOTTERY' && item.bagId && item.prizeGrade) {
             // 籤位抽數回補
@@ -551,58 +566,49 @@ export class CheckoutUseCase {
               item.prizeGrade === 'X' ||
               item.prizeGrade === 'Z';
             if (item.pickType === 'TAKE_AWAY' && item.productId && !isAbstract) {
-              await this.inventoryRepo.addQuantities(
-                order.storeId,
-                [{ productId: item.productId, quantity: item.quantity }],
-                tx
-              );
-              const inv = await this.inventoryRepo.findByStoreAndProduct(
-                order.storeId,
-                item.productId,
-                tx
-              );
-              await this.inventoryRepo.recordLog(
-                new InventoryLog({
-                  id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-                  storeId: order.storeId,
-                  productId: item.productId,
-                  changeType: 'SALE_VOID_RETURN',
-                  delta: item.quantity,
-                  balance: inv?.quantity ?? item.quantity,
-                  orderId: order.checkoutUID,
-                  operator,
-                  reason: `訂單作廢一番賞大賞退回庫存: ${voidReason}`,
-                }),
-                tx
-              );
+              const current = inventoryRestores.get(item.productId) || {
+                quantity: 0,
+                reason: `訂單作廢一番賞大賞退回庫存: ${voidReason}`,
+              };
+              current.quantity += item.quantity;
+              inventoryRestores.set(item.productId, current);
             }
           } else if (item.itemType === 'MERCHANDISE' && item.productId) {
             if (item.productId !== '88888' && item.productId !== '99999') {
-              await this.inventoryRepo.addQuantities(
-                order.storeId,
-                [{ productId: item.productId, quantity: item.quantity }],
-                tx
-              );
-              const inv = await this.inventoryRepo.findByStoreAndProduct(
-                order.storeId,
-                item.productId,
-                tx
-              );
-              await this.inventoryRepo.recordLog(
-                new InventoryLog({
-                  id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-                  storeId: order.storeId,
-                  productId: item.productId,
-                  changeType: 'SALE_VOID_RETURN',
-                  delta: item.quantity,
-                  balance: inv?.quantity ?? item.quantity,
-                  orderId: order.checkoutUID,
-                  operator,
-                  reason: `訂單作廢商品退回庫存: ${voidReason}`,
-                }),
-                tx
-              );
+              const current = inventoryRestores.get(item.productId) || {
+                quantity: 0,
+                reason: `訂單作廢商品退回庫存: ${voidReason}`,
+              };
+              current.quantity += item.quantity;
+              inventoryRestores.set(item.productId, current);
             }
+          }
+        }
+
+        if (inventoryRestores.size > 0) {
+          const sortedRestoreIds = sortProductIdsForLock([...inventoryRestores.keys()]);
+          for (const pid of sortedRestoreIds) {
+            const entry = inventoryRestores.get(pid)!;
+            const inv = await this.inventoryRepo.findByStoreAndProduct(order.storeId, pid, tx);
+            await this.inventoryRepo.addQuantities(
+              order.storeId,
+              [{ productId: pid, quantity: entry.quantity }],
+              tx
+            );
+            await this.inventoryRepo.recordLog(
+              new InventoryLog({
+                id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                storeId: order.storeId,
+                productId: pid,
+                changeType: 'SALE_VOID_RETURN',
+                delta: entry.quantity,
+                balance: (inv?.quantity ?? 0) + entry.quantity,
+                orderId: order.checkoutUID,
+                operator,
+                reason: entry.reason,
+              }),
+              tx
+            );
           }
         }
 

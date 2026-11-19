@@ -195,8 +195,8 @@ export class PreOrderUseCase {
           tx
         );
 
-        // 5. 記錄密碼學審計日誌
-        const prevHash = await this.auditRepo.getLatestHash(tx);
+        // 5. 記錄密碼學審計日誌 (Guardrail 4: store_id 分區 CAS 鏈)
+        const prevHash = await (this.auditRepo as any).getLatestHash(tx, command.targetStoreId);
         const currentHash = AuditLog.calculateHash(prevHash, {
           operatorId: command.operator,
           action: 'PREORDER_RECEIVE',
@@ -207,6 +207,7 @@ export class PreOrderUseCase {
         });
         const auditLog = new AuditLog({
           id: `aud-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          storeId: command.targetStoreId,
           operatorId: command.operator,
           action: 'PREORDER_RECEIVE',
           targetType: 'PREORDER',

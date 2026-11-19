@@ -47,6 +47,9 @@ export function normalizeStoreId(input?: string | null): TenantStoreId | null {
  * 依據正規化門市 ID 解析對應的 D1 資料庫綁定
  */
 export function resolveStoreD1Binding(env: WorkerEnv, storeId: TenantStoreId): D1Database | null {
+  if (env.DB) {
+    return env.DB;
+  }
   switch (storeId) {
     case 'chupei':
       return env.DB_CHUPEI || null;

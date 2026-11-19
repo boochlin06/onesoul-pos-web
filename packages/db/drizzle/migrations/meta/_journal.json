@@ -8,6 +8,13 @@
       "when": 1794131344564,
       "tag": "0000_smart_ink",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795039527395,
+      "tag": "0001_single_db_hardening",
+      "breakpoints": true
     }
   ]
 }

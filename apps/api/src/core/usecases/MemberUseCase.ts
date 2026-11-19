@@ -138,8 +138,8 @@ export class MemberUseCase {
           tx
         );
 
-        // 寫入密碼學審計日誌
-        const prevHash = await this.auditRepo.getLatestHash(tx);
+        // 寫入密碼學審計日誌 (Guardrail 4: store_id 分區 CAS 鏈)
+        const prevHash = await (this.auditRepo as any).getLatestHash(tx, 'chupei');
         const currentHash = AuditLog.calculateHash(prevHash, {
           operatorId: command.operator,
           action: 'MANUAL_POINTS_ADJUST',
@@ -150,6 +150,7 @@ export class MemberUseCase {
         });
         const auditLog = new AuditLog({
           id: `aud-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          storeId: 'chupei',
           operatorId: command.operator,
           action: 'MANUAL_POINTS_ADJUST',
           targetType: 'MEMBER',

@@ -6,6 +6,8 @@ import {
   ValidationError,
   NotFoundError,
 } from '@onesoul/shared';
+import { inArray } from 'drizzle-orm';
+import { luckyBagPrizes } from '@onesoul/db/schema';
 import { LuckyBag, LuckyBagPrize, PrizeAllocationPlan } from '../entities/LuckyBag';
 import {
   validateLuckyBagPublish,
@@ -91,9 +93,41 @@ export class AllocationUseCase {
       const activeBags = await this.luckyBagRepo.findActiveBagsByStore(storeId);
 
       // 累加在場套組中各商品的已配占用量 (allocatedCount)
+      // Guardrail 6: Eliminate N+1 via batch IN (...) query
       const allocatedMap = new Map<string, number>();
-      for (const bag of activeBags) {
-        const prizes = await this.luckyBagRepo.findPrizesByBagId(bag.id);
+      if (activeBags.length > 0) {
+        const bagIds = activeBags.map((b) => b.id);
+        let prizes: LuckyBagPrize[] = [];
+        if (typeof (this.luckyBagRepo as any).findPrizesByBagIds === 'function') {
+          prizes = await (this.luckyBagRepo as any).findPrizesByBagIds(bagIds);
+        } else if ((this.luckyBagRepo as any).db) {
+          const db = (this.luckyBagRepo as any).db;
+          const rows = await db
+            .select()
+            .from(luckyBagPrizes)
+            .where(inArray(luckyBagPrizes.bagId, bagIds));
+          prizes = rows.map(
+            (r: any) =>
+              new LuckyBagPrize({
+                id: r.id,
+                bagId: r.bagId,
+                prizeGrade: r.prizeGrade,
+                prizeName: r.prizeName,
+                productId: r.productId,
+                points: r.points ?? 0,
+                draws: r.draws,
+                drawnCount: r.drawnCount ?? 0,
+                createdAt: r.createdAt,
+                updatedAt: r.updatedAt,
+              })
+          );
+        } else {
+          const nested = await Promise.all(
+            activeBags.map((bag) => this.luckyBagRepo.findPrizesByBagId(bag.id))
+          );
+          prizes = nested.flat();
+        }
+
         for (const prize of prizes) {
           if (prize.productId) {
             const currentAlloc = allocatedMap.get(prize.productId) || 0;
@@ -103,14 +137,20 @@ export class AllocationUseCase {
         }
       }
 
+      // Guardrail 6: Batch query all store inventories (WHERE store_id = ?) cutting query count to 1
+      const storeInventories = await this.inventoryRepo.findAllByStore(storeId);
+      const stockMap = new Map<string, number>();
+      for (const inv of storeInventories) {
+        stockMap.set(inv.productId, inv.quantity);
+      }
+
       const radarItems: LiveStockRadarItem[] = [];
 
       for (const prod of products) {
         // 排除虛擬條目
         if (prod.isVirtual()) continue;
 
-        const inv = await this.inventoryRepo.findByStoreAndProduct(storeId, prod.id);
-        const currentStock = inv?.quantity ?? 0;
+        const currentStock = stockMap.get(prod.id) ?? 0;
         const allocated = allocatedMap.get(prod.id) ?? 0;
         const availableStock = Math.max(0, currentStock - allocated);
         const isOverAllocated = allocated > currentStock;

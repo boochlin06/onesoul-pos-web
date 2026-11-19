@@ -345,5 +345,31 @@ describe('Empirical Adversarial Zod Schemas Challenge', () => {
       };
       expect(() => PublishPlansPayloadSchema.parse(planZero)).toThrow();
     });
+
+    it('should ALLOW negative netPointsDelta in OrderSchema for member point redemption, but REJECT float values', () => {
+      const validOrder = {
+        id: 'ord-test-01',
+        checkoutUID: 'uid-test-01',
+        storeId: 'chupei',
+        sessionId: 'sess-01',
+        status: 'COMPLETED' as const,
+        totalDue: 0,
+        receivedAmount: 0,
+        cash: 0,
+        creditCard: 0,
+        linePay: 0,
+        remittance: 0,
+        pointsUsed: 34,
+        netPointsDelta: -34,
+        cashierEmail: 'cashier@onesoul.tw',
+        createdAt: '2026-11-19T00:00:00.000Z',
+        updatedAt: '2026-11-19T00:00:00.000Z',
+      };
+      expect(() => OrderSchema.parse(validOrder)).not.toThrow();
+      expect(() => OrderSchema.parse({ ...validOrder, netPointsDelta: -5 })).not.toThrow();
+      expect(() => OrderSchema.parse({ ...validOrder, netPointsDelta: 20 })).not.toThrow();
+      expect(() => OrderSchema.parse({ ...validOrder, netPointsDelta: -5.5 })).toThrow();
+      expect(() => OrderSchema.parse({ ...validOrder, netPointsDelta: 3.14 })).toThrow();
+    });
   });
 });

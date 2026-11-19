@@ -285,7 +285,6 @@ describe('Challenger M4 Adversarial Contract & Client RPC Test Suite', () => {
         '/api/v1/orders',
         '/api/v1/orders/:id',
         '/api/v1/orders/:id/void',
-        '/api/v1/orders/drafts',
         '/api/v1/luckybags',
         '/api/v1/luckybags/:id',
         '/api/v1/luckybags/prizes',
