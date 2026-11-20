@@ -14,21 +14,24 @@ export const DEFAULT_PORT = 18181;
 export const DEFAULT_HOST = '127.0.0.1';
 
 /**
+ * 嚴格受信任之網域白名單 (符合 Chrome Private Network Access 規範，杜絕 '*' 萬用字元)
+ */
+export const ALLOWED_PRINT_ORIGINS = new Set([
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://boochlin06.github.io',
+]);
+
+/**
  * 取得允許之 CORS Origin
+ * 嚴格比對白名單，絕不使用 '*' 回退
  */
 export function getCorsOrigin(req) {
   const reqOrigin = req.headers['origin'];
-  if (!reqOrigin) return '*';
-  // 支援本機開發與 OneSoul 正式生產網域
-  if (
-    reqOrigin.startsWith('http://localhost:') ||
-    reqOrigin.startsWith('http://127.0.0.1:') ||
-    reqOrigin.endsWith('.onesoul.tw') ||
-    reqOrigin === 'https://pos.onesoul.tw'
-  ) {
+  if (reqOrigin && ALLOWED_PRINT_ORIGINS.has(reqOrigin)) {
     return reqOrigin;
   }
-  return '*';
+  return null;
 }
 
 /**
@@ -36,11 +39,11 @@ export function getCorsOrigin(req) {
  */
 export function setPnaHeaders(req, res) {
   const origin = getCorsOrigin(req);
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Private-Network', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Print-Token');
-  if (origin !== '*') {
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Print-Token');
     res.setHeader('Vary', 'Origin');
   }
 }

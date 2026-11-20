@@ -10,12 +10,20 @@ dist/
 *.tsbuildinfo
 **/*.tsbuildinfo
 
-# 環境變數
+# 環境變數與機敏設定
 .env
 .env.local
 .env.prod
 backend/.env
 !*.env.example
+.dev.vars
+.wrangler/
+**/.wrangler/
+*.sqlite
+*.sqlite*
+*.db
+*.db*
+.clasp-*.json
 test-results/
 **/test-results/
 playwright-report/
