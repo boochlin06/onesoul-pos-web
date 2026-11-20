@@ -341,7 +341,7 @@ export const NOTICE_POLL_MS = 2 * 60 * 1000;
 
 | 名稱 (Key) | 範例值 | 白話解釋 |
 |------------|--------|---------|
-| `API_KEY` | `ce0738764f18820c234...` | 程式的通行密碼 |
+| `API_KEY` | `your_gas_api_key_here` | 程式的通行密碼 |
 | `GOOGLE_CLIENT_ID` | `380448115278-xxx.apps.googleusercontent.com` | Google 登入要用的 ID |
 | `ALLOWED_EMAILS` | `a@gmail.com,b@gmail.com` | 允許使用的帳號，用**逗號**分隔，**不要有空格** |
 | `APP_BACKGROUND_ID` | `1Dc_vjy...` | 正式版 Google Sheet 的 ID（只有正式版需要設） |
@@ -582,9 +582,9 @@ git checkout main && git merge dev && git push origin main && git checkout dev
 
 | 儲存格 | 內容定義 | 填寫範例 |
 |--------|---------|---------|
-| **G2** | Trello API Key | `3c5b6a0cf38a0c5c8623f807a5c...` |
-| **G3** | Trello API Token | `ATTA02cf3c77f10cc1ec68b891c...` |
-| **G4** | 指定存放卡片的 List ID | `6612d75d6792f7a36bf29...` |
+| **G2** | Trello API Key | `your_trello_api_key_here` |
+| **G3** | Trello API Token | `your_trello_api_token_here` |
+| **G4** | 指定存放卡片的 List ID | `your_trello_list_id_here` |
 | **G5** | Trello 總開關 (TRUE/FALSE) | `TRUE` (設為 TRUE 才會建卡) |
 
 > 💡 **List ID 怎麼拿？** 在 Trello 看板標址列後方加上 `.json`，搜尋你想存放的列表名稱（例如「待出貨」），找到它對應的24字元 `id`。
