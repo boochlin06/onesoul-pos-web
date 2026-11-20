@@ -5,7 +5,7 @@
 > **成本模型**：100% Cloudflare Free Tier ($0/月 永久免費零伺服器維護成本)  
 > **多租戶拓撲**：Single-D1 with `store_id` Logical Isolation & SQLite CHECK Constraints  
 > **資安防護**：OWASP Top 10 硬化防禦 + Chrome Private Network Access (PNA) 熱感印表機代理  
-> **測試驗證**：1,221 項自動化測試完整通過 (100% Pass Rate)
+> **測試驗證**：1,227 項自動化測試完整通過 (100% Pass Rate)
 
 ---
 
@@ -100,22 +100,22 @@ flowchart TD
 
 ```text
 ═══════════════════════════════════════════════════════════════════════
-  OneSoul Automated Test Suite Matrix (1,221 Tests, 100% Pass)
+  OneSoul Automated Test Suite Matrix (1,227 Tests, 100% Pass)
 ═══════════════════════════════════════════════════════════════════════
-  [Module 1] apps/api        : 26 test files, 455 tests (Hono OpenAPI, D1 Repos, Security)
+  [Module 1] apps/api        : 27 test files, 461 tests (Hono OpenAPI, D1 Repos, Security, PNA)
   [Module 2] packages/db     :  2 test files,  34 tests (Schema, Constraints, Migrations)
   [Module 3] packages/shared :  3 test files,  41 tests (Zod Schemas, Domain Results)
   [Module 4] web (POS)       : 17 test files, 337 tests (Pure Seams, State Machine, Print)
   [Module 5] backend (Core)  : 21 test files, 271 tests (Allocation, Inventory, Fastify)
   [Module 6] Playwright E2E  : End-to-end checkout & multi-branch regression matrix
 ───────────────────────────────────────────────────────────────────────
-  Total: 69 Test Suites, 1,221+ Tests Passed (0 Failures, 0 Skipped)
+  Total: 70 Test Suites, 1,227+ Tests Passed (0 Failures, 0 Skipped)
 ═══════════════════════════════════════════════════════════════════════
 ```
 
 ### 4.1 執行全量測試驗證指令
 ```bash
-# 後端 API 與邊緣閘道測試 (455 passed)
+# 後端 API 與邊緣閘道測試 (461 passed)
 npm --prefix apps/api run test
 
 # 資料庫 Schema 與 CHECK 約束硬化測試 (34 passed)

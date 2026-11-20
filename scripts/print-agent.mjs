@@ -105,6 +105,18 @@ export function printReceiptToConsole(receipt) {
  */
 export function createPrintServer() {
   const server = http.createServer((req, res) => {
+    const origin = req.headers['origin'];
+    // 嚴格來源白名單校驗：若帶有 Origin 標頭但不在受信任清單中，直接拒絕 (Chrome PNA & OWASP CSRF 防禦)
+    if (origin && !ALLOWED_PRINT_ORIGINS.has(origin)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: false,
+        error: 'Forbidden',
+        message: `Origin '${origin}' is not authorized to access OneSoul Print Agent`,
+      }));
+      return;
+    }
+
     const host = req.headers.host || `${DEFAULT_HOST}:${DEFAULT_PORT}`;
     const url = new URL(req.url || '/', `http://${host}`);
     const pathname = url.pathname;

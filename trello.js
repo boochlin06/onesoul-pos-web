@@ -34,7 +34,8 @@ function _getTrelloConfig() {
   return {
     TRELLO_API_KEY: props.getProperty('TRELLO_API_KEY'),
     TRELLO_API_TOKEN: props.getProperty('TRELLO_API_TOKEN'),
-    TRELLO_LIST_ID: props.getProperty('TRELLO_LIST_ID')
+    TRELLO_LIST_ID: props.getProperty('TRELLO_LIST_ID'),
+    TRELLO_ENABLE: (props.getProperty('TRELLO_ENABLE') || 'TRUE').toUpperCase()
   };
 }
 
@@ -45,6 +46,7 @@ function _getTrelloConfig() {
  * - TRELLO_API_KEY
  * - TRELLO_API_TOKEN
  * - TRELLO_LIST_ID
+ * - TRELLO_ENABLE (可選，預設 TRUE)
  */
 function setupTrelloConfigs() {
   var props = PropertiesService.getScriptProperties();
