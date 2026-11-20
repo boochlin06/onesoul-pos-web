@@ -327,7 +327,7 @@ function verifyGoogleIdToken_(idToken) {
 
 // ── 緊急通知 API ──────────────────────────────────────────
 
-var ADMIN_EMAILS = ['onesoul.chupei@gmail.com', 'gamejeffjeff@gmail.com'];
+var ADMIN_EMAILS = ['onesoul.chupei@gmail.com', 'admin@onesoul.com.tw'];
 var NOTICE_KEY = 'EMERGENCY_NOTICE';
 
 

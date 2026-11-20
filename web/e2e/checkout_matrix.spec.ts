@@ -7,10 +7,10 @@ test.describe('POS 收銀結帳全場景 E2E 驗收測試 (Checkout Matrix)', ()
     // 設置白名單店員身分並以 JWT 偽造身分通過身分閘門
     await page.goto(BASE);
     await page.evaluate(() => {
-      const fakePayload = btoa(JSON.stringify({ email: 'gamejeffjeff@gmail.com', exp: 9999999999 }));
+      const fakePayload = btoa(JSON.stringify({ email: 'admin@onesoul.com.tw', exp: 9999999999 }));
       const fakeToken = `fake.${fakePayload}.fake`;
       sessionStorage.setItem('os_auth_user', JSON.stringify({
-        email: 'gamejeffjeff@gmail.com',
+        email: 'admin@onesoul.com.tw',
         name: 'Admin Tester',
         idToken: fakeToken,
         picture: '',

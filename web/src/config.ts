@@ -19,7 +19,7 @@ export const AUTH_ROLES: Record<string, Branch[]> = {
   'onesoul.chupei@gmail.com': ['竹北', '金山'],
   'onesoul.jinsang@gmail.com': ['金山'],
   'onesoul.chupei.user@gmail.com': ['竹北'],
-  'gamejeffjeff@gmail.com': ['竹北', '金山'],
+  'admin@onesoul.com.tw': ['竹北', '金山'],
 };
 
 // ─────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ export function isOperatingHours(): boolean {
 /** 大師帳號 — 可發送緊急通知、看到大師分頁 */
 export const ADMIN_EMAILS = [
   'onesoul.chupei@gmail.com',
-  'gamejeffjeff@gmail.com',
+  'admin@onesoul.com.tw',
 ];
 
 /** 緊急通知輪詢間隔（毫秒） */
