@@ -39,16 +39,24 @@ function _getTrelloConfig() {
 }
 
 /**
- * [一次性小幫手]
- * 寫入 ScriptProperties（避免 Token 還沒放在 Sheet 前系統爛掉）
+ * [設定小幫手]
+ * 檢查與說明 ScriptProperties 設定
+ * 請至 Google Apps Script 專案設定 -> 指令碼屬性 (Script Properties) 設定：
+ * - TRELLO_API_KEY
+ * - TRELLO_API_TOKEN
+ * - TRELLO_LIST_ID
  */
 function setupTrelloConfigs() {
-  PropertiesService.getScriptProperties().setProperties({
-    'TRELLO_API_KEY': '3c5b6a0cf38a0c5c8623f807a5c3b395',
-    'TRELLO_API_TOKEN': 'ATTA02cf3c77f10cc1ec68b891cefb94a09417972e046e804bb9f6177af8800dc16a0CB091DE',
-    'TRELLO_LIST_ID': '6612d75d6792f7a36bf294a4'
-  });
-  console.log('[Trello] 成功將設定檔寫入 ScriptProperties。');
+  var props = PropertiesService.getScriptProperties();
+  var apiKey = props.getProperty('TRELLO_API_KEY');
+  var apiToken = props.getProperty('TRELLO_API_TOKEN');
+  var listId = props.getProperty('TRELLO_LIST_ID');
+  
+  if (!apiKey || !apiToken || !listId) {
+    console.warn('[Trello] 尚未完整設定 TRELLO_API_KEY / TRELLO_API_TOKEN / TRELLO_LIST_ID，請至 Script Properties 中配置。');
+  } else {
+    console.log('[Trello] ScriptProperties 設定正常。');
+  }
 }
 
 /**
